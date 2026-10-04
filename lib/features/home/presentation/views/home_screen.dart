@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
+import '../../../../core/constants/app_assets.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/connectivity_service.dart';
 import '../../../../core/widgets/widgets.dart';
@@ -18,199 +19,295 @@ class HomeScreen extends ConsumerWidget {
 
     return AppScaffold(
       backgroundColor: Colors.white,
-      statusBarColor: Colors.white,
-      statusBarIconBrightness: Brightness.dark,
-      appBar: AppAppBar(
-        backgroundColor: Colors.white,
-        centerTitle: false,
-        titleSpacing: 16.0,
-        titleWidget: Row(
+      safeAreaTop: false,
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+      appBar: null,
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Avatar inisial
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: AppColors.brandSoftCream,
-                shape: BoxShape.circle,
-                border: Border.all(color: AppColors.brandBorder),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                (user?.name.isNotEmpty ?? false)
-                    ? user!.name[0].toUpperCase()
-                    : 'U',
-                style: const TextStyle(
-                  fontFamily: 'PlusJakartaSans',
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.brandPrimary,
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            // Info Nama & Role
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
+            // 1. Header Background Gambar Aspek Video (16:9) Mencakup Status Bar & App Bar Area
+            AspectRatio(
+              aspectRatio: 16 / 9,
+              child: Stack(
+                fit: StackFit.expand,
                 children: [
-                  Text(
-                    user?.name ?? 'Pengguna Halala Food',
-                    style: const TextStyle(
-                      fontFamily: 'PlusJakartaSans',
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.brandEspresso,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  // Gambar Background Aspek Video
+                  Image.asset(
+                    AppAssets.whyChooseUs,
+                    fit: BoxFit.cover,
                   ),
-                  const SizedBox(height: 2),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 6,
-                        height: 6,
-                        decoration: const BoxDecoration(
-                          color: AppColors.brandNaturalGreen,
-                          shape: BoxShape.circle,
+                  // Dark Gradient Overlay untuk kontras teks & icon status bar
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withValues(alpha: 0.72),
+                          Colors.black.withValues(alpha: 0.28),
+                          Colors.black.withValues(alpha: 0.65),
+                        ],
+                        stops: const [0.0, 0.45, 1.0],
+                      ),
+                    ),
+                  ),
+                  // Konten Header dalam SafeArea top
+                  SafeArea(
+                    bottom: false,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            // Avatar inisial dengan border putih dan shadow
+                            Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 2.2,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.35),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ],
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                (user?.name.isNotEmpty ?? false)
+                                    ? user!.name[0].toUpperCase()
+                                    : 'U',
+                                style: const TextStyle(
+                                  fontFamily: 'PlusJakartaSans',
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.brandPrimary,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+
+                            // Info Nama & Role (Teks bersih tanpa badge)
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    user?.name ?? 'Pengguna Halala Food',
+                                    style: TextStyle(
+                                      fontFamily: 'PlusJakartaSans',
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.white,
+                                      shadows: [
+                                        Shadow(
+                                          color: Colors.black.withValues(alpha: 0.8),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 1),
+                                        ),
+                                      ],
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        width: 6,
+                                        height: 6,
+                                        decoration: const BoxDecoration(
+                                          color: AppColors.brandNaturalGreen,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Flexible(
+                                        child: Text(
+                                          _formatRoleName(user),
+                                          style: TextStyle(
+                                            fontFamily: 'PlusJakartaSans',
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w500,
+                                            color: Colors.white.withValues(alpha: 0.90),
+                                            shadows: [
+                                              Shadow(
+                                                color: Colors.black.withValues(alpha: 0.8),
+                                                blurRadius: 6,
+                                                offset: const Offset(0, 1),
+                                              ),
+                                            ],
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+
+                            // Tombol Dropdown Menu Akun (Frosted circular button)
+                            AppDropdownMenu<String>(
+                              tooltip: 'Menu Akun',
+                              triggerWidget: Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.35),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.35),
+                                    width: 1.2,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.25),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                alignment: Alignment.center,
+                                child: const Icon(
+                                  TablerIcons.dots_vertical,
+                                  size: 20,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              items: const [
+                                AppDropdownItem(
+                                  value: 'profile',
+                                  label: 'Profil Saya',
+                                  icon: TablerIcons.user,
+                                  isDividerAfter: true,
+                                ),
+                                AppDropdownItem(
+                                  value: 'logout',
+                                  label: 'Keluar dari aplikasi',
+                                  icon: TablerIcons.logout,
+                                  isDestructive: true,
+                                ),
+                              ],
+                              onSelected: (value) {
+                                if (value == 'profile') {
+                                  _showProfileDialog(context, user);
+                                } else if (value == 'logout') {
+                                  _confirmLogout(context, ref);
+                                }
+                              },
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(width: 6),
-                      Flexible(
-                        child: Text(
-                          _formatRoleName(user),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // 2. Section Konten Utama (flat tanpa rounded)
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Status bar konektivitas (jika offline)
+                  connectivityAsync.when(
+                    data: (results) {
+                      final isConnected = results.isNotEmpty;
+                      if (isConnected) return const SizedBox.shrink();
+
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: AppColors.error.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: AppColors.error.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(
+                              TablerIcons.wifi_off,
+                              size: 19,
+                              color: AppColors.error,
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              'Tidak Ada Koneksi Internet',
+                              style: TextStyle(
+                                fontFamily: 'PlusJakartaSans',
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.error,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, __) => const SizedBox.shrink(),
+                  ),
+
+                  // Section Header Menu
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Menu Utama',
+                        style: TextStyle(
+                          fontFamily: 'PlusJakartaSans',
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.brandEspresso,
+                        ),
+                      ),
+                      if (user != null)
+                        Text(
+                          '${_getAccessibleMenus(user).length} Menu',
                           style: const TextStyle(
                             fontFamily: 'PlusJakartaSans',
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                             color: AppColors.brandWarmGray,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
                     ],
                   ),
+                  const SizedBox(height: 12),
+
+                  // Section Menu: Grid 4 Kolom Tanpa Card Pembungkus
+                  if (user != null)
+                    _buildFourColumnMenuGrid(context, user)
+                  else
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(24.0),
+                        child: CircularProgressIndicator(color: AppColors.brandPrimary),
+                      ),
+                    ),
                 ],
               ),
             ),
-          ],
-        ),
-        actions: [
-          // Widget Core Dropdown Menu (Profil Saya & Keluar dari aplikasi)
-          AppDropdownMenu<String>(
-            tooltip: 'Menu Akun',
-            items: const [
-              AppDropdownItem(
-                value: 'profile',
-                label: 'Profil Saya',
-                icon: TablerIcons.user,
-                isDividerAfter: true,
-              ),
-              AppDropdownItem(
-                value: 'logout',
-                label: 'Keluar dari aplikasi',
-                icon: TablerIcons.logout,
-                isDestructive: true,
-              ),
-            ],
-            onSelected: (value) {
-              if (value == 'profile') {
-                _showProfileDialog(context, user);
-              } else if (value == 'logout') {
-                _confirmLogout(context, ref);
-              }
-            },
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Status bar konektivitas (jika offline)
-            connectivityAsync.when(
-              data: (results) {
-                final isConnected = results.isNotEmpty;
-                if (isConnected) return const SizedBox.shrink();
-
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 16),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: AppColors.error.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: AppColors.error.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: Row(
-                    children: const [
-                      Icon(
-                        TablerIcons.wifi_off,
-                        size: 19,
-                        color: AppColors.error,
-                      ),
-                      SizedBox(width: 8),
-                      Text(
-                        'Tidak Ada Koneksi Internet',
-                        style: TextStyle(
-                          fontFamily: 'PlusJakartaSans',
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.error,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-              loading: () => const SizedBox.shrink(),
-              error: (_, __) => const SizedBox.shrink(),
-            ),
-
-            // Section Header Menu
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Menu Utama',
-                  style: TextStyle(
-                    fontFamily: 'PlusJakartaSans',
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.brandEspresso,
-                  ),
-                ),
-                if (user != null)
-                  Text(
-                    '${_getAccessibleMenus(user).length} Menu',
-                    style: const TextStyle(
-                      fontFamily: 'PlusJakartaSans',
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.brandWarmGray,
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // Section Menu: Grid 4 Kolom Tanpa Card Pembungkus
-            if (user != null)
-              _buildFourColumnMenuGrid(context, user)
-            else
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(24.0),
-                  child: CircularProgressIndicator(color: AppColors.brandPrimary),
-                ),
-              ),
           ],
         ),
       ),
@@ -249,13 +346,14 @@ class HomeScreen extends ConsumerWidget {
     }
 
     return GridView.builder(
+      padding: EdgeInsets.zero,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 4,
-        mainAxisSpacing: 18,
+        mainAxisSpacing: 16,
         crossAxisSpacing: 10,
-        mainAxisExtent: 92, // tinggi konsisten setiap item
+        mainAxisExtent: 90, // tinggi konsisten setiap item
       ),
       itemCount: accessibleMenus.length,
       itemBuilder: (context, index) {
