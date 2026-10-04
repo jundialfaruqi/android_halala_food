@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../constants/app_colors.dart';
 
 class AppStatusBar extends StatelessWidget {
   final Widget child;
@@ -28,7 +27,7 @@ class AppStatusBar extends StatelessWidget {
             ? Brightness.light
             : Brightness.dark, // iOS
         systemNavigationBarColor:
-            navigationBarColor ?? AppColors.background,
+            navigationBarColor ?? Colors.white,
         systemNavigationBarIconBrightness: navigationBarIconBrightness,
         systemNavigationBarDividerColor: Colors.transparent,
       ),

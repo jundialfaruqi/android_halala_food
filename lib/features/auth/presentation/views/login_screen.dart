@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
 import '../../../../core/constants/app_assets.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/widgets.dart';
@@ -40,16 +41,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     ref.listen<AuthState>(authViewModelProvider, (previous, next) {
       if (next.status == AuthStatus.error && next.errorMessage != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              next.errorMessage!,
-              style: const TextStyle(fontFamily: 'PlusJakartaSans'),
-            ),
-            backgroundColor: AppColors.error,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        AppSnackBar.showError(context, message: next.errorMessage!);
       }
     });
 
@@ -78,7 +70,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
-                        Icons.storefront_rounded,
+                        TablerIcons.building_store,
                         size: 40,
                         color: AppColors.brandPrimary,
                       ),
@@ -115,7 +107,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   hintText: 'nama@email.com',
                   keyboardType: TextInputType.emailAddress,
                   prefixIcon: const Icon(
-                    Icons.email_outlined,
+                    TablerIcons.mail,
                     color: AppColors.brandWarmGray,
                     size: 20,
                   ),
@@ -140,7 +132,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   textInputAction: TextInputAction.done,
                   onFieldSubmitted: (_) => _handleLogin(),
                   prefixIcon: const Icon(
-                    Icons.lock_outline_rounded,
+                    TablerIcons.lock,
                     color: AppColors.brandWarmGray,
                     size: 20,
                   ),

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/constants/app_assets.dart';
+import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/connectivity_service.dart';
 import '../../../../core/widgets/widgets.dart';
+import '../../../auth/data/models/user_model.dart';
 import '../../../auth/presentation/viewmodels/auth_viewmodel.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -12,59 +13,157 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authViewModelProvider);
+    final user = authState.user;
     final connectivityAsync = ref.watch(connectivityStatusProvider);
 
     return AppScaffold(
+      backgroundColor: Colors.white,
+      statusBarColor: Colors.white,
+      statusBarIconBrightness: Brightness.dark,
       appBar: AppAppBar(
-        showLogo: true,
-        title: 'Halala Food',
+        backgroundColor: Colors.white,
+        centerTitle: false,
+        titleSpacing: 16.0,
+        titleWidget: Row(
+          children: [
+            // Avatar inisial
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: AppColors.brandSoftCream,
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.brandBorder),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                (user?.name.isNotEmpty ?? false)
+                    ? user!.name[0].toUpperCase()
+                    : 'U',
+                style: const TextStyle(
+                  fontFamily: 'PlusJakartaSans',
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.brandPrimary,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Info Nama & Role
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    user?.name ?? 'Pengguna Halala Food',
+                    style: const TextStyle(
+                      fontFamily: 'PlusJakartaSans',
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.brandEspresso,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: const BoxDecoration(
+                          color: AppColors.brandNaturalGreen,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          _formatRoleName(user),
+                          style: const TextStyle(
+                            fontFamily: 'PlusJakartaSans',
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.brandWarmGray,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.logout_rounded, color: AppColors.brandEspresso),
-            tooltip: 'Logout',
-            onPressed: () async {
-              await ref.read(authViewModelProvider.notifier).logout();
+          // Widget Core Dropdown Menu (Profil Saya & Keluar dari aplikasi)
+          AppDropdownMenu<String>(
+            tooltip: 'Menu Akun',
+            items: const [
+              AppDropdownItem(
+                value: 'profile',
+                label: 'Profil Saya',
+                icon: TablerIcons.user,
+                isDividerAfter: true,
+              ),
+              AppDropdownItem(
+                value: 'logout',
+                label: 'Keluar dari aplikasi',
+                icon: TablerIcons.logout,
+                isDestructive: true,
+              ),
+            ],
+            onSelected: (value) {
+              if (value == 'profile') {
+                _showProfileDialog(context, user);
+              } else if (value == 'logout') {
+                _confirmLogout(context, ref);
+              }
             },
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Status bar konektivitas
+            // Status bar konektivitas (jika offline)
             connectivityAsync.when(
               data: (results) {
                 final isConnected = results.isNotEmpty;
+                if (isConnected) return const SizedBox.shrink();
+
                 return Container(
+                  margin: const EdgeInsets.only(bottom: 16),
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
-                    color: isConnected
-                        ? AppColors.brandNaturalGreen.withValues(alpha: 0.12)
-                        : AppColors.error.withValues(alpha: 0.12),
+                    color: AppColors.error.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                      color: isConnected
-                          ? AppColors.brandNaturalGreen.withValues(alpha: 0.3)
-                          : AppColors.error.withValues(alpha: 0.3),
+                      color: AppColors.error.withValues(alpha: 0.3),
                     ),
                   ),
                   child: Row(
-                    children: [
+                    children: const [
                       Icon(
-                        isConnected ? Icons.wifi_rounded : Icons.wifi_off_rounded,
-                        size: 18,
-                        color: isConnected ? AppColors.brandNaturalGreen : AppColors.error,
+                        TablerIcons.wifi_off,
+                        size: 19,
+                        color: AppColors.error,
                       ),
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8),
                       Text(
-                        isConnected ? 'Terhubung ke Jaringan' : 'Tidak Ada Koneksi Internet',
+                        'Tidak Ada Koneksi Internet',
                         style: TextStyle(
                           fontFamily: 'PlusJakartaSans',
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: isConnected ? AppColors.brandNaturalGreen : AppColors.error,
+                          color: AppColors.error,
                         ),
                       ),
                     ],
@@ -74,176 +173,282 @@ class HomeScreen extends ConsumerWidget {
               loading: () => const SizedBox.shrink(),
               error: (_, __) => const SizedBox.shrink(),
             ),
-            const SizedBox(height: 20),
 
-            // Profile Card menggunakan AppCard
-            AppCard(
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 28,
-                    backgroundColor: AppColors.brandSoftCream,
-                    child: Text(
-                      (authState.user?.name.isNotEmpty ?? false)
-                          ? authState.user!.name[0].toUpperCase()
-                          : 'H',
-                      style: const TextStyle(
-                        fontFamily: 'PlusJakartaSans',
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.brandPrimary,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          authState.user?.name ?? 'Pengguna Halala Food',
-                          style: const TextStyle(
-                            fontFamily: 'PlusJakartaSans',
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.brandEspresso,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          authState.user?.email ?? 'admin@halalafood.com',
-                          style: const TextStyle(
-                            fontFamily: 'PlusJakartaSans',
-                            fontSize: 13,
-                            color: AppColors.brandWarmGray,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Banner Hero Products
-            ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Image.asset(
-                AppAssets.heroProducts,
-                height: 180,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Bagian Produk Unggulan
-            const Text(
-              'Produk Unggulan Kami',
-              style: TextStyle(
-                fontFamily: 'PlusJakartaSans',
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.brandEspresso,
-              ),
-            ),
-            const SizedBox(height: 12),
-
+            // Section Header Menu
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(
-                  child: _buildProductCard(
-                    title: 'Merie Wijen',
-                    imageAsset: AppAssets.marieWijen,
+                const Text(
+                  'Menu Utama',
+                  style: TextStyle(
+                    fontFamily: 'PlusJakartaSans',
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.brandEspresso,
                   ),
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: _buildProductCard(
-                    title: 'Ting-Ting Susu',
-                    imageAsset: AppAssets.tingTingSusu,
+                if (user != null)
+                  Text(
+                    '${_getAccessibleMenus(user).length} Menu',
+                    style: const TextStyle(
+                      fontFamily: 'PlusJakartaSans',
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.brandWarmGray,
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 28),
-
-            // Demo Skeleton Shimmer & Cache Image
-            const Text(
-              'Skeleton Shimmer & Cache Image Demo',
-              style: TextStyle(
-                fontFamily: 'PlusJakartaSans',
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppColors.brandEspresso,
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            Row(
-              children: const [
-                ShimmerLoading.circular(size: 46),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      ShimmerLoading(width: double.infinity, height: 14),
-                      SizedBox(height: 8),
-                      ShimmerLoading(width: 130, height: 12),
-                    ],
-                  ),
-                ),
               ],
             ),
             const SizedBox(height: 16),
 
-            const AppCachedImage(
-              imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c',
-              height: 140,
-              width: double.infinity,
-              borderRadius: 12,
-            ),
+            // Section Menu: Grid 4 Kolom Tanpa Card Pembungkus
+            if (user != null)
+              _buildFourColumnMenuGrid(context, user)
+            else
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(24.0),
+                  child: CircularProgressIndicator(color: AppColors.brandPrimary),
+                ),
+              ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildProductCard({
-    required String title,
-    required String imageAsset,
-  }) {
-    return AppCard(
-      padding: EdgeInsets.zero,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
-            child: Image.asset(
-              imageAsset,
-              height: 110,
-              width: double.infinity,
-              fit: BoxFit.cover,
-            ),
+  /// Menampilkan grid menu 4 kolom tanpa card pembungkus
+  Widget _buildFourColumnMenuGrid(BuildContext context, UserModel user) {
+    final accessibleMenus = _getAccessibleMenus(user);
+
+    if (accessibleMenus.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 32.0),
+          child: Column(
+            children: const [
+              Icon(
+                TablerIcons.lock_access,
+                size: 48,
+                color: AppColors.brandWarmGray,
+              ),
+              SizedBox(height: 12),
+              Text(
+                'Belum ada menu yang diberikan izin untuk akun ini.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: 'PlusJakartaSans',
+                  fontSize: 14,
+                  color: AppColors.brandWarmGray,
+                ),
+              ),
+            ],
           ),
-          Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Text(
-              title,
-              style: const TextStyle(
+        ),
+      );
+    }
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 4,
+        mainAxisSpacing: 18,
+        crossAxisSpacing: 10,
+        mainAxisExtent: 88, // tinggi konsisten setiap item
+      ),
+      itemCount: accessibleMenus.length,
+      itemBuilder: (context, index) {
+        final menu = accessibleMenus[index];
+        return InkWell(
+          onTap: () {
+            // Menggunakan Material 3 AppSnackBar dengan countdown progress circle
+            AppSnackBar.showInfo(
+              context,
+              message: 'Membuka menu ${menu.title}',
+            );
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Icon container tanpa card pembungkus
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: AppColors.brandSoftCream,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                alignment: Alignment.center,
+                child: Icon(
+                  menu.icon,
+                  color: AppColors.brandPrimary,
+                  size: 26,
+                ),
+              ),
+              const SizedBox(height: 6),
+              // Label menu di bawah icon
+              Text(
+                menu.title,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontFamily: 'PlusJakartaSans',
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.brandEspresso,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// Daftar menu yang disesuaikan dengan permission Spatie backend
+  List<({String title, IconData icon, String permission})> _getAccessibleMenus(
+      UserModel user) {
+    final List<({String title, IconData icon, String permission})> allMenus = [
+      (title: 'Dashboard', icon: TablerIcons.dashboard, permission: 'dashboard-view'),
+      (title: 'Produk', icon: TablerIcons.box, permission: 'produk-view'),
+      (title: 'Pengantaran', icon: TablerIcons.truck, permission: 'pengantaran-view'),
+      (title: 'Faktur', icon: TablerIcons.file_invoice, permission: 'faktur-view'),
+      (title: 'Mitra Toko', icon: TablerIcons.building_store, permission: 'toko-view'),
+      (title: 'Produksi', icon: TablerIcons.tools, permission: 'produksi-view'),
+      (title: 'Bahan Baku', icon: TablerIcons.packages, permission: 'bahan-baku-view'),
+      (title: 'Buku Kas', icon: TablerIcons.wallet, permission: 'buku-kas-view'),
+      (title: 'Pembelian', icon: TablerIcons.shopping_cart, permission: 'pembelian-view'),
+      (title: 'Laporan', icon: TablerIcons.chart_histogram, permission: 'laporan-view'),
+      (title: 'Pengguna', icon: TablerIcons.users, permission: 'user-manage'),
+      (title: 'Pengaturan', icon: TablerIcons.settings, permission: 'pengaturan-view'),
+    ];
+
+    return allMenus
+        .where((menu) => user.hasPermission(menu.permission))
+        .toList();
+  }
+
+  String _formatRoleName(UserModel? user) {
+    if (user == null || user.roles.isEmpty) return 'Staff';
+    final role = user.roles.first.toLowerCase();
+    switch (role) {
+      case 'dev':
+        return 'Developer / Super Admin';
+      case 'manager':
+        return 'Manager Operasional';
+      case 'kurir':
+        return 'Kurir Pengantaran';
+      default:
+        return user.roles.first.toUpperCase();
+    }
+  }
+
+  void _showProfileDialog(BuildContext context, UserModel? user) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: const [
+            Icon(TablerIcons.user, size: 22, color: AppColors.brandPrimary),
+            SizedBox(width: 10),
+            Text(
+              'Profil Saya',
+              style: TextStyle(
                 fontFamily: 'PlusJakartaSans',
-                fontSize: 14,
                 fontWeight: FontWeight.bold,
                 color: AppColors.brandEspresso,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildProfileRow('Nama', user?.name ?? '-'),
+            const SizedBox(height: 10),
+            _buildProfileRow('Email', user?.email ?? '-'),
+            const SizedBox(height: 10),
+            _buildProfileRow('Nomor Telepon', user?.phone ?? '-'),
+            const SizedBox(height: 10),
+            _buildProfileRow('Role', _formatRoleName(user)),
+            const SizedBox(height: 10),
+            _buildProfileRow(
+              'Total Hak Akses',
+              user?.roles.contains('dev') ?? false
+                  ? 'Semua Akses (Super Admin)'
+                  : '${user?.permissions.length ?? 0} Permissions',
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text(
+              'Tutup',
+              style: TextStyle(
+                fontFamily: 'PlusJakartaSans',
+                fontWeight: FontWeight.w600,
+                color: AppColors.brandPrimary,
               ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildProfileRow(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontFamily: 'PlusJakartaSans',
+            fontSize: 12,
+            color: AppColors.brandWarmGray,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: const TextStyle(
+            fontFamily: 'PlusJakartaSans',
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: AppColors.brandEspresso,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Memanggil widget core AppConfirmDialog untuk logout
+  void _confirmLogout(BuildContext context, WidgetRef ref) {
+    AppConfirmDialog.show(
+      context,
+      title: 'Keluar dari Aplikasi',
+      message: 'Apakah Anda yakin ingin keluar dari akun Halala Food?',
+      confirmText: 'Keluar',
+      cancelText: 'Batal',
+      icon: TablerIcons.logout_2,
+      isDanger: true,
+      onConfirm: () async {
+        await ref.read(authViewModelProvider.notifier).logout();
+        if (context.mounted) {
+          AppSnackBar.showSuccess(
+            context,
+            message: 'Anda telah berhasil keluar.',
+          );
+        }
+      },
     );
   }
 }

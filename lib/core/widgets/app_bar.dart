@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
 import '../constants/app_assets.dart';
 import '../constants/app_colors.dart';
 
@@ -15,6 +17,8 @@ class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool centerTitle;
   final double elevation;
   final bool showBottomBorder;
+  final double? titleSpacing;
+  final SystemUiOverlayStyle? systemOverlayStyle;
 
   const AppAppBar({
     super.key,
@@ -25,11 +29,13 @@ class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.automaticallyImplyLeading = true,
     this.actions,
     this.bottom,
-    this.backgroundColor = AppColors.surface,
+    this.backgroundColor = Colors.white,
     this.foregroundColor = AppColors.brandEspresso,
-    this.centerTitle = true,
+    this.centerTitle = false,
     this.elevation = 0,
     this.showBottomBorder = true,
+    this.titleSpacing,
+    this.systemOverlayStyle,
   });
 
   @override
@@ -87,7 +93,7 @@ class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
         automaticallyImplyLeading &&
         Navigator.of(context).canPop()) {
       leadingWidget = IconButton(
-        icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+        icon: const Icon(TablerIcons.chevron_left, size: 22),
         color: foregroundColor,
         tooltip: 'Kembali',
         onPressed: () => Navigator.of(context).maybePop(),
@@ -109,6 +115,7 @@ class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
       child: AppBar(
         title: computedTitle,
         centerTitle: centerTitle,
+        titleSpacing: titleSpacing,
         leading: leadingWidget,
         automaticallyImplyLeading: false,
         actions: actions,
@@ -117,6 +124,12 @@ class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
         foregroundColor: foregroundColor,
         elevation: elevation,
         scrolledUnderElevation: 0,
+        systemOverlayStyle: systemOverlayStyle ??
+            const SystemUiOverlayStyle(
+              statusBarColor: Colors.transparent,
+              statusBarIconBrightness: Brightness.dark, // Icon hitam di Android
+              statusBarBrightness: Brightness.light,    // Icon hitam di iOS
+            ),
       ),
     );
   }

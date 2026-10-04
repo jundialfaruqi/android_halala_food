@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
 import '../constants/app_colors.dart';
 
 class AppTextField extends StatefulWidget {
@@ -53,7 +54,7 @@ class _AppTextFieldState extends State<AppTextField> {
     if (widget.isPassword) {
       computedSuffixIcon = IconButton(
         icon: Icon(
-          _obscureText ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+          _obscureText ? TablerIcons.eye : TablerIcons.eye_off,
           color: AppColors.brandWarmGray,
           size: 20,
         ),

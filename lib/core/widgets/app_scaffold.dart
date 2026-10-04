@@ -29,7 +29,7 @@ class AppScaffold extends StatelessWidget {
     this.floatingActionButtonLocation,
     this.drawer,
     this.endDrawer,
-    this.backgroundColor = AppColors.background,
+    this.backgroundColor = Colors.white,
     this.safeAreaTop = true,
     this.safeAreaBottom = true,
     this.unfocusOnTap = true,

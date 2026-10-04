@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../constants/app_colors.dart';
 
 class AppTheme {
@@ -27,12 +28,17 @@ class AppTheme {
         error: AppColors.error,
         brightness: Brightness.light,
       ),
-      scaffoldBackgroundColor: AppColors.background,
+      scaffoldBackgroundColor: Colors.white,
       appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.surface,
+        backgroundColor: Colors.white,
         foregroundColor: AppColors.brandEspresso,
         elevation: 0,
-        centerTitle: true,
+        centerTitle: false,
+        systemOverlayStyle: SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.dark,
+          statusBarBrightness: Brightness.light,
+        ),
         titleTextStyle: TextStyle(
           fontFamily: fontFamily,
           color: AppColors.brandEspresso,
