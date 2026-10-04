@@ -17,6 +17,8 @@ class AppTextField extends StatefulWidget {
   final TextInputAction textInputAction;
   final ValueChanged<String>? onFieldSubmitted;
 
+  final String? errorText;
+
   const AppTextField({
     super.key,
     this.controller,
@@ -32,6 +34,7 @@ class AppTextField extends StatefulWidget {
     this.maxLines = 1,
     this.textInputAction = TextInputAction.next,
     this.onFieldSubmitted,
+    this.errorText,
   });
 
   @override
@@ -100,6 +103,14 @@ class _AppTextFieldState extends State<AppTextField> {
             hintText: widget.hintText,
             prefixIcon: widget.prefixIcon,
             suffixIcon: computedSuffixIcon,
+            errorText: widget.errorText,
+            errorMaxLines: 3,
+            errorStyle: const TextStyle(
+              fontFamily: 'PlusJakartaSans',
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: AppColors.error,
+            ),
           ),
         ),
       ],

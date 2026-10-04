@@ -196,18 +196,14 @@ class _TopSnackBarOverlayState extends State<_TopSnackBarOverlay>
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: _accentColor.withValues(alpha: 0.35),
-                        width: 1.2,
-                      ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.09),
-                          blurRadius: 18,
+                          color: Colors.black.withValues(alpha: 0.10),
+                          blurRadius: 20,
                           offset: const Offset(0, 6),
                         ),
                         BoxShadow(
-                          color: _accentColor.withValues(alpha: 0.06),
+                          color: Colors.black.withValues(alpha: 0.04),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -246,13 +242,13 @@ class _TopSnackBarOverlayState extends State<_TopSnackBarOverlay>
                             children: [
                               Row(
                                 children: [
-                                  Text(
+                                  const Text(
                                     'Halala Food',
                                     style: TextStyle(
                                       fontFamily: 'PlusJakartaSans',
                                       fontSize: 12,
                                       fontWeight: FontWeight.w700,
-                                      color: _accentColor,
+                                      color: AppColors.brandPrimary,
                                     ),
                                   ),
                                   const SizedBox(width: 6),
@@ -260,7 +256,7 @@ class _TopSnackBarOverlayState extends State<_TopSnackBarOverlay>
                                     width: 4,
                                     height: 4,
                                     decoration: BoxDecoration(
-                                      color: _accentColor,
+                                      color: AppColors.brandWarmGray.withValues(alpha: 0.5),
                                       shape: BoxShape.circle,
                                     ),
                                   ),

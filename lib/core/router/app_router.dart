@@ -21,9 +21,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final isSplash = currentLoc == AppRoutes.splash;
       final isLoggingIn = currentLoc == AppRoutes.login;
 
-      // 1. Saat masih initial / loading checking auth status
-      if (authState.status == AuthStatus.initial ||
-          authState.status == AuthStatus.loading) {
+      // 1. Saat masih initial status (aplikasi baru dibuka, sedang cek auth di splash screen)
+      if (authState.status == AuthStatus.initial) {
         return isSplash ? null : AppRoutes.splash;
       }
 
@@ -35,7 +34,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return null; // biarkan menuju route yang dituju
       }
 
-      // 3. Jika belum login (unauthenticated / error)
+      // 3. Jika sedang loading (misal: memproses login di LoginScreen)
+      if (authState.isLoading) {
+        return isSplash ? null : null;
+      }
+
+      // 4. Jika belum login (unauthenticated / error)
       if (!isLoggingIn) {
         return AppRoutes.login;
       }

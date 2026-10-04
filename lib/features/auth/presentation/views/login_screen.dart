@@ -18,20 +18,56 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  String? _emailInlineError;
+  AutovalidateMode _autoValidateMode = AutovalidateMode.disabled;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController.addListener(_onInputChanged);
+    _passwordController.addListener(_onInputChanged);
+  }
+
+  void _onInputChanged() {
+    if (_emailInlineError != null) {
+      setState(() {
+        _emailInlineError = null;
+      });
+    }
+    AppSnackBar.hide();
+  }
 
   @override
   void dispose() {
+    _emailController.removeListener(_onInputChanged);
+    _passwordController.removeListener(_onInputChanged);
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
   Future<void> _handleLogin() async {
+    setState(() {
+      _emailInlineError = null;
+      _autoValidateMode = AutovalidateMode.onUserInteraction;
+    });
+
     if (_formKey.currentState!.validate()) {
-      await ref.read(authViewModelProvider.notifier).login(
+      final success = await ref
+          .read(authViewModelProvider.notifier)
+          .login(
             email: _emailController.text.trim(),
             password: _passwordController.text,
           );
+
+      if (!success && mounted) {
+        final errorMsg = ref.read(authViewModelProvider).errorMessage ??
+            'Email atau password yang Anda masukkan salah.';
+        setState(() {
+          _emailInlineError = errorMsg;
+        });
+        AppSnackBar.showError(context, message: errorMsg);
+      }
     }
   }
 
@@ -40,8 +76,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final authState = ref.watch(authViewModelProvider);
 
     ref.listen<AuthState>(authViewModelProvider, (previous, next) {
-      if (next.status == AuthStatus.error && next.errorMessage != null) {
-        AppSnackBar.showError(context, message: next.errorMessage!);
+      if (next.status == AuthStatus.authenticated) {
+        setState(() {
+          _emailInlineError = null;
+        });
       }
     });
 
@@ -51,6 +89,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 28.0),
           child: Form(
             key: _formKey,
+            autovalidateMode: _autoValidateMode,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -77,17 +116,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
-                const Text(
-                  'Halala Food',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: 'PlusJakartaSans',
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.brandEspresso,
-                  ),
-                ),
                 const SizedBox(height: 8),
                 const Text(
                   'Silakan masuk dengan akun Halala Food Anda',
@@ -106,6 +134,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   labelText: 'Email',
                   hintText: 'nama@email.com',
                   keyboardType: TextInputType.emailAddress,
+                  errorText: _emailInlineError,
+                  onChanged: (_) => _onInputChanged(),
                   prefixIcon: const Icon(
                     TablerIcons.mail,
                     color: AppColors.brandWarmGray,
@@ -123,7 +153,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
                 const SizedBox(height: 18),
 
-                // Password Input via AppTextField
+                // Password Input via AppTextField (inline error hanya di email)
                 AppTextField(
                   controller: _passwordController,
                   labelText: 'Password',
@@ -131,6 +161,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   isPassword: true,
                   textInputAction: TextInputAction.done,
                   onFieldSubmitted: (_) => _handleLogin(),
+                  onChanged: (_) => _onInputChanged(),
                   prefixIcon: const Icon(
                     TablerIcons.lock,
                     color: AppColors.brandWarmGray,
