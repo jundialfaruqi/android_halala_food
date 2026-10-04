@@ -171,4 +171,19 @@ class StoreViewModel extends Notifier<StoreState> {
     );
     fetchStores(refresh: true);
   }
+
+  /// Update data toko mitra dan perbarui state lokal secara reaktif
+  Future<StoreModel> updateStore({
+    required int id,
+    required Map<String, dynamic> data,
+  }) async {
+    final updatedStore = await _repository.updateStore(id, data);
+
+    final updatedStores = state.stores.map((s) {
+      return s.id == id ? updatedStore : s;
+    }).toList();
+
+    state = state.copyWith(stores: updatedStores);
+    return updatedStore;
+  }
 }

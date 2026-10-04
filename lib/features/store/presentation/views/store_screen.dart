@@ -7,6 +7,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../data/models/store_model.dart';
 import '../viewmodels/store_viewmodel.dart';
+import 'store_edit_screen.dart';
 
 /// Halaman Daftar Toko Mitra Halala Food yang dibangun 100% menggunakan seluruh Widget Core Global.
 class StoreScreen extends ConsumerStatefulWidget {
@@ -974,11 +975,33 @@ class _StoreScreenState extends ConsumerState<StoreScreen> {
                   _buildDetailRow('Catatan Khusus', store.notes!),
                 ],
                 const SizedBox(height: 20),
-                AppButton(
-                  text: 'Tutup',
-                  variant: AppButtonVariant.outline,
-                  height: 44,
-                  onPressed: () => Navigator.of(context).pop(),
+                Row(
+                  children: [
+                    Expanded(
+                      child: AppButton(
+                        text: 'Tutup',
+                        variant: AppButtonVariant.outline,
+                        height: 44,
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: AppButton(
+                        text: 'Ubah Data',
+                        icon: const Icon(
+                          TablerIcons.pencil,
+                          size: 16,
+                          color: Colors.white,
+                        ),
+                        height: 44,
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          _onEditStore(context, store);
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -1086,30 +1109,18 @@ class _StoreScreenState extends ConsumerState<StoreScreen> {
     }
   }
 
-  /// Action Dummy Tombol Ubah Toko Mitra
-  void _onEditStore(BuildContext context, StoreModel store) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(TablerIcons.info_circle, color: Colors.white, size: 20),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                'Fitur Ubah Toko "${store.name}" sedang dalam pengembangan.',
-                style: const TextStyle(
-                  fontFamily: 'PlusJakartaSans',
-                  fontSize: 13,
-                ),
-              ),
-            ),
-          ],
-        ),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: AppColors.brandEspresso,
-        duration: const Duration(seconds: 2),
+  /// Action Tombol Ubah Toko Mitra -> Buka Halaman Formulir Edit Toko Mitra
+  Future<void> _onEditStore(BuildContext context, StoreModel store) async {
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (routeContext) => StoreEditScreen(store: store),
       ),
     );
+
+    if (result == true && mounted) {
+      // Refresh list agar data terbaru terupdate
+      ref.read(storeViewModelProvider.notifier).fetchStores(refresh: true);
+    }
   }
 
   /// Action Dummy Tombol Hapus Toko Mitra

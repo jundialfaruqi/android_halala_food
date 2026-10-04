@@ -11,4 +11,6 @@ abstract class StoreRepository {
   Future<List<String>> getRoutes();
 
   Future<StoreModel> getStoreDetail(int id);
+
+  Future<StoreModel> updateStore(int id, Map<String, dynamic> data);
 }

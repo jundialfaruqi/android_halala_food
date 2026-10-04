@@ -19,6 +19,8 @@ abstract class StoreRemoteDataSource {
   Future<List<String>> getRoutes();
 
   Future<StoreModel> getStoreDetail(int id);
+
+  Future<StoreModel> updateStore(int id, Map<String, dynamic> data);
 }
 
 class StoreRemoteDataSourceImpl implements StoreRemoteDataSource {
@@ -107,5 +109,18 @@ class StoreRemoteDataSourceImpl implements StoreRemoteDataSource {
         : response;
 
     return StoreModel.fromJson(data as Map<String, dynamic>);
+  }
+
+  @override
+  Future<StoreModel> updateStore(int id, Map<String, dynamic> data) async {
+    final response = await _dioClient.put(
+      '${ApiEndpoints.stores}/$id',
+      data: data,
+    );
+    final responseData = (response is Map<String, dynamic> && response.containsKey('data'))
+        ? response['data']
+        : response;
+
+    return StoreModel.fromJson(responseData as Map<String, dynamic>);
   }
 }
