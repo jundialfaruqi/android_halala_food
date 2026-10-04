@@ -540,141 +540,70 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  /// Card statistik ringkasan operasional Halala Food dengan efek stacked 3 card
+  /// Card statistik ringkasan operasional Halala Food dengan widget core AppCard.stacked
   Widget _buildStatsCard() {
-    return Stack(
-      clipBehavior: Clip.none,
-      alignment: Alignment.topCenter,
-      children: [
-        // Layer 3: Card Paling Belakang / Terbawah (Paling Sempit & Mengintip Paling Bawah)
-        Positioned(
-          top: 10,
-          bottom: 0,
-          left: 22,
-          right: 22,
-          child: Container(
-            decoration: BoxDecoration(
-              color: AppColors.brandSoftCreamLight,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.brandBorder),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 8,
-                  offset: const Offset(0, 3),
+    return AppCard.stacked(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Header ringkasan
+          Row(
+            children: const [
+              Icon(
+                TablerIcons.chart_pie,
+                size: 16,
+                color: AppColors.brandPrimary,
+              ),
+              SizedBox(width: 7),
+              Text(
+                'Ringkasan Hari Ini',
+                style: TextStyle(
+                  fontFamily: 'PlusJakartaSans',
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.brandEspresso,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ),
+          const SizedBox(height: 10),
+          const Divider(height: 1, color: AppColors.brandBorder),
+          const SizedBox(height: 12),
 
-        // Layer 2: Card Tengah (Mengintip Di Antara Card Utama & Belakang)
-        Positioned(
-          top: 5,
-          bottom: 5,
-          left: 11,
-          right: 11,
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.brandBorder),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
+          // 3 Kolom Metrik Statistik Bisnis Halala Food (Space Evenly, Rata Kiri)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildStatColumn(
+                icon: TablerIcons.coin,
+                label: 'Penjualan',
+                value: 'Rp 4,8 Jt',
+              ),
+              Container(
+                width: 1,
+                height: 38,
+                color: AppColors.brandBorder,
+              ),
+              _buildStatColumn(
+                icon: TablerIcons.packages,
+                label: 'Produksi',
+                value: '180 Box',
+              ),
+              Container(
+                width: 1,
+                height: 38,
+                color: AppColors.brandBorder,
+              ),
+              _buildStatColumn(
+                icon: TablerIcons.truck_delivery,
+                label: 'Pengantaran',
+                value: '14 Toko',
+              ),
+            ],
           ),
-        ),
-
-        // Layer 1: Card Utama (Terdepan & Konten Lengkap)
-        Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.brandBorder),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.08),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6),
-                ),
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.03),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Header ringkasan
-                Row(
-                  children: const [
-                    Icon(
-                      TablerIcons.chart_pie,
-                      size: 16,
-                      color: AppColors.brandPrimary,
-                    ),
-                    SizedBox(width: 7),
-                    Text(
-                      'Ringkasan Hari Ini',
-                      style: TextStyle(
-                        fontFamily: 'PlusJakartaSans',
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.brandEspresso,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                const Divider(height: 1, color: AppColors.brandBorder),
-                const SizedBox(height: 12),
-
-                // 3 Kolom Metrik Statistik Bisnis Halala Food (Space Evenly, Rata Kiri)
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildStatColumn(
-                      icon: TablerIcons.coin,
-                      label: 'Penjualan',
-                      value: 'Rp 4,8 Jt',
-                    ),
-                    Container(
-                      width: 1,
-                      height: 38,
-                      color: AppColors.brandBorder,
-                    ),
-                    _buildStatColumn(
-                      icon: TablerIcons.packages,
-                      label: 'Produksi',
-                      value: '180 Box',
-                    ),
-                    Container(
-                      width: 1,
-                      height: 38,
-                      color: AppColors.brandBorder,
-                    ),
-                    _buildStatColumn(
-                      icon: TablerIcons.truck_delivery,
-                      label: 'Pengantaran',
-                      value: '14 Toko',
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
