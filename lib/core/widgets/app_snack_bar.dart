@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../constants/app_assets.dart';
 import '../constants/app_colors.dart';
+import '../router/app_router.dart';
 
 enum SnackBarType { info, success, error }
 
@@ -9,14 +10,18 @@ class AppSnackBar {
   static bool _isShowing = false;
 
   static void show(
-    BuildContext context, {
+    BuildContext? context, {
     required String message,
     SnackBarType type = SnackBarType.info,
     Duration duration = const Duration(seconds: 4),
   }) {
     hide();
 
-    final overlay = Overlay.maybeOf(context, rootOverlay: true);
+    // Utamakan root navigator overlay agar snackbar bertahan antar perpindahan route / halaman
+    final overlay = rootNavigatorKey.currentState?.overlay ??
+        (context != null && context.mounted
+            ? Overlay.maybeOf(context, rootOverlay: true)
+            : null);
     if (overlay == null) return;
 
     _isShowing = true;
@@ -43,7 +48,7 @@ class AppSnackBar {
   }
 
   static void showSuccess(
-    BuildContext context, {
+    BuildContext? context, {
     required String message,
     Duration duration = const Duration(seconds: 4),
   }) {
@@ -51,7 +56,7 @@ class AppSnackBar {
   }
 
   static void showError(
-    BuildContext context, {
+    BuildContext? context, {
     required String message,
     Duration duration = const Duration(seconds: 4),
   }) {
@@ -59,7 +64,7 @@ class AppSnackBar {
   }
 
   static void showInfo(
-    BuildContext context, {
+    BuildContext? context, {
     required String message,
     Duration duration = const Duration(seconds: 4),
   }) {

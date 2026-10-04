@@ -8,10 +8,13 @@ import '../../features/auth/presentation/views/splash_screen.dart';
 import '../../features/home/presentation/views/home_screen.dart';
 import 'app_routes.dart';
 
+final rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'rootNavigator');
+
 final appRouterProvider = Provider<GoRouter>((ref) {
   final routerNotifier = RouterNotifier(ref);
 
   return GoRouter(
+    navigatorKey: rootNavigatorKey,
     initialLocation: AppRoutes.splash,
     refreshListenable: routerNotifier,
     redirect: (context, state) {

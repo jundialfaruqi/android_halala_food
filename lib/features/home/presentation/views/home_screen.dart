@@ -442,12 +442,10 @@ class HomeScreen extends ConsumerWidget {
       isDanger: true,
       onConfirm: () async {
         await ref.read(authViewModelProvider.notifier).logout();
-        if (context.mounted) {
-          AppSnackBar.showSuccess(
-            context,
-            message: 'Anda telah berhasil keluar.',
-          );
-        }
+        AppSnackBar.showSuccess(
+          null,
+          message: 'Anda telah berhasil keluar.',
+        );
       },
     );
   }
