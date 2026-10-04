@@ -114,24 +114,11 @@ class _StoreEditScreenState extends ConsumerState<StoreEditScreen> {
 
   void _showSnackbar(String message, {bool isError = false}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: const TextStyle(
-            fontFamily: 'PlusJakartaSans',
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: isError ? AppColors.error : AppColors.brandNaturalGreen,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        duration: Duration(seconds: isError ? 4 : 2),
-      ),
-    );
+    if (isError) {
+      AppSnackBar.showError(context, message: message, duration: const Duration(seconds: 4));
+    } else {
+      AppSnackBar.showSuccess(context, message: message, duration: const Duration(seconds: 3));
+    }
   }
 
   /// Pilih foto dari Galeri atau Kamera dan kompresi sesuai standar sistem web
