@@ -16,6 +16,9 @@ class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
   final Color foregroundColor;
   final bool centerTitle;
   final double elevation;
+  final double scrolledUnderElevation;
+  final Color? shadowColor;
+  final Color? surfaceTintColor;
   final bool showBottomBorder;
   final double? titleSpacing;
   final SystemUiOverlayStyle? systemOverlayStyle;
@@ -33,7 +36,10 @@ class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.foregroundColor = AppColors.brandEspresso,
     this.centerTitle = false,
     this.elevation = 0,
-    this.showBottomBorder = true,
+    this.scrolledUnderElevation = 3.0,
+    this.shadowColor,
+    this.surfaceTintColor = Colors.transparent,
+    this.showBottomBorder = false,
     this.titleSpacing,
     this.systemOverlayStyle,
   });
@@ -100,37 +106,42 @@ class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
       );
     }
 
-    return Container(
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        border: showBottomBorder
-            ? const Border(
-                bottom: BorderSide(
-                  color: AppColors.brandBorder,
-                  width: 1,
-                ),
-              )
-            : null,
-      ),
-      child: AppBar(
-        title: computedTitle,
-        centerTitle: centerTitle,
-        titleSpacing: titleSpacing,
-        leading: leadingWidget,
-        automaticallyImplyLeading: false,
-        actions: actions,
-        bottom: bottom,
-        backgroundColor: Colors.transparent,
-        foregroundColor: foregroundColor,
-        elevation: elevation,
-        scrolledUnderElevation: 0,
-        systemOverlayStyle: systemOverlayStyle ??
-            const SystemUiOverlayStyle(
-              statusBarColor: Colors.transparent,
-              statusBarIconBrightness: Brightness.dark, // Icon hitam di Android
-              statusBarBrightness: Brightness.light,    // Icon hitam di iOS
-            ),
-      ),
+    final appBarWidget = AppBar(
+      title: computedTitle,
+      centerTitle: centerTitle,
+      titleSpacing: titleSpacing,
+      leading: leadingWidget,
+      automaticallyImplyLeading: false,
+      actions: actions,
+      bottom: bottom,
+      backgroundColor: backgroundColor,
+      foregroundColor: foregroundColor,
+      elevation: elevation,
+      scrolledUnderElevation: scrolledUnderElevation,
+      shadowColor: shadowColor ?? Colors.black.withValues(alpha: 0.12),
+      surfaceTintColor: surfaceTintColor,
+      systemOverlayStyle: systemOverlayStyle ??
+          const SystemUiOverlayStyle(
+            statusBarColor: Colors.transparent,
+            statusBarIconBrightness: Brightness.dark, // Icon hitam di Android
+            statusBarBrightness: Brightness.light,    // Icon hitam di iOS
+          ),
     );
+
+    if (showBottomBorder) {
+      return Container(
+        decoration: const BoxDecoration(
+          border: Border(
+            bottom: BorderSide(
+              color: AppColors.brandBorder,
+              width: 1,
+            ),
+          ),
+        ),
+        child: appBarWidget,
+      );
+    }
+
+    return appBarWidget;
   }
 }

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
 import '../constants/app_colors.dart';
 import 'app_button.dart';
 
@@ -8,7 +7,7 @@ class AppConfirmDialog extends StatelessWidget {
   final String message;
   final String confirmText;
   final String cancelText;
-  final IconData icon;
+  final IconData? icon;
   final bool isDanger;
   final VoidCallback onConfirm;
   final VoidCallback? onCancel;
@@ -19,7 +18,7 @@ class AppConfirmDialog extends StatelessWidget {
     required this.message,
     this.confirmText = 'Konfirmasi',
     this.cancelText = 'Batal',
-    this.icon = TablerIcons.alert_triangle,
+    this.icon,
     this.isDanger = false,
     required this.onConfirm,
     this.onCancel,
@@ -31,7 +30,7 @@ class AppConfirmDialog extends StatelessWidget {
     required String message,
     String confirmText = 'Konfirmasi',
     String cancelText = 'Batal',
-    IconData icon = TablerIcons.alert_triangle,
+    IconData? icon,
     bool isDanger = false,
     required VoidCallback onConfirm,
     VoidCallback? onCancel,
@@ -60,8 +59,6 @@ class AppConfirmDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveColor = isDanger ? AppColors.error : AppColors.brandPrimary;
-
     return Dialog(
       backgroundColor: Colors.white,
       surfaceTintColor: Colors.transparent,
@@ -73,23 +70,6 @@ class AppConfirmDialog extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Icon Container
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: effectiveColor.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              alignment: Alignment.center,
-              child: Icon(
-                icon,
-                color: effectiveColor,
-                size: 28,
-              ),
-            ),
-            const SizedBox(height: 16),
-
             // Title
             Text(
               title,

@@ -255,7 +255,7 @@ class HomeScreen extends ConsumerWidget {
         crossAxisCount: 4,
         mainAxisSpacing: 18,
         crossAxisSpacing: 10,
-        mainAxisExtent: 88, // tinggi konsisten setiap item
+        mainAxisExtent: 92, // tinggi konsisten setiap item
       ),
       itemCount: accessibleMenus.length,
       itemBuilder: (context, index) {
@@ -268,27 +268,38 @@ class HomeScreen extends ConsumerWidget {
               message: 'Membuka menu ${menu.title}',
             );
           },
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Icon container tanpa card pembungkus
+              // Icon container rounded circle dengan efek shadow hitam solid brutalism UI
               Container(
                 width: 52,
                 height: 52,
                 decoration: BoxDecoration(
                   color: AppColors.brandSoftCream,
-                  borderRadius: BorderRadius.circular(14),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.black,
+                    width: 1.5,
+                  ),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Colors.black,
+                      offset: Offset(2.5, 2.5),
+                      blurRadius: 0,
+                    ),
+                  ],
                 ),
                 alignment: Alignment.center,
                 child: Icon(
                   menu.icon,
                   color: AppColors.brandPrimary,
-                  size: 26,
+                  size: 25,
                 ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               // Label menu di bawah icon
               Text(
                 menu.title,
@@ -438,7 +449,6 @@ class HomeScreen extends ConsumerWidget {
       message: 'Apakah Anda yakin ingin keluar dari akun Halala Food?',
       confirmText: 'Keluar',
       cancelText: 'Batal',
-      icon: TablerIcons.logout_2,
       isDanger: true,
       onConfirm: () async {
         await ref.read(authViewModelProvider.notifier).logout();
