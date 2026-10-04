@@ -16,6 +16,7 @@ class AppTextField extends StatefulWidget {
   final int maxLines;
   final TextInputAction textInputAction;
   final ValueChanged<String>? onFieldSubmitted;
+  final FocusNode? focusNode;
 
   final String? errorText;
 
@@ -34,6 +35,7 @@ class AppTextField extends StatefulWidget {
     this.maxLines = 1,
     this.textInputAction = TextInputAction.next,
     this.onFieldSubmitted,
+    this.focusNode,
     this.errorText,
   });
 
@@ -86,6 +88,7 @@ class _AppTextFieldState extends State<AppTextField> {
         ],
         TextFormField(
           controller: widget.controller,
+          focusNode: widget.focusNode,
           obscureText: _obscureText,
           keyboardType: widget.keyboardType,
           validator: widget.validator,

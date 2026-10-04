@@ -55,6 +55,13 @@ class _StoreEditScreenState extends ConsumerState<StoreEditScreen> {
   bool _isGettingLocation = false;
   bool _isProcessingPhoto = false;
 
+  // Live search peta
+  final TextEditingController _mapSearchController = TextEditingController();
+  final Dio _searchDio = Dio();
+  List<Map<String, dynamic>> _mapSearchResults = [];
+  bool _isMapSearching = false;
+  final FocusNode _mapSearchFocus = FocusNode();
+
   String? _photoDataUrl; // Base64 dataURL baru atau 'DELETE'
   String? _existingPhotoUrl; // URL foto dari backend
   String? _photoCompressionInfo; // Ukuran kompresi (misal: "1.4 MB ➔ 52 KB")
@@ -100,7 +107,58 @@ class _StoreEditScreenState extends ConsumerState<StoreEditScreen> {
     _latitudeController.dispose();
     _longitudeController.dispose();
     _notesController.dispose();
+    _mapSearchController.dispose();
+    _mapSearchFocus.dispose();
     super.dispose();
+  }
+
+  /// Live search Nominatim untuk peta inline
+  Future<void> _searchMapLocation(String query) async {
+    final q = query.trim();
+    if (q.isEmpty) {
+      setState(() => _mapSearchResults = []);
+      return;
+    }
+    setState(() => _isMapSearching = true);
+    try {
+      final resp = await _searchDio.get(
+        'https://nominatim.openstreetmap.org/search',
+        queryParameters: {
+          'q': q,
+          'format': 'json',
+          'limit': 5,
+          'countrycodes': 'id',
+        },
+        options: Options(headers: <String, String>{
+          'User-Agent': 'HalalaFoodAndroidApp/1.0 (contact: admin@halala-food.id)',
+        }),
+      );
+      if (resp.statusCode == 200 && resp.data is List) {
+        setState(() {
+          _mapSearchResults = (resp.data as List).cast<Map<String, dynamic>>();
+        });
+      }
+    } catch (_) {
+      // abaikan error sementara
+    } finally {
+      if (mounted) setState(() => _isMapSearching = false);
+    }
+  }
+
+  void _selectMapSearchResult(Map<String, dynamic> item) {
+    final lat = double.tryParse(item['lat']?.toString() ?? '');
+    final lon = double.tryParse(item['lon']?.toString() ?? '');
+    if (lat != null && lon != null) {
+      final point = LatLng(lat, lon);
+      setState(() {
+        _latitudeController.text = lat.toStringAsFixed(6);
+        _longitudeController.text = lon.toStringAsFixed(6);
+        _mapSearchResults = [];
+        _mapSearchController.text = item['display_name']?.toString() ?? '';
+      });
+      _mapController.move(point, 16.0);
+      _mapSearchFocus.unfocus();
+    }
   }
 
   LatLng _getCurrentLatLng() {
@@ -436,7 +494,8 @@ class _StoreEditScreenState extends ConsumerState<StoreEditScreen> {
       backgroundColor: Colors.white,
       appBar: const AppAppBar(
         title: 'Ubah Data Toko',
-        showBottomBorder: true,
+        showBottomBorder: false,
+        scrolledUnderElevation: 2,
       ),
       bottomNavigationBar: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -689,6 +748,11 @@ class _StoreEditScreenState extends ConsumerState<StoreEditScreen> {
               ),
 
               const SizedBox(height: 12),
+
+              // Live Search Field di atas Peta
+              _buildMapSearchField(),
+
+              const SizedBox(height: 8),
 
               // Peta Leaflet Interaktif Tertanam di Form (Seperti di Web)
               Container(
@@ -1062,6 +1126,111 @@ class _StoreEditScreenState extends ConsumerState<StoreEditScreen> {
             ),
           ],
         ),
+      ],
+    );
+  }
+
+  /// Widget live search input di atas peta (mirip web Halala Food)
+  Widget _buildMapSearchField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Search Input menggunakan AppTextField core widget
+        AppTextField(
+          controller: _mapSearchController,
+          focusNode: _mapSearchFocus,
+          hintText: 'Cari nama jalan, patokan, atau area...',
+          textInputAction: TextInputAction.search,
+          prefixIcon: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 12),
+            child: Icon(
+              TablerIcons.search,
+              size: 18,
+              color: AppColors.brandWarmGray,
+            ),
+          ),
+          suffixIcon: _isMapSearching
+              ? const Padding(
+                  padding: EdgeInsets.all(12),
+                  child: SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.brandPrimary,
+                    ),
+                  ),
+                )
+              : _mapSearchController.text.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(TablerIcons.x, size: 16),
+                      color: AppColors.brandWarmGray,
+                      onPressed: () {
+                        _mapSearchController.clear();
+                        setState(() => _mapSearchResults = []);
+                      },
+                    )
+                  : null,
+          onChanged: (val) {
+            if (val.trim().length >= 3) {
+              _searchMapLocation(val);
+            } else if (val.trim().isEmpty) {
+              setState(() => _mapSearchResults = []);
+            }
+          },
+          onFieldSubmitted: _searchMapLocation,
+        ),
+
+        // Dropdown Hasil Pencarian
+        if (_mapSearchResults.isNotEmpty)
+          Container(
+            margin: const EdgeInsets.only(top: 4),
+            constraints: const BoxConstraints(maxHeight: 200),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.brandBorder),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: ListView.separated(
+              shrinkWrap: true,
+              padding: EdgeInsets.zero,
+              itemCount: _mapSearchResults.length,
+              separatorBuilder: (_, __) => const Divider(
+                height: 1,
+                color: AppColors.brandBorder,
+              ),
+              itemBuilder: (context, index) {
+                final item = _mapSearchResults[index];
+                return ListTile(
+                  dense: true,
+                  leading: const Icon(
+                    TablerIcons.map_pin,
+                    size: 16,
+                    color: AppColors.brandPrimary,
+                  ),
+                  title: Text(
+                    item['display_name']?.toString() ?? '',
+                    style: const TextStyle(
+                      fontFamily: 'PlusJakartaSans',
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.brandEspresso,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  onTap: () => _selectMapSearchResult(item),
+                );
+              },
+            ),
+          ),
       ],
     );
   }
