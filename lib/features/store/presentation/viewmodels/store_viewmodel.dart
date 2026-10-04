@@ -186,4 +186,26 @@ class StoreViewModel extends Notifier<StoreState> {
     state = state.copyWith(stores: updatedStores);
     return updatedStore;
   }
+
+  /// Tambah data toko mitra baru dan refresh daftar toko
+  Future<StoreModel> createStore(Map<String, dynamic> data) async {
+    final newStore = await _repository.createStore(data);
+    await fetchStores(refresh: true);
+    await fetchRoutes();
+    return newStore;
+  }
+
+  /// Hapus data toko mitra dan perbarui state lokal secara reaktif
+  Future<void> deleteStore(int id) async {
+    await _repository.deleteStore(id);
+    final updatedStores = state.stores.where((s) => s.id != id).toList();
+    final currentTotal = state.pagination?.total ?? state.stores.length;
+    state = state.copyWith(
+      stores: updatedStores,
+      pagination: state.pagination?.copyWith(
+        total: currentTotal > 0 ? currentTotal - 1 : 0,
+      ),
+    );
+    await fetchRoutes();
+  }
 }

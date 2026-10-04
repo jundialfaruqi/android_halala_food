@@ -105,6 +105,22 @@ class StorePaginationModel {
       hasMore: json['has_more'] == true || json['has_more'] == 1,
     );
   }
+
+  StorePaginationModel copyWith({
+    int? currentPage,
+    int? lastPage,
+    int? perPage,
+    int? total,
+    bool? hasMore,
+  }) {
+    return StorePaginationModel(
+      currentPage: currentPage ?? this.currentPage,
+      lastPage: lastPage ?? this.lastPage,
+      perPage: perPage ?? this.perPage,
+      total: total ?? this.total,
+      hasMore: hasMore ?? this.hasMore,
+    );
+  }
 }
 
 class StoreListResult {

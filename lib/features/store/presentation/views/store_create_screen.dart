@@ -11,36 +11,25 @@ import 'package:latlong2/latlong.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/widgets.dart';
-import '../../data/models/store_model.dart';
 import '../utils/store_photo_compressor.dart';
 import '../viewmodels/store_viewmodel.dart';
 import 'store_map_picker_screen.dart';
 
-/// Halaman Formulir Ubah Data Toko Mitra
-/// Desain bersih (clean), flat (tanpa card pembungkus), minimalis.
-/// Dilengkapi:
-/// 1. Peta Leaflet interaktif langsung di formulir dengan Leaflet tile yang tidak terblokir
-/// 2. Pencarian tempat & layar penuh peta
-/// 3. Ambil Lokasi GPS langsung dari perangkat
-/// 4. Upload & Kompresi Foto Toko yang 100% konsisten dengan standar web Halala Food (max 10MB, resize 1200px, kompresi <=80KB, format base64 DataURL, target path 'foto-toko/')
-class StoreEditScreen extends ConsumerStatefulWidget {
-  final StoreModel store;
-
-  const StoreEditScreen({
-    super.key,
-    required this.store,
-  });
+/// Halaman Formulir Tambah Data Toko Mitra Baru
+/// Desain 100% konsisten dan identik dengan Formulir Ubah Data Toko (clean, flat, minimalis).
+class StoreCreateScreen extends ConsumerStatefulWidget {
+  const StoreCreateScreen({super.key});
 
   @override
-  ConsumerState<StoreEditScreen> createState() => _StoreEditScreenState();
+  ConsumerState<StoreCreateScreen> createState() => _StoreCreateScreenState();
 }
 
-class _StoreEditScreenState extends ConsumerState<StoreEditScreen> {
+class _StoreCreateScreenState extends ConsumerState<StoreCreateScreen> {
   final _formKey = GlobalKey<FormState>();
-  final ImagePicker _imagePicker = ImagePicker();
-  late final MapController _mapController;
 
-  static const LatLng _defaultPosition = LatLng(-7.983908, 112.630852);
+  late final MapController _mapController;
+  static const LatLng _defaultPosition =
+      LatLng(-7.983908, 112.621391); // Default Alun-alun Kota Malang
 
   late final TextEditingController _nameController;
   late final TextEditingController _ownerNameController;
@@ -51,7 +40,7 @@ class _StoreEditScreenState extends ConsumerState<StoreEditScreen> {
   late final TextEditingController _longitudeController;
   late final TextEditingController _notesController;
 
-  late bool _isActive;
+  bool _isActive = true;
   bool _isSubmitting = false;
   bool _isGettingLocation = false;
   bool _isProcessingPhoto = false;
@@ -66,38 +55,22 @@ class _StoreEditScreenState extends ConsumerState<StoreEditScreen> {
   CancelToken? _searchCancelToken;
   final FocusNode _mapSearchFocus = FocusNode();
 
-  String? _photoDataUrl; // Base64 dataURL baru atau 'DELETE'
-  String? _existingPhotoUrl; // URL foto dari backend
+  String? _photoDataUrl; // Base64 dataURL baru
   String? _photoCompressionInfo; // Ukuran kompresi (misal: "1.4 MB ➔ 52 KB")
 
   @override
   void initState() {
     super.initState();
-    final store = widget.store;
     _mapController = MapController();
 
-    _nameController = TextEditingController(text: store.name);
-    _ownerNameController = TextEditingController(text: store.ownerName ?? '');
-
-    String displayPhone = store.phone ?? '';
-    if (displayPhone.startsWith('62')) {
-      displayPhone = displayPhone.substring(2);
-    } else if (displayPhone.startsWith('0')) {
-      displayPhone = displayPhone.substring(1);
-    }
-    _phoneController = TextEditingController(text: displayPhone);
-
-    _addressController = TextEditingController(text: store.address ?? '');
-    _routeController = TextEditingController(text: store.route ?? '');
-    _latitudeController = TextEditingController(
-      text: store.latitude != null ? store.latitude.toString() : '',
-    );
-    _longitudeController = TextEditingController(
-      text: store.longitude != null ? store.longitude.toString() : '',
-    );
-    _notesController = TextEditingController(text: store.notes ?? '');
-    _isActive = store.isActive;
-    _existingPhotoUrl = store.photoUrl;
+    _nameController = TextEditingController();
+    _ownerNameController = TextEditingController();
+    _phoneController = TextEditingController();
+    _addressController = TextEditingController();
+    _routeController = TextEditingController();
+    _latitudeController = TextEditingController();
+    _longitudeController = TextEditingController();
+    _notesController = TextEditingController();
   }
 
   @override
@@ -118,7 +91,7 @@ class _StoreEditScreenState extends ConsumerState<StoreEditScreen> {
     super.dispose();
   }
 
-  /// Live search Nominatim untuk peta inline dengan CancelToken & error handling
+  /// Live search Nominatim untuk peta inline dengan CancelToken & debounce
   Future<void> _searchMapLocation(String query) async {
     final q = query.trim();
     if (q.isEmpty) {
@@ -152,7 +125,8 @@ class _StoreEditScreenState extends ConsumerState<StoreEditScreen> {
         },
         options: Options(
           headers: <String, String>{
-            'User-Agent': 'HalalaFoodAndroidApp/1.0 (contact: admin@halala-food.id)',
+            'User-Agent':
+                'HalalaFoodAndroidApp/1.0 (contact: admin@halala-food.id)',
             'Accept-Language': 'id,en',
           },
           receiveTimeout: const Duration(seconds: 8),
@@ -171,7 +145,8 @@ class _StoreEditScreenState extends ConsumerState<StoreEditScreen> {
         }
       }
     } catch (e) {
-      if (mounted && e is! DioException || (e is DioException && e.type != DioExceptionType.cancel)) {
+      if (mounted &&
+          (e is! DioException || e.type != DioExceptionType.cancel)) {
         setState(() {
           _searchHasNoResults = true;
         });
@@ -210,19 +185,29 @@ class _StoreEditScreenState extends ConsumerState<StoreEditScreen> {
   void _showSnackbar(String message, {bool isError = false}) {
     if (!mounted) return;
     if (isError) {
-      AppSnackBar.showError(context, message: message, duration: const Duration(seconds: 4));
+      AppSnackBar.showError(
+        context,
+        message: message,
+        duration: const Duration(seconds: 4),
+      );
     } else {
-      AppSnackBar.showSuccess(context, message: message, duration: const Duration(seconds: 3));
+      AppSnackBar.showSuccess(
+        context,
+        message: message,
+        duration: const Duration(seconds: 3),
+      );
     }
   }
 
-  /// Pilih foto dari Galeri atau Kamera dan kompresi sesuai standar sistem web
-  Future<void> _pickAndCompressPhoto(ImageSource source) async {
+  /// Memilih foto dari Galeri atau Kamera dan mengompresinya
+  Future<void> _pickAndProcessPhoto(ImageSource source) async {
     try {
-      final XFile? file = await _imagePicker.pickImage(
+      final picker = ImagePicker();
+      final file = await picker.pickImage(
         source: source,
         maxWidth: 2400,
         maxHeight: 2400,
+        imageQuality: 90,
       );
 
       if (file == null) return;
@@ -262,11 +247,10 @@ class _StoreEditScreenState extends ConsumerState<StoreEditScreen> {
 
   void _removePhoto() {
     setState(() {
-      _photoDataUrl = 'DELETE';
-      _existingPhotoUrl = null;
+      _photoDataUrl = null;
       _photoCompressionInfo = null;
     });
-    _showSnackbar('Foto toko ditandai untuk dihapus.');
+    _showSnackbar('Foto toko dihapus.');
   }
 
   /// Buka dialog pemilihan sumber foto (Galeri atau Kamera)
@@ -317,10 +301,10 @@ class _StoreEditScreenState extends ConsumerState<StoreEditScreen> {
                 ),
                 onTap: () {
                   Navigator.pop(ctx);
-                  _pickAndCompressPhoto(ImageSource.camera);
+                  _pickAndProcessPhoto(ImageSource.camera);
                 },
               ),
-              const Divider(color: AppColors.brandBorder),
+              const Divider(height: 1),
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: Container(
@@ -344,7 +328,7 @@ class _StoreEditScreenState extends ConsumerState<StoreEditScreen> {
                 ),
                 onTap: () {
                   Navigator.pop(ctx);
-                  _pickAndCompressPhoto(ImageSource.gallery);
+                  _pickAndProcessPhoto(ImageSource.gallery);
                 },
               ),
             ],
@@ -364,7 +348,9 @@ class _StoreEditScreenState extends ConsumerState<StoreEditScreen> {
         builder: (context) => StoreMapPickerScreen(
           initialLatitude: curLat,
           initialLongitude: curLng,
-          initialStoreName: _nameController.text.trim(),
+          initialStoreName: _nameController.text.trim().isNotEmpty
+              ? _nameController.text.trim()
+              : 'Toko Baru',
         ),
       ),
     );
@@ -392,7 +378,10 @@ class _StoreEditScreenState extends ConsumerState<StoreEditScreen> {
     try {
       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        _showSnackbar('GPS belum aktif. Silakan aktifkan GPS perangkat Anda.', isError: true);
+        _showSnackbar(
+          'GPS belum aktif. Silakan aktifkan GPS perangkat Anda.',
+          isError: true,
+        );
         return;
       }
 
@@ -489,25 +478,26 @@ class _StoreEditScreenState extends ConsumerState<StoreEditScreen> {
     }
 
     try {
-      final updated = await ref
+      final created = await ref
           .read(storeViewModelProvider.notifier)
-          .updateStore(id: widget.store.id, data: payload);
+          .createStore(payload);
 
       if (!mounted) return;
 
-      _showSnackbar('Perubahan data toko "${updated.name}" berhasil disimpan.');
+      _showSnackbar('Toko mitra "${created.name}" berhasil ditambahkan.');
       Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;
 
-      String errorMessage = 'Gagal menyimpan perubahan data toko mitra.';
+      String errorMessage = 'Gagal menambahkan toko mitra baru.';
       if (e is DioException) {
         if (e.response?.statusCode == 403) {
           errorMessage =
-              'Anda tidak memiliki izin untuk mengubah data toko mitra.';
+              'Anda tidak memiliki izin untuk menambahkan toko mitra baru.';
         } else if (e.response?.data is Map &&
             e.response?.data['message'] != null) {
-          errorMessage = e.response?.data['message'].toString() ?? errorMessage;
+          errorMessage =
+              e.response?.data['message'].toString() ?? errorMessage;
         }
       }
 
@@ -530,7 +520,7 @@ class _StoreEditScreenState extends ConsumerState<StoreEditScreen> {
     return AppScaffold(
       backgroundColor: Colors.white,
       appBar: const AppAppBar(
-        title: 'Ubah Data Toko',
+        title: 'Tambah Mitra Toko',
         showBottomBorder: false,
         scrolledUnderElevation: 2,
       ),
@@ -558,7 +548,7 @@ class _StoreEditScreenState extends ConsumerState<StoreEditScreen> {
               Expanded(
                 flex: 2,
                 child: AppButton(
-                  text: 'Simpan Perubahan',
+                  text: 'Simpan Toko Mitra',
                   isLoading: _isSubmitting,
                   onPressed: _isSubmitting ? null : _submitForm,
                 ),
@@ -807,7 +797,7 @@ class _StoreEditScreenState extends ConsumerState<StoreEditScreen> {
 
               const SizedBox(height: 8),
 
-              // Peta Leaflet Interaktif Tertanam di Form (Seperti di Web)
+              // Peta Leaflet Interaktif Tertanam di Form
               Container(
                 height: 200,
                 decoration: BoxDecoration(
@@ -1002,10 +992,7 @@ class _StoreEditScreenState extends ConsumerState<StoreEditScreen> {
 
   /// Widget Section Upload & Preview Foto Toko
   Widget _buildPhotoUploadSection() {
-    final hasNewPhoto = _photoDataUrl != null && _photoDataUrl != 'DELETE';
-    final hasExistingPhoto =
-        _existingPhotoUrl != null && _photoDataUrl != 'DELETE';
-    final isMarkedForDeletion = _photoDataUrl == 'DELETE';
+    final hasNewPhoto = _photoDataUrl != null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1055,18 +1042,13 @@ class _StoreEditScreenState extends ConsumerState<StoreEditScreen> {
                             ),
                             fit: BoxFit.cover,
                           )
-                        : hasExistingPhoto
-                            ? AppCachedImage(
-                                imageUrl: _existingPhotoUrl!,
-                                fit: BoxFit.cover,
-                              )
-                            : const Center(
-                                child: Icon(
-                                  TablerIcons.building_store,
-                                  size: 32,
-                                  color: AppColors.brandWarmGray,
-                                ),
-                              ),
+                        : const Center(
+                            child: Icon(
+                              TablerIcons.building_store,
+                              size: 32,
+                              color: AppColors.brandWarmGray,
+                            ),
+                          ),
               ),
             ),
 
@@ -1099,17 +1081,15 @@ class _StoreEditScreenState extends ConsumerState<StoreEditScreen> {
                             children: [
                               const Icon(
                                 TablerIcons.upload,
-                                size: 16,
+                                size: 15,
                                 color: Colors.white,
                               ),
                               const SizedBox(width: 6),
                               Text(
-                                (hasNewPhoto || hasExistingPhoto)
-                                    ? 'Ganti Foto'
-                                    : 'Pilih Foto',
+                                hasNewPhoto ? 'Ganti Foto' : 'Unggah Foto',
                                 style: const TextStyle(
                                   fontFamily: 'PlusJakartaSans',
-                                  fontSize: 12.5,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                   color: Colors.white,
                                 ),
@@ -1118,62 +1098,62 @@ class _StoreEditScreenState extends ConsumerState<StoreEditScreen> {
                           ),
                         ),
                       ),
-                      if (hasNewPhoto || hasExistingPhoto)
+                      if (hasNewPhoto)
                         InkWell(
                           onTap: _removePhoto,
                           borderRadius: BorderRadius.circular(8),
                           child: Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
+                              horizontal: 10,
                               vertical: 8,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: AppColors.error.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: AppColors.error),
-                            ),
-                            child: const Text(
-                              'Hapus',
-                              style: TextStyle(
-                                fontFamily: 'PlusJakartaSans',
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.error,
+                              border: Border.all(
+                                color: AppColors.error.withValues(alpha: 0.2),
                               ),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  TablerIcons.trash,
+                                  size: 14,
+                                  color: AppColors.error,
+                                ),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Hapus',
+                                  style: TextStyle(
+                                    fontFamily: 'PlusJakartaSans',
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.error,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
                     ],
                   ),
                   const SizedBox(height: 6),
-                  if (_photoCompressionInfo != null)
-                    Text(
-                      'Ukuran: $_photoCompressionInfo',
-                      style: const TextStyle(
-                        fontFamily: 'PlusJakartaSans',
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.brandNaturalGreen,
-                      ),
-                    )
-                  else if (isMarkedForDeletion)
-                    const Text(
-                      'Foto akan dihapus saat disimpan.',
-                      style: TextStyle(
-                        fontFamily: 'PlusJakartaSans',
-                        fontSize: 11.5,
-                        color: AppColors.error,
-                      ),
-                    )
-                  else
-                    const Text(
-                      'Format: JPG, PNG, WEBP. Maks 10MB (otomatis dikompresi).',
-                      style: TextStyle(
-                        fontFamily: 'PlusJakartaSans',
-                        fontSize: 11,
-                        color: AppColors.brandWarmGray,
-                      ),
+                  Text(
+                    _photoCompressionInfo != null
+                        ? 'Terkonversi: $_photoCompressionInfo'
+                        : 'Format JPG, PNG, WEBP (maks. 10 MB)',
+                    style: TextStyle(
+                      fontFamily: 'PlusJakartaSans',
+                      fontSize: 11,
+                      fontWeight: _photoCompressionInfo != null
+                          ? FontWeight.w600
+                          : FontWeight.w400,
+                      color: _photoCompressionInfo != null
+                          ? AppColors.brandNaturalGreen
+                          : AppColors.brandWarmGray,
                     ),
+                  ),
                 ],
               ),
             ),

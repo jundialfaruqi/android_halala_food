@@ -438,7 +438,6 @@ class HomeScreen extends ConsumerWidget {
   List<({String title, IconData icon, String permission})> _getAccessibleMenus(
       UserModel user) {
     final List<({String title, IconData icon, String permission})> allMenus = [
-      (title: 'Dashboard', icon: TablerIcons.dashboard, permission: 'dashboard-view'),
       (title: 'Produk', icon: TablerIcons.box, permission: 'produk-view'),
       (title: 'Pengantaran', icon: TablerIcons.truck, permission: 'pengantaran-view'),
       (title: 'Faktur', icon: TablerIcons.file_invoice, permission: 'faktur-view'),

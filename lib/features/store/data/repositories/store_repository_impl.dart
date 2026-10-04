@@ -43,4 +43,14 @@ class StoreRepositoryImpl implements StoreRepository {
   Future<StoreModel> updateStore(int id, Map<String, dynamic> data) {
     return _remoteDataSource.updateStore(id, data);
   }
+
+  @override
+  Future<StoreModel> createStore(Map<String, dynamic> data) {
+    return _remoteDataSource.createStore(data);
+  }
+
+  @override
+  Future<void> deleteStore(int id) {
+    return _remoteDataSource.deleteStore(id);
+  }
 }

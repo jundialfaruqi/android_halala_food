@@ -13,4 +13,8 @@ abstract class StoreRepository {
   Future<StoreModel> getStoreDetail(int id);
 
   Future<StoreModel> updateStore(int id, Map<String, dynamic> data);
+
+  Future<StoreModel> createStore(Map<String, dynamic> data);
+
+  Future<void> deleteStore(int id);
 }

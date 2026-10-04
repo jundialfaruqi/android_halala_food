@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,8 +6,10 @@ import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/widgets.dart';
+import '../../../auth/presentation/viewmodels/auth_viewmodel.dart';
 import '../../data/models/store_model.dart';
 import '../viewmodels/store_viewmodel.dart';
+import 'store_create_screen.dart';
 import 'store_edit_screen.dart';
 
 /// Halaman Daftar Toko Mitra Halala Food yang dibangun 100% menggunakan seluruh Widget Core Global.
@@ -45,10 +48,20 @@ class _StoreScreenState extends ConsumerState<StoreScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(storeViewModelProvider);
     final notifier = ref.read(storeViewModelProvider.notifier);
+    final authState = ref.watch(authViewModelProvider);
+    final canCreateStore = authState.user?.hasPermission('toko-create') ?? false;
 
     return AppScaffold(
       backgroundColor: Colors.white,
       appBar: const AppAppBar(title: 'Mitra Toko', showBottomBorder: false),
+      floatingActionButton: canCreateStore
+          ? AppFloatingActionButton.extended(
+              onPressed: () => _onCreateStore(context),
+              icon: const Icon(TablerIcons.plus, size: 20),
+              label: 'Tambah Mitra Toko',
+              tooltip: 'Tambah Mitra Toko Baru',
+            )
+          : null,
       body: RefreshIndicator(
         color: AppColors.brandPrimary,
         backgroundColor: Colors.white,
@@ -1109,6 +1122,20 @@ class _StoreScreenState extends ConsumerState<StoreScreen> {
     }
   }
 
+  /// Action Tombol FAB Tambah Mitra Toko -> Buka Halaman Formulir Create Toko Mitra
+  Future<void> _onCreateStore(BuildContext context) async {
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (routeContext) => const StoreCreateScreen(),
+      ),
+    );
+
+    if (result == true && mounted) {
+      // Refresh list agar data toko baru langsung tampil
+      ref.read(storeViewModelProvider.notifier).fetchStores(refresh: true);
+    }
+  }
+
   /// Action Tombol Ubah Toko Mitra -> Buka Halaman Formulir Edit Toko Mitra
   Future<void> _onEditStore(BuildContext context, StoreModel store) async {
     final result = await Navigator.of(context).push<bool>(
@@ -1123,75 +1150,54 @@ class _StoreScreenState extends ConsumerState<StoreScreen> {
     }
   }
 
-  /// Action Dummy Tombol Hapus Toko Mitra
+  /// Action Tombol Hapus Toko Mitra -> Konfirmasi Dialog & Panggil API Hapus Toko
   void _onDeleteStore(BuildContext context, StoreModel store) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(TablerIcons.alert_triangle, color: AppColors.error, size: 22),
-            SizedBox(width: 8),
-            Text(
-              'Hapus Toko Mitra',
-              style: TextStyle(
-                fontFamily: 'PlusJakartaSans',
-                fontSize: 16.5,
-                fontWeight: FontWeight.w700,
-                color: AppColors.brandEspresso,
-              ),
-            ),
-          ],
-        ),
-        content: Text(
-          'Apakah Anda yakin ingin menghapus data "${store.name}"?\n(Aksi ini hanya simulasi dummy)',
-          style: const TextStyle(
-            fontFamily: 'PlusJakartaSans',
-            fontSize: 13.5,
-            color: AppColors.brandWarmGray,
-            height: 1.4,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text(
-              'Batal',
-              style: TextStyle(
-                fontFamily: 'PlusJakartaSans',
-                fontWeight: FontWeight.w600,
-                color: AppColors.brandWarmGray,
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(dialogContext);
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Toko "${store.name}" berhasil dihapus (Demo).',
-                      style: const TextStyle(fontFamily: 'PlusJakartaSans'),
-                    ),
-                    behavior: SnackBarBehavior.floating,
-                    backgroundColor: AppColors.error,
-                  ),
-                );
+    final authState = ref.read(authViewModelProvider);
+    final canDelete = authState.user?.hasPermission('toko-delete') ?? false;
+
+    if (!canDelete) {
+      AppSnackBar.showError(
+        context,
+        message: 'Anda tidak memiliki hak akses untuk menghapus data toko mitra.',
+      );
+      return;
+    }
+
+    AppConfirmDialog.show(
+      context,
+      title: 'Hapus Toko Mitra',
+      message:
+          'Apakah Anda yakin ingin menghapus data "${store.name}"? Data yang dihapus tidak dapat dipulihkan kembali.',
+      confirmText: 'Ya, Hapus',
+      cancelText: 'Batal',
+      isDanger: true,
+      icon: TablerIcons.trash,
+      onConfirm: () async {
+        try {
+          await ref.read(storeViewModelProvider.notifier).deleteStore(store.id);
+          if (context.mounted) {
+            AppSnackBar.showSuccess(
+              context,
+              message: 'Toko mitra "${store.name}" berhasil dihapus.',
+            );
+          }
+        } catch (e) {
+          if (context.mounted) {
+            String errorMessage = 'Gagal menghapus data toko mitra.';
+            if (e is DioException) {
+              if (e.response?.statusCode == 403) {
+                errorMessage =
+                    'Anda tidak memiliki hak akses untuk menghapus data toko mitra.';
+              } else if (e.response?.data is Map &&
+                  e.response?.data['message'] != null) {
+                errorMessage =
+                    e.response?.data['message'].toString() ?? errorMessage;
               }
-            },
-            child: const Text(
-              'Hapus',
-              style: TextStyle(
-                fontFamily: 'PlusJakartaSans',
-                fontWeight: FontWeight.w700,
-                color: AppColors.error,
-              ),
-            ),
-          ),
-        ],
-      ),
+            }
+            AppSnackBar.showError(context, message: errorMessage);
+          }
+        }
+      },
     );
   }
 
