@@ -376,7 +376,7 @@ class HomeScreen extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Icon container rounded circle dengan efek shadow hitam solid brutalism UI
+              // Icon container rounded circle dengan shadow tipis elegan
               Container(
                 width: 52,
                 height: 52,
@@ -384,14 +384,14 @@ class HomeScreen extends ConsumerWidget {
                   color: AppColors.brandSoftCream,
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: Colors.black,
-                    width: 1.5,
+                    color: AppColors.brandBorder,
+                    width: 1,
                   ),
-                  boxShadow: const [
+                  boxShadow: [
                     BoxShadow(
-                      color: Colors.black,
-                      offset: Offset(2.5, 2.5),
-                      blurRadius: 0,
+                      color: Colors.black.withValues(alpha: 0.06),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
                     ),
                   ],
                 ),
@@ -592,15 +592,14 @@ class HomeScreen extends ConsumerWidget {
           const Divider(height: 1, color: AppColors.brandBorder),
           const SizedBox(height: 12),
 
-          // 3 Kolom Metrik Statistik Bisnis Halala Food (Space Between)
+          // 3 Kolom Metrik Statistik Bisnis Halala Food (Space Evenly, Rata Kiri)
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               _buildStatColumn(
                 icon: TablerIcons.coin,
                 label: 'Penjualan',
                 value: 'Rp 4,8 Jt',
-                crossAxisAlignment: CrossAxisAlignment.start,
               ),
               Container(
                 width: 1,
@@ -611,7 +610,6 @@ class HomeScreen extends ConsumerWidget {
                 icon: TablerIcons.packages,
                 label: 'Produksi',
                 value: '180 Box',
-                crossAxisAlignment: CrossAxisAlignment.center,
               ),
               Container(
                 width: 1,
@@ -622,7 +620,6 @@ class HomeScreen extends ConsumerWidget {
                 icon: TablerIcons.truck_delivery,
                 label: 'Pengantaran',
                 value: '14 Toko',
-                crossAxisAlignment: CrossAxisAlignment.end,
               ),
             ],
           ),
@@ -635,11 +632,10 @@ class HomeScreen extends ConsumerWidget {
     required IconData icon,
     required String label,
     required String value,
-    CrossAxisAlignment crossAxisAlignment = CrossAxisAlignment.center,
   }) {
     return Column(
       mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: crossAxisAlignment,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisSize: MainAxisSize.min,
