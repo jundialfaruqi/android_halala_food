@@ -23,293 +23,314 @@ class HomeScreen extends ConsumerWidget {
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.light,
       appBar: null,
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 1. Header Background Gambar Aspek Video (16:9) Mencakup Status Bar & App Bar Area
-            AspectRatio(
-              aspectRatio: 16 / 9,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  // Gambar Background Aspek Video
-                  Image.asset(
-                    AppAssets.whyChooseUs,
-                    fit: BoxFit.cover,
-                  ),
-                  // Dark Gradient Overlay untuk kontras teks & icon status bar
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.black.withValues(alpha: 0.72),
-                          Colors.black.withValues(alpha: 0.28),
-                          Colors.black.withValues(alpha: 0.65),
-                        ],
-                        stops: const [0.0, 0.45, 1.0],
-                      ),
-                    ),
-                  ),
-                  // Konten Header dalam SafeArea top
-                  SafeArea(
-                    bottom: false,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            // Avatar inisial dengan border putih dan shadow
-                            Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Colors.white,
-                                  width: 2.2,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.35),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 3),
-                                  ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final headerHeight = constraints.maxWidth * 9 / 16;
+
+          return SingleChildScrollView(
+            child: Stack(
+              children: [
+                // Layer 1: Background Banner & Konten Halaman
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header Background Gambar Aspek Video (16:9)
+                    AspectRatio(
+                      aspectRatio: 16 / 9,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          // Gambar Background Aspek Video
+                          Image.asset(
+                            AppAssets.whyChooseUs,
+                            fit: BoxFit.cover,
+                          ),
+                          // Dark Gradient Overlay untuk kontras teks & icon status bar
+                          DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Colors.black.withValues(alpha: 0.72),
+                                  Colors.black.withValues(alpha: 0.28),
+                                  Colors.black.withValues(alpha: 0.65),
                                 ],
-                              ),
-                              alignment: Alignment.center,
-                              child: Text(
-                                (user?.name.isNotEmpty ?? false)
-                                    ? user!.name[0].toUpperCase()
-                                    : 'U',
-                                style: const TextStyle(
-                                  fontFamily: 'PlusJakartaSans',
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w800,
-                                  color: AppColors.brandPrimary,
-                                ),
+                                stops: const [0.0, 0.45, 1.0],
                               ),
                             ),
-                            const SizedBox(width: 12),
-
-                            // Info Nama & Role (Teks bersih tanpa badge)
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    user?.name ?? 'Pengguna Halala Food',
-                                    style: TextStyle(
-                                      fontFamily: 'PlusJakartaSans',
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w800,
-                                      color: Colors.white,
-                                      shadows: [
-                                        Shadow(
-                                          color: Colors.black.withValues(alpha: 0.8),
-                                          blurRadius: 8,
-                                          offset: const Offset(0, 1),
+                          ),
+                          // Konten Header dalam SafeArea top
+                          SafeArea(
+                            bottom: false,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    // Avatar inisial dengan border putih dan shadow
+                                    Container(
+                                      width: 44,
+                                      height: 44,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: Colors.white,
+                                          width: 2.2,
                                         ),
-                                      ],
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 3),
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Container(
-                                        width: 6,
-                                        height: 6,
-                                        decoration: const BoxDecoration(
-                                          color: AppColors.brandNaturalGreen,
-                                          shape: BoxShape.circle,
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withValues(alpha: 0.35),
+                                            blurRadius: 10,
+                                            offset: const Offset(0, 3),
+                                          ),
+                                        ],
+                                      ),
+                                      alignment: Alignment.center,
+                                      child: Text(
+                                        (user?.name.isNotEmpty ?? false)
+                                            ? user!.name[0].toUpperCase()
+                                            : 'U',
+                                        style: const TextStyle(
+                                          fontFamily: 'PlusJakartaSans',
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w800,
+                                          color: AppColors.brandPrimary,
                                         ),
                                       ),
-                                      const SizedBox(width: 6),
-                                      Flexible(
-                                        child: Text(
-                                          _formatRoleName(user),
-                                          style: TextStyle(
-                                            fontFamily: 'PlusJakartaSans',
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w500,
-                                            color: Colors.white.withValues(alpha: 0.90),
-                                            shadows: [
-                                              Shadow(
-                                                color: Colors.black.withValues(alpha: 0.8),
-                                                blurRadius: 6,
-                                                offset: const Offset(0, 1),
+                                    ),
+                                    const SizedBox(width: 12),
+
+                                    // Info Nama & Role (Teks bersih tanpa badge)
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            user?.name ?? 'Pengguna Halala Food',
+                                            style: TextStyle(
+                                              fontFamily: 'PlusJakartaSans',
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w800,
+                                              color: Colors.white,
+                                              shadows: [
+                                                Shadow(
+                                                  color: Colors.black.withValues(alpha: 0.8),
+                                                  blurRadius: 8,
+                                                  offset: const Offset(0, 1),
+                                                ),
+                                              ],
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(height: 3),
+                                          Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Container(
+                                                width: 6,
+                                                height: 6,
+                                                decoration: const BoxDecoration(
+                                                  color: AppColors.brandNaturalGreen,
+                                                  shape: BoxShape.circle,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 6),
+                                              Flexible(
+                                                child: Text(
+                                                  _formatRoleName(user),
+                                                  style: TextStyle(
+                                                    fontFamily: 'PlusJakartaSans',
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.w500,
+                                                    color: Colors.white.withValues(alpha: 0.90),
+                                                    shadows: [
+                                                      Shadow(
+                                                        color: Colors.black.withValues(alpha: 0.8),
+                                                        blurRadius: 6,
+                                                        offset: const Offset(0, 1),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
                                               ),
                                             ],
                                           ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+
+                                    // Tombol Dropdown Menu Akun (Frosted circular button)
+                                    AppDropdownMenu<String>(
+                                      tooltip: 'Menu Akun',
+                                      triggerWidget: Container(
+                                        width: 40,
+                                        height: 40,
+                                        decoration: BoxDecoration(
+                                          color: Colors.black.withValues(alpha: 0.35),
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: Colors.white.withValues(alpha: 0.35),
+                                            width: 1.2,
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withValues(alpha: 0.25),
+                                              blurRadius: 6,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ],
+                                        ),
+                                        alignment: Alignment.center,
+                                        child: const Icon(
+                                          TablerIcons.dots_vertical,
+                                          size: 20,
+                                          color: Colors.white,
                                         ),
                                       ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-
-                            // Tombol Dropdown Menu Akun (Frosted circular button)
-                            AppDropdownMenu<String>(
-                              tooltip: 'Menu Akun',
-                              triggerWidget: Container(
-                                width: 40,
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withValues(alpha: 0.35),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: Colors.white.withValues(alpha: 0.35),
-                                    width: 1.2,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.25),
-                                      blurRadius: 6,
-                                      offset: const Offset(0, 2),
+                                      items: const [
+                                        AppDropdownItem(
+                                          value: 'profile',
+                                          label: 'Profil Saya',
+                                          icon: TablerIcons.user,
+                                          isDividerAfter: true,
+                                        ),
+                                        AppDropdownItem(
+                                          value: 'logout',
+                                          label: 'Keluar dari aplikasi',
+                                          icon: TablerIcons.logout,
+                                          isDestructive: true,
+                                        ),
+                                      ],
+                                      onSelected: (value) {
+                                        if (value == 'profile') {
+                                          _showProfileDialog(context, user);
+                                        } else if (value == 'logout') {
+                                          _confirmLogout(context, ref);
+                                        }
+                                      },
                                     ),
                                   ],
                                 ),
-                                alignment: Alignment.center,
-                                child: const Icon(
-                                  TablerIcons.dots_vertical,
-                                  size: 20,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              items: const [
-                                AppDropdownItem(
-                                  value: 'profile',
-                                  label: 'Profil Saya',
-                                  icon: TablerIcons.user,
-                                  isDividerAfter: true,
-                                ),
-                                AppDropdownItem(
-                                  value: 'logout',
-                                  label: 'Keluar dari aplikasi',
-                                  icon: TablerIcons.logout,
-                                  isDestructive: true,
-                                ),
-                              ],
-                              onSelected: (value) {
-                                if (value == 'profile') {
-                                  _showProfileDialog(context, user);
-                                } else if (value == 'logout') {
-                                  _confirmLogout(context, ref);
-                                }
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // 2. Section Konten Utama (flat tanpa rounded)
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Status bar konektivitas (jika offline)
-                  connectivityAsync.when(
-                    data: (results) {
-                      final isConnected = results.isNotEmpty;
-                      if (isConnected) return const SizedBox.shrink();
-
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 16),
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: AppColors.error.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: AppColors.error.withValues(alpha: 0.3),
-                          ),
-                        ),
-                        child: const Row(
-                          children: [
-                            Icon(
-                              TablerIcons.wifi_off,
-                              size: 19,
-                              color: AppColors.error,
-                            ),
-                            SizedBox(width: 8),
-                            Text(
-                              'Tidak Ada Koneksi Internet',
-                              style: TextStyle(
-                                fontFamily: 'PlusJakartaSans',
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.error,
                               ),
                             ),
-                          ],
-                        ),
-                      );
-                    },
-                    loading: () => const SizedBox.shrink(),
-                    error: (_, __) => const SizedBox.shrink(),
-                  ),
-
-                  // Section Header Menu
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Menu Utama',
-                        style: TextStyle(
-                          fontFamily: 'PlusJakartaSans',
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.brandEspresso,
-                        ),
-                      ),
-                      if (user != null)
-                        Text(
-                          '${_getAccessibleMenus(user).length} Menu',
-                          style: const TextStyle(
-                            fontFamily: 'PlusJakartaSans',
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.brandWarmGray,
                           ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Section Menu: Grid 4 Kolom Tanpa Card Pembungkus
-                  if (user != null)
-                    _buildFourColumnMenuGrid(context, user)
-                  else
-                    const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(24.0),
-                        child: CircularProgressIndicator(color: AppColors.brandPrimary),
+                        ],
                       ),
                     ),
-                ],
-              ),
+
+                    // Spacing untuk separuh bawah card statistik (~48px) + jarak visual (18px)
+                    const SizedBox(height: 66),
+
+                    // Section Konten Menu & Konektivitas
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Status bar konektivitas (jika offline)
+                          connectivityAsync.when(
+                            data: (results) {
+                              final isConnected = results.isNotEmpty;
+                              if (isConnected) return const SizedBox.shrink();
+
+                              return Container(
+                                margin: const EdgeInsets.only(bottom: 16),
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: AppColors.error.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: AppColors.error.withValues(alpha: 0.3),
+                                  ),
+                                ),
+                                child: const Row(
+                                  children: [
+                                    Icon(
+                                      TablerIcons.wifi_off,
+                                      size: 19,
+                                      color: AppColors.error,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'Tidak Ada Koneksi Internet',
+                                      style: TextStyle(
+                                        fontFamily: 'PlusJakartaSans',
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.error,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                            loading: () => const SizedBox.shrink(),
+                            error: (_, __) => const SizedBox.shrink(),
+                          ),
+
+                          // Section Header Menu
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Menu Utama',
+                                style: TextStyle(
+                                  fontFamily: 'PlusJakartaSans',
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.brandEspresso,
+                                ),
+                              ),
+                              if (user != null)
+                                Text(
+                                  '${_getAccessibleMenus(user).length} Menu',
+                                  style: const TextStyle(
+                                    fontFamily: 'PlusJakartaSans',
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.brandWarmGray,
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+
+                          // Section Menu: Grid 4 Kolom Tanpa Card Pembungkus
+                          if (user != null)
+                            _buildFourColumnMenuGrid(context, user)
+                          else
+                            const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(24.0),
+                                child: CircularProgressIndicator(color: AppColors.brandPrimary),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+
+                // Layer 2: Card Statistik Floating di atas batas Header & Body (Dipaint paling atas)
+                Positioned(
+                  top: headerHeight - 48,
+                  left: 16,
+                  right: 16,
+                  child: _buildStatsCard(),
+                ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -532,6 +553,179 @@ class HomeScreen extends ConsumerWidget {
             fontFamily: 'PlusJakartaSans',
             fontSize: 14,
             fontWeight: FontWeight.w600,
+            color: AppColors.brandEspresso,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Card statistik ringkasan operasional Halala Food yang melintasi header & body
+  Widget _buildStatsCard() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.brandBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.09),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Header ringkasan dengan indikator status aktif
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: const [
+                  Icon(
+                    TablerIcons.chart_pie,
+                    size: 15,
+                    color: AppColors.brandPrimary,
+                  ),
+                  SizedBox(width: 6),
+                  Text(
+                    'Ringkasan Hari Ini',
+                    style: TextStyle(
+                      fontFamily: 'PlusJakartaSans',
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.brandEspresso,
+                    ),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: const BoxDecoration(
+                      color: AppColors.brandNaturalGreen,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                  const Text(
+                    'Realtime',
+                    style: TextStyle(
+                      fontFamily: 'PlusJakartaSans',
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.brandWarmGray,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Divider(height: 1, color: AppColors.brandBorder),
+          const SizedBox(height: 10),
+
+          // 3 Kolom Metrik Statistik Bisnis Halala Food
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatColumn(
+                  icon: TablerIcons.coin,
+                  iconBg: AppColors.brandNaturalGreen.withValues(alpha: 0.12),
+                  iconColor: AppColors.brandNaturalGreen,
+                  label: 'Penjualan',
+                  value: 'Rp 4,8 Jt',
+                ),
+              ),
+              Container(
+                width: 1,
+                height: 36,
+                color: AppColors.brandBorder,
+              ),
+              Expanded(
+                child: _buildStatColumn(
+                  icon: TablerIcons.packages,
+                  iconBg: AppColors.brandSoftCream,
+                  iconColor: AppColors.brandPrimary,
+                  label: 'Produksi',
+                  value: '180 Box',
+                ),
+              ),
+              Container(
+                width: 1,
+                height: 36,
+                color: AppColors.brandBorder,
+              ),
+              Expanded(
+                child: _buildStatColumn(
+                  icon: TablerIcons.truck_delivery,
+                  iconBg: const Color(0xFFE8F1FF),
+                  iconColor: const Color(0xFF1E60D5),
+                  label: 'Pengantaran',
+                  value: '14 Toko',
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatColumn({
+    required IconData icon,
+    required Color iconBg,
+    required Color iconColor,
+    required String label,
+    required String value,
+  }) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: iconBg,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                size: 13,
+                color: iconColor,
+              ),
+            ),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: const TextStyle(
+                fontFamily: 'PlusJakartaSans',
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: AppColors.brandWarmGray,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: const TextStyle(
+            fontFamily: 'PlusJakartaSans',
+            fontSize: 14,
+            fontWeight: FontWeight.w800,
             color: AppColors.brandEspresso,
           ),
         ),
