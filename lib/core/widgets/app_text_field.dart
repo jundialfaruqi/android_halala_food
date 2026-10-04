@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
 import '../constants/app_colors.dart';
 
@@ -17,6 +18,7 @@ class AppTextField extends StatefulWidget {
   final TextInputAction textInputAction;
   final ValueChanged<String>? onFieldSubmitted;
   final FocusNode? focusNode;
+  final List<TextInputFormatter>? inputFormatters;
 
   final String? errorText;
 
@@ -36,6 +38,7 @@ class AppTextField extends StatefulWidget {
     this.textInputAction = TextInputAction.next,
     this.onFieldSubmitted,
     this.focusNode,
+    this.inputFormatters,
     this.errorText,
   });
 
@@ -91,6 +94,7 @@ class _AppTextFieldState extends State<AppTextField> {
           focusNode: widget.focusNode,
           obscureText: _obscureText,
           keyboardType: widget.keyboardType,
+          inputFormatters: widget.inputFormatters,
           validator: widget.validator,
           onChanged: widget.onChanged,
           enabled: widget.enabled,

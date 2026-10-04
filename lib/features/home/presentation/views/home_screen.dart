@@ -9,11 +9,58 @@ import '../../../auth/presentation/viewmodels/auth_viewmodel.dart';
 import '../../../auth/presentation/views/profile_screen.dart';
 import '../../../store/presentation/views/store_screen.dart';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    precacheImage(const AssetImage(AppAssets.whyChooseUs), context);
+    final route = ModalRoute.of(context);
+    if (route != null) {
+      appRouteObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void dispose() {
+    appRouteObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  @override
+  void didPushNext() {
+    // Sinkronisasi instan saat layar lain (Profil/Toko) mulai di-push di atas Home
+    AppStatusBar.setDark();
+  }
+
+  @override
+  void didPopNext() {
+    // Sinkronisasi instan saat layar di atasnya di-pop dan kembali ke Home
+    AppStatusBar.setLight();
+  }
+
+  /// Helper navigasi sinkron yang langsung mengubah status bar di frame ke-0
+  Future<T?> _navigateTo<T>(Widget screen) async {
+    AppStatusBar.setDark();
+    final result = await Navigator.of(context).push<T>(
+      MaterialPageRoute(
+        builder: (_) => screen,
+      ),
+    );
+    if (mounted) {
+      AppStatusBar.setLight();
+    }
+    return result;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final authState = ref.watch(authViewModelProvider);
     final user = authState.user;
 
@@ -40,10 +87,23 @@ class HomeScreen extends ConsumerWidget {
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
+                          // Base dark placeholder agar tidak ada kilatan putih saat gambar di-decode
+                          const ColoredBox(
+                            color: Color(0xFF1E293B),
+                          ),
                           // Gambar Background Aspek Video
                           Image.asset(
                             AppAssets.whyChooseUs,
                             fit: BoxFit.cover,
+                            gaplessPlayback: true,
+                            frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+                              if (wasSynchronouslyLoaded || frame != null) {
+                                return child;
+                              }
+                              return const ColoredBox(
+                                color: Color(0xFF1E293B),
+                              );
+                            },
                           ),
                           // Dark Gradient Overlay untuk kontras teks & icon status bar
                           DecoratedBox(
@@ -196,11 +256,7 @@ class HomeScreen extends ConsumerWidget {
                                       ],
                                       onSelected: (value) {
                                         if (value == 'profile') {
-                                          Navigator.of(context).push(
-                                            MaterialPageRoute(
-                                              builder: (_) => const ProfileScreen(),
-                                            ),
-                                          );
+                                          _navigateTo(const ProfileScreen());
                                         } else if (value == 'logout') {
                                           _confirmLogout(context, ref);
                                         }
@@ -326,14 +382,11 @@ class HomeScreen extends ConsumerWidget {
       itemCount: accessibleMenus.length,
       itemBuilder: (context, index) {
         final menu = accessibleMenus[index];
-        return InkWell(
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
           onTap: () {
             if (menu.title == 'Mitra Toko') {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const StoreScreen(),
-                ),
-              );
+              _navigateTo(const StoreScreen());
               return;
             }
 
@@ -343,7 +396,6 @@ class HomeScreen extends ConsumerWidget {
               message: 'Membuka menu ${menu.title}',
             );
           },
-          borderRadius: BorderRadius.circular(16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,

@@ -6,6 +6,7 @@ import '../../features/auth/presentation/viewmodels/auth_viewmodel.dart';
 import '../../features/auth/presentation/views/login_screen.dart';
 import '../../features/auth/presentation/views/splash_screen.dart';
 import '../../features/home/presentation/views/home_screen.dart';
+import '../widgets/widgets.dart';
 import 'app_routes.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'rootNavigator');
@@ -15,6 +16,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     navigatorKey: rootNavigatorKey,
+    observers: [
+      appRouteObserver,
+    ],
     initialLocation: AppRoutes.splash,
     refreshListenable: routerNotifier,
     redirect: (context, state) {

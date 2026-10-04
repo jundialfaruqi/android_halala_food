@@ -229,7 +229,7 @@ class _StoreCreateScreenState extends ConsumerState<StoreCreateScreen> {
       });
 
       _showSnackbar(
-        'Foto berhasil dikompresi: ${result.compressedSizeFormatted}',
+        'Foto berhasil dimuat & dikompresi: ${result.compressedSizeFormatted}',
       );
     } catch (e) {
       _showSnackbar(
@@ -519,6 +519,10 @@ class _StoreCreateScreenState extends ConsumerState<StoreCreateScreen> {
 
     return AppScaffold(
       backgroundColor: Colors.white,
+      isLoading: _isSubmitting || _isProcessingPhoto,
+      loadingMessage: _isProcessingPhoto
+          ? 'Memproses & mengompresi foto toko...'
+          : 'Menyimpan data toko mitra...',
       appBar: const AppAppBar(
         title: 'Tambah Mitra Toko',
         showBottomBorder: false,
@@ -602,6 +606,7 @@ class _StoreCreateScreenState extends ConsumerState<StoreCreateScreen> {
                 labelText: 'Nomor Kontak / WhatsApp',
                 hintText: '81234567890',
                 keyboardType: TextInputType.phone,
+                inputFormatters: const [IndonesianPhoneInputFormatter()],
                 prefixIcon: const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                   child: Text(
@@ -686,106 +691,109 @@ class _StoreCreateScreenState extends ConsumerState<StoreCreateScreen> {
               const SizedBox(height: 22),
 
               // 7. Section Koordinat Lokasi + Tombol Maps & GPS
+              const Text(
+                'Koordinat Lokasi',
+                style: TextStyle(
+                  fontFamily: 'PlusJakartaSans',
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.brandEspresso,
+                ),
+              ),
+
+              const SizedBox(height: 10),
+
+              // Baris Baru: Tombol Pilih di Maps & GPS Langsung
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Koordinat Lokasi',
-                    style: TextStyle(
-                      fontFamily: 'PlusJakartaSans',
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.brandEspresso,
-                    ),
-                  ),
-                  Row(
-                    children: [
-                      // Tombol Pilih dari Maps dengan Pencarian
-                      InkWell(
-                        onTap: _openMapPicker,
-                        borderRadius: BorderRadius.circular(8),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.brandSoftCream,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: AppColors.brandPrimary),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                TablerIcons.map_2,
-                                size: 16,
+                  // Tombol Pilih dari Maps dengan Pencarian
+                  Expanded(
+                    child: InkWell(
+                      onTap: _openMapPicker,
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 9,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.brandSoftCream,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.brandPrimary),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              TablerIcons.map_2,
+                              size: 16,
+                              color: AppColors.brandPrimary,
+                            ),
+                            SizedBox(width: 6),
+                            Text(
+                              'Pilih di Maps',
+                              style: TextStyle(
+                                fontFamily: 'PlusJakartaSans',
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w700,
                                 color: AppColors.brandPrimary,
                               ),
-                              SizedBox(width: 5),
-                              Text(
-                                'Pilih di Maps',
-                                style: TextStyle(
-                                  fontFamily: 'PlusJakartaSans',
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(width: 10),
+
+                  // Tombol Ambil Lokasi GPS Langsung
+                  Expanded(
+                    child: InkWell(
+                      onTap: _isGettingLocation ? null : _getCurrentLocation,
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 9,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.brandBorder),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (_isGettingLocation)
+                              const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
                                   color: AppColors.brandPrimary,
                                 ),
+                              )
+                            else
+                              const Icon(
+                                TablerIcons.current_location,
+                                size: 16,
+                                color: AppColors.brandWarmGray,
                               ),
-                            ],
-                          ),
+                            const SizedBox(width: 6),
+                            Text(
+                              _isGettingLocation ? 'Mendeteksi...' : 'GPS Langsung',
+                              style: const TextStyle(
+                                fontFamily: 'PlusJakartaSans',
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.brandWarmGray,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-
-                      const SizedBox(width: 8),
-
-                      // Tombol Ambil Lokasi GPS Langsung
-                      InkWell(
-                        onTap: _isGettingLocation ? null : _getCurrentLocation,
-                        borderRadius: BorderRadius.circular(8),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: AppColors.brandBorder),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (_isGettingLocation)
-                                const SizedBox(
-                                  width: 14,
-                                  height: 14,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: AppColors.brandPrimary,
-                                  ),
-                                )
-                              else
-                                const Icon(
-                                  TablerIcons.current_location,
-                                  size: 16,
-                                  color: AppColors.brandWarmGray,
-                                ),
-                              const SizedBox(width: 5),
-                              Text(
-                                _isGettingLocation ? 'GPS...' : 'GPS Langsung',
-                                style: const TextStyle(
-                                  fontFamily: 'PlusJakartaSans',
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.brandWarmGray,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ],
               ),
@@ -1024,13 +1032,28 @@ class _StoreCreateScreenState extends ConsumerState<StoreCreateScreen> {
                 borderRadius: BorderRadius.circular(11),
                 child: _isProcessingPhoto
                     ? const Center(
-                        child: SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: AppColors.brandPrimary,
-                          ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.2,
+                                color: AppColors.brandPrimary,
+                              ),
+                            ),
+                            SizedBox(height: 5),
+                            Text(
+                              'Proses...',
+                              style: TextStyle(
+                                fontFamily: 'PlusJakartaSans',
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.brandPrimary,
+                              ),
+                            ),
+                          ],
                         ),
                       )
                     : hasNewPhoto
@@ -1073,27 +1096,50 @@ class _StoreCreateScreenState extends ConsumerState<StoreCreateScreen> {
                             vertical: 8,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.brandPrimary,
+                            color: _isProcessingPhoto
+                                ? AppColors.brandWarmGray
+                                : AppColors.brandPrimary,
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(
-                                TablerIcons.upload,
-                                size: 15,
-                                color: Colors.white,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                hasNewPhoto ? 'Ganti Foto' : 'Unggah Foto',
-                                style: const TextStyle(
-                                  fontFamily: 'PlusJakartaSans',
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
+                              if (_isProcessingPhoto) ...[
+                                const SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                const Text(
+                                  'Memproses...',
+                                  style: TextStyle(
+                                    fontFamily: 'PlusJakartaSans',
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ] else ...[
+                                const Icon(
+                                  TablerIcons.upload,
+                                  size: 15,
                                   color: Colors.white,
                                 ),
-                              ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  hasNewPhoto ? 'Ganti Foto' : 'Unggah Foto',
+                                  style: const TextStyle(
+                                    fontFamily: 'PlusJakartaSans',
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                         ),
@@ -1139,9 +1185,31 @@ class _StoreCreateScreenState extends ConsumerState<StoreCreateScreen> {
                     ],
                   ),
                   const SizedBox(height: 6),
+                  if (hasNewPhoto) ...[
+                    Row(
+                      children: [
+                        const Icon(
+                          TablerIcons.circle_check_filled,
+                          size: 14,
+                          color: AppColors.brandNaturalGreen,
+                        ),
+                        const SizedBox(width: 4),
+                        const Text(
+                          'Foto berhasil dipilih',
+                          style: TextStyle(
+                            fontFamily: 'PlusJakartaSans',
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.brandNaturalGreen,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                  ],
                   Text(
                     _photoCompressionInfo != null
-                        ? 'Terkonversi: $_photoCompressionInfo'
+                        ? 'Ukuran: $_photoCompressionInfo'
                         : 'Format JPG, PNG, WEBP (maks. 10 MB)',
                     style: TextStyle(
                       fontFamily: 'PlusJakartaSans',
