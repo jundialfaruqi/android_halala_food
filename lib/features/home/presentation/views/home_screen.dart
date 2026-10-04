@@ -8,6 +8,7 @@ import '../../../../core/widgets/widgets.dart';
 import '../../../auth/data/models/user_model.dart';
 import '../../../auth/presentation/viewmodels/auth_viewmodel.dart';
 import '../../../auth/presentation/views/profile_screen.dart';
+import '../../../store/presentation/views/store_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -370,7 +371,16 @@ class HomeScreen extends ConsumerWidget {
         final menu = accessibleMenus[index];
         return InkWell(
           onTap: () {
-            // Menggunakan Material 3 AppSnackBar dengan countdown progress circle
+            if (menu.title == 'Mitra Toko') {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const StoreScreen(),
+                ),
+              );
+              return;
+            }
+
+            // Menu lainnya
             AppSnackBar.showInfo(
               context,
               message: 'Membuka menu ${menu.title}',
