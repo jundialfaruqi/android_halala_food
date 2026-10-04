@@ -64,9 +64,9 @@ class HomeScreen extends ConsumerWidget {
                           SafeArea(
                             bottom: false,
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
                               child: Align(
-                                alignment: Alignment.centerLeft,
+                                alignment: Alignment.topLeft,
                                 child: Row(
                                   crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
@@ -129,39 +129,23 @@ class HomeScreen extends ConsumerWidget {
                                             overflow: TextOverflow.ellipsis,
                                           ),
                                           const SizedBox(height: 3),
-                                          Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Container(
-                                                width: 6,
-                                                height: 6,
-                                                decoration: const BoxDecoration(
-                                                  color: AppColors.brandNaturalGreen,
-                                                  shape: BoxShape.circle,
+                                          Text(
+                                            _formatRoleName(user),
+                                            style: TextStyle(
+                                              fontFamily: 'PlusJakartaSans',
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w500,
+                                              color: Colors.white.withValues(alpha: 0.90),
+                                              shadows: [
+                                                Shadow(
+                                                  color: Colors.black.withValues(alpha: 0.8),
+                                                  blurRadius: 6,
+                                                  offset: const Offset(0, 1),
                                                 ),
-                                              ),
-                                              const SizedBox(width: 6),
-                                              Flexible(
-                                                child: Text(
-                                                  _formatRoleName(user),
-                                                  style: TextStyle(
-                                                    fontFamily: 'PlusJakartaSans',
-                                                    fontSize: 12,
-                                                    fontWeight: FontWeight.w500,
-                                                    color: Colors.white.withValues(alpha: 0.90),
-                                                    shadows: [
-                                                      Shadow(
-                                                        color: Colors.black.withValues(alpha: 0.8),
-                                                        blurRadius: 6,
-                                                        offset: const Offset(0, 1),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                  maxLines: 1,
-                                                  overflow: TextOverflow.ellipsis,
-                                                ),
-                                              ),
-                                            ],
+                                              ],
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
                                           ),
                                         ],
                                       ),
@@ -227,8 +211,8 @@ class HomeScreen extends ConsumerWidget {
                       ),
                     ),
 
-                    // Spacing untuk separuh bawah card statistik (~48px) + jarak visual (18px)
-                    const SizedBox(height: 66),
+                    // Spacing proporsional untuk separuh bawah card statistik (~61px) + jarak visual konsisten ke menu (24px)
+                    const SizedBox(height: 85),
 
                     // Section Konten Menu & Konektivitas
                     Padding(
@@ -320,9 +304,9 @@ class HomeScreen extends ConsumerWidget {
                   ],
                 ),
 
-                // Layer 2: Card Statistik Floating di atas batas Header & Body (Dipaint paling atas)
+                // Layer 2: Card Statistik Floating simetris di atas batas Header & Body (Dipaint paling atas)
                 Positioned(
-                  top: headerHeight - 48,
+                  top: headerHeight - 60,
                   left: 16,
                   right: 16,
                   child: _buildStatsCard(),
@@ -563,7 +547,7 @@ class HomeScreen extends ConsumerWidget {
   /// Card statistik ringkasan operasional Halala Food yang melintasi header & body
   Widget _buildStatsCard() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -584,96 +568,61 @@ class HomeScreen extends ConsumerWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Header ringkasan dengan indikator status aktif
+          // Header ringkasan
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: const [
-                  Icon(
-                    TablerIcons.chart_pie,
-                    size: 15,
-                    color: AppColors.brandPrimary,
-                  ),
-                  SizedBox(width: 6),
-                  Text(
-                    'Ringkasan Hari Ini',
-                    style: TextStyle(
-                      fontFamily: 'PlusJakartaSans',
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.brandEspresso,
-                    ),
-                  ),
-                ],
+            children: const [
+              Icon(
+                TablerIcons.chart_pie,
+                size: 16,
+                color: AppColors.brandPrimary,
               ),
-              Row(
-                children: [
-                  Container(
-                    width: 6,
-                    height: 6,
-                    decoration: const BoxDecoration(
-                      color: AppColors.brandNaturalGreen,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 5),
-                  const Text(
-                    'Realtime',
-                    style: TextStyle(
-                      fontFamily: 'PlusJakartaSans',
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.brandWarmGray,
-                    ),
-                  ),
-                ],
+              SizedBox(width: 7),
+              Text(
+                'Ringkasan Hari Ini',
+                style: TextStyle(
+                  fontFamily: 'PlusJakartaSans',
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.brandEspresso,
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          const Divider(height: 1, color: AppColors.brandBorder),
           const SizedBox(height: 10),
+          const Divider(height: 1, color: AppColors.brandBorder),
+          const SizedBox(height: 12),
 
-          // 3 Kolom Metrik Statistik Bisnis Halala Food
+          // 3 Kolom Metrik Statistik Bisnis Halala Food (Space Between)
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(
-                child: _buildStatColumn(
-                  icon: TablerIcons.coin,
-                  iconBg: AppColors.brandNaturalGreen.withValues(alpha: 0.12),
-                  iconColor: AppColors.brandNaturalGreen,
-                  label: 'Penjualan',
-                  value: 'Rp 4,8 Jt',
-                ),
+              _buildStatColumn(
+                icon: TablerIcons.coin,
+                label: 'Penjualan',
+                value: 'Rp 4,8 Jt',
+                crossAxisAlignment: CrossAxisAlignment.start,
               ),
               Container(
                 width: 1,
-                height: 36,
+                height: 38,
                 color: AppColors.brandBorder,
               ),
-              Expanded(
-                child: _buildStatColumn(
-                  icon: TablerIcons.packages,
-                  iconBg: AppColors.brandSoftCream,
-                  iconColor: AppColors.brandPrimary,
-                  label: 'Produksi',
-                  value: '180 Box',
-                ),
+              _buildStatColumn(
+                icon: TablerIcons.packages,
+                label: 'Produksi',
+                value: '180 Box',
+                crossAxisAlignment: CrossAxisAlignment.center,
               ),
               Container(
                 width: 1,
-                height: 36,
+                height: 38,
                 color: AppColors.brandBorder,
               ),
-              Expanded(
-                child: _buildStatColumn(
-                  icon: TablerIcons.truck_delivery,
-                  iconBg: const Color(0xFFE8F1FF),
-                  iconColor: const Color(0xFF1E60D5),
-                  label: 'Pengantaran',
-                  value: '14 Toko',
-                ),
+              _buildStatColumn(
+                icon: TablerIcons.truck_delivery,
+                label: 'Pengantaran',
+                value: '14 Toko',
+                crossAxisAlignment: CrossAxisAlignment.end,
               ),
             ],
           ),
@@ -684,47 +633,40 @@ class HomeScreen extends ConsumerWidget {
 
   Widget _buildStatColumn({
     required IconData icon,
-    required Color iconBg,
-    required Color iconColor,
     required String label,
     required String value,
+    CrossAxisAlignment crossAxisAlignment = CrossAxisAlignment.center,
   }) {
     return Column(
       mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: crossAxisAlignment,
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: iconBg,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                icon,
-                size: 13,
-                color: iconColor,
-              ),
+            Icon(
+              icon,
+              size: 15,
+              color: AppColors.brandPrimary,
             ),
             const SizedBox(width: 5),
             Text(
               label,
               style: const TextStyle(
                 fontFamily: 'PlusJakartaSans',
-                fontSize: 11,
+                fontSize: 11.5,
                 fontWeight: FontWeight.w600,
                 color: AppColors.brandWarmGray,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         Text(
           value,
           style: const TextStyle(
             fontFamily: 'PlusJakartaSans',
-            fontSize: 14,
+            fontSize: 15,
             fontWeight: FontWeight.w800,
             color: AppColors.brandEspresso,
           ),
