@@ -1,0 +1,75 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../features/auth/presentation/viewmodels/auth_state.dart';
+import '../../features/auth/presentation/viewmodels/auth_viewmodel.dart';
+import '../../features/auth/presentation/views/login_screen.dart';
+import '../../features/auth/presentation/views/splash_screen.dart';
+import '../../features/home/presentation/views/home_screen.dart';
+import 'app_routes.dart';
+
+final appRouterProvider = Provider<GoRouter>((ref) {
+  final routerNotifier = RouterNotifier(ref);
+
+  return GoRouter(
+    initialLocation: AppRoutes.splash,
+    refreshListenable: routerNotifier,
+    redirect: (context, state) {
+      final authState = ref.read(authViewModelProvider);
+      final currentLoc = state.matchedLocation;
+
+      final isSplash = currentLoc == AppRoutes.splash;
+      final isLoggingIn = currentLoc == AppRoutes.login;
+
+      // 1. Saat masih initial / loading checking auth status
+      if (authState.status == AuthStatus.initial ||
+          authState.status == AuthStatus.loading) {
+        return isSplash ? null : AppRoutes.splash;
+      }
+
+      // 2. Jika user sudah login (authenticated)
+      if (authState.isAuthenticated) {
+        if (isSplash || isLoggingIn) {
+          return AppRoutes.home;
+        }
+        return null; // biarkan menuju route yang dituju
+      }
+
+      // 3. Jika belum login (unauthenticated / error)
+      if (!isLoggingIn) {
+        return AppRoutes.login;
+      }
+
+      return null;
+    },
+    routes: [
+      GoRoute(
+        path: AppRoutes.splash,
+        builder: (context, state) => const SplashScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.login,
+        builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.home,
+        builder: (context, state) => const HomeScreen(),
+      ),
+    ],
+  );
+});
+
+class RouterNotifier extends ChangeNotifier {
+  final Ref _ref;
+
+  RouterNotifier(this._ref) {
+    _ref.listen<AuthState>(
+      authViewModelProvider,
+      (previous, next) {
+        if (previous?.status != next.status) {
+          notifyListeners();
+        }
+      },
+    );
+  }
+}
