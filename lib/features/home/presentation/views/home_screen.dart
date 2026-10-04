@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
 import '../../../../core/constants/app_assets.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/utils/connectivity_service.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../../auth/data/models/user_model.dart';
 import '../../../auth/presentation/viewmodels/auth_viewmodel.dart';
@@ -17,7 +16,6 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authViewModelProvider);
     final user = authState.user;
-    final connectivityAsync = ref.watch(connectivityStatusProvider);
 
     return AppScaffold(
       backgroundColor: Colors.white,
@@ -220,53 +218,12 @@ class HomeScreen extends ConsumerWidget {
                     // Spacing proporsional untuk efek stack 3 card statistik (~73px) + jarak visual konsisten ke menu (24px)
                     const SizedBox(height: 96),
 
-                    // Section Konten Menu & Konektivitas
+                    // Section Konten Menu
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Status bar konektivitas (jika offline)
-                          connectivityAsync.when(
-                            data: (results) {
-                              final isConnected = results.isNotEmpty;
-                              if (isConnected) return const SizedBox.shrink();
-
-                              return Container(
-                                margin: const EdgeInsets.only(bottom: 16),
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                                decoration: BoxDecoration(
-                                  color: AppColors.error.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    color: AppColors.error.withValues(alpha: 0.3),
-                                  ),
-                                ),
-                                child: const Row(
-                                  children: [
-                                    Icon(
-                                      TablerIcons.wifi_off,
-                                      size: 19,
-                                      color: AppColors.error,
-                                    ),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      'Tidak Ada Koneksi Internet',
-                                      style: TextStyle(
-                                        fontFamily: 'PlusJakartaSans',
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600,
-                                        color: AppColors.error,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
-                            loading: () => const SizedBox.shrink(),
-                            error: (_, __) => const SizedBox.shrink(),
-                          ),
-
                           // Section Header Menu
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,

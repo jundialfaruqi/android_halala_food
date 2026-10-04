@@ -3,6 +3,7 @@ export 'app_button.dart';
 export 'app_cached_image.dart';
 export 'app_card.dart';
 export 'app_confirm_dialog.dart';
+export 'app_connectivity_banner.dart';
 export 'app_dropdown_menu.dart';
 export 'app_empty_card.dart';
 export 'app_floating_action_button.dart';
