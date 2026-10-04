@@ -95,4 +95,14 @@ class AuthRepositoryImpl implements AuthRepository {
     }
     return null;
   }
+
+  @override
+  Future<UserModel> fetchUserProfile() async {
+    final user = await _remoteDataSource.getCurrentUser();
+    await _secureStorage.write(
+      StorageKeys.userProfile,
+      jsonEncode(user.toJson()),
+    );
+    return user;
+  }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../data/models/user_model.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../domain/repositories/auth_repository.dart';
 import 'auth_state.dart';
@@ -74,4 +75,32 @@ class AuthViewModel extends Notifier<AuthState> {
     await _repository.logout();
     state = const AuthState(status: AuthStatus.unauthenticated);
   }
+
+  Future<UserModel?> refreshUserProfile() async {
+    try {
+      final user = await _repository.fetchUserProfile();
+      state = state.copyWith(
+        status: AuthStatus.authenticated,
+        user: user,
+      );
+      return user;
+    } catch (_) {
+      return state.user;
+    }
+  }
 }
+
+/// Provider untuk mengambil data profil user realtime dari API auth me
+final userProfileProvider = FutureProvider.autoDispose<UserModel>((ref) async {
+  final repository = ref.watch(authRepositoryProvider);
+  try {
+    return await repository.fetchUserProfile();
+  } catch (e) {
+    // Fallback ke profil yang tersimpan di lokal jika jaringan bermasalah
+    final savedUser = await repository.getSavedUser();
+    if (savedUser != null) {
+      return savedUser;
+    }
+    rethrow;
+  }
+});

@@ -14,4 +14,5 @@ abstract class AuthRepository {
   Future<bool> isAuthenticated();
 
   Future<AuthTokensModel?> getSavedTokens();
+  Future<UserModel> fetchUserProfile();
 }

@@ -7,6 +7,7 @@ import '../../../../core/utils/connectivity_service.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../../auth/data/models/user_model.dart';
 import '../../../auth/presentation/viewmodels/auth_viewmodel.dart';
+import '../../../auth/presentation/views/profile_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -196,7 +197,11 @@ class HomeScreen extends ConsumerWidget {
                                       ],
                                       onSelected: (value) {
                                         if (value == 'profile') {
-                                          _showProfileDialog(context, user);
+                                          Navigator.of(context).push(
+                                            MaterialPageRoute(
+                                              builder: (_) => const ProfileScreen(),
+                                            ),
+                                          );
                                         } else if (value == 'logout') {
                                           _confirmLogout(context, ref);
                                         }
@@ -455,89 +460,6 @@ class HomeScreen extends ConsumerWidget {
       default:
         return user.roles.first.toUpperCase();
     }
-  }
-
-  void _showProfileDialog(BuildContext context, UserModel? user) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: const [
-            Icon(TablerIcons.user, size: 22, color: AppColors.brandPrimary),
-            SizedBox(width: 10),
-            Text(
-              'Profil Saya',
-              style: TextStyle(
-                fontFamily: 'PlusJakartaSans',
-                fontWeight: FontWeight.bold,
-                color: AppColors.brandEspresso,
-              ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildProfileRow('Nama', user?.name ?? '-'),
-            const SizedBox(height: 10),
-            _buildProfileRow('Email', user?.email ?? '-'),
-            const SizedBox(height: 10),
-            _buildProfileRow('Nomor Telepon', user?.phone ?? '-'),
-            const SizedBox(height: 10),
-            _buildProfileRow('Role', _formatRoleName(user)),
-            const SizedBox(height: 10),
-            _buildProfileRow(
-              'Total Hak Akses',
-              user?.roles.contains('dev') ?? false
-                  ? 'Semua Akses (Super Admin)'
-                  : '${user?.permissions.length ?? 0} Permissions',
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text(
-              'Tutup',
-              style: TextStyle(
-                fontFamily: 'PlusJakartaSans',
-                fontWeight: FontWeight.w600,
-                color: AppColors.brandPrimary,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProfileRow(String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontFamily: 'PlusJakartaSans',
-            fontSize: 12,
-            color: AppColors.brandWarmGray,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          value,
-          style: const TextStyle(
-            fontFamily: 'PlusJakartaSans',
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: AppColors.brandEspresso,
-          ),
-        ),
-      ],
-    );
   }
 
   /// Card statistik ringkasan operasional Halala Food dengan widget core AppCard.stacked
