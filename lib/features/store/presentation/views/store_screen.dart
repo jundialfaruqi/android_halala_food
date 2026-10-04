@@ -341,6 +341,10 @@ class _StoreScreenState extends ConsumerState<StoreScreen> {
 
   /// Item Card List Toko Mitra menggunakan AppCard Core Widget
   Widget _buildStoreCardItem(BuildContext context, StoreModel store) {
+    final authState = ref.watch(authViewModelProvider);
+    final canEditStore = authState.user?.hasPermission('toko-edit') ?? false;
+    final canDeleteStore = authState.user?.hasPermission('toko-delete') ?? false;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12.0),
       child: AppCard(
@@ -659,82 +663,83 @@ class _StoreScreenState extends ConsumerState<StoreScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
-
-                // Tombol Ubah (Dummy)
-                Expanded(
-                  child: InkWell(
-                    onTap: () => _onEditStore(context, store),
-                    borderRadius: BorderRadius.circular(8),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.brandBorder),
-                      ),
-                      alignment: Alignment.center,
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            TablerIcons.edit,
-                            size: 15,
-                            color: AppColors.brandWarmGray,
-                          ),
-                          SizedBox(width: 5),
-                          Text(
-                            'Ubah',
-                            style: TextStyle(
-                              fontFamily: 'PlusJakartaSans',
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.brandEspresso,
+                if (canEditStore) ...[
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: InkWell(
+                      onTap: () => _onEditStore(context, store),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.brandBorder),
+                        ),
+                        alignment: Alignment.center,
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              TablerIcons.edit,
+                              size: 15,
+                              color: AppColors.brandWarmGray,
                             ),
-                          ),
-                        ],
+                            SizedBox(width: 5),
+                            Text(
+                              'Ubah',
+                              style: TextStyle(
+                                fontFamily: 'PlusJakartaSans',
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.brandEspresso,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
+                ],
 
-                // Tombol Hapus (Dummy)
-                Expanded(
-                  child: InkWell(
-                    onTap: () => _onDeleteStore(context, store),
-                    borderRadius: BorderRadius.circular(8),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.brandBorder),
-                      ),
-                      alignment: Alignment.center,
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            TablerIcons.trash,
-                            size: 15,
-                            color: AppColors.error,
-                          ),
-                          SizedBox(width: 5),
-                          Text(
-                            'Hapus',
-                            style: TextStyle(
-                              fontFamily: 'PlusJakartaSans',
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w600,
+                if (canDeleteStore) ...[
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: InkWell(
+                      onTap: () => _onDeleteStore(context, store),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.brandBorder),
+                        ),
+                        alignment: Alignment.center,
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              TablerIcons.trash,
+                              size: 15,
                               color: AppColors.error,
                             ),
-                          ),
-                        ],
+                            SizedBox(width: 5),
+                            Text(
+                              'Hapus',
+                              style: TextStyle(
+                                fontFamily: 'PlusJakartaSans',
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.error,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
+                ],
               ],
             ),
           ],
@@ -988,33 +993,42 @@ class _StoreScreenState extends ConsumerState<StoreScreen> {
                   _buildDetailRow('Catatan Khusus', store.notes!),
                 ],
                 const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(
-                      child: AppButton(
-                        text: 'Tutup',
-                        variant: AppButtonVariant.outline,
-                        height: 44,
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: AppButton(
-                        text: 'Ubah Data',
-                        icon: const Icon(
-                          TablerIcons.pencil,
-                          size: 16,
-                          color: Colors.white,
+                Builder(
+                  builder: (context) {
+                    final canEditStore =
+                        ref.read(authViewModelProvider).user?.hasPermission('toko-edit') ??
+                            false;
+                    return Row(
+                      children: [
+                        Expanded(
+                          child: AppButton(
+                            text: 'Tutup',
+                            variant: AppButtonVariant.outline,
+                            height: 44,
+                            onPressed: () => Navigator.of(context).pop(),
+                          ),
                         ),
-                        height: 44,
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                          _onEditStore(context, store);
-                        },
-                      ),
-                    ),
-                  ],
+                        if (canEditStore) ...[
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: AppButton(
+                              text: 'Ubah Data',
+                              icon: const Icon(
+                                TablerIcons.pencil,
+                                size: 16,
+                                color: Colors.white,
+                              ),
+                              height: 44,
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                                _onEditStore(context, store);
+                              },
+                            ),
+                          ),
+                        ],
+                      ],
+                    );
+                  },
                 ),
               ],
             ),
@@ -1138,6 +1152,17 @@ class _StoreScreenState extends ConsumerState<StoreScreen> {
 
   /// Action Tombol Ubah Toko Mitra -> Buka Halaman Formulir Edit Toko Mitra
   Future<void> _onEditStore(BuildContext context, StoreModel store) async {
+    final authState = ref.read(authViewModelProvider);
+    final canEdit = authState.user?.hasPermission('toko-edit') ?? false;
+
+    if (!canEdit) {
+      AppSnackBar.showError(
+        context,
+        message: 'Anda tidak memiliki hak akses untuk mengubah data toko mitra.',
+      );
+      return;
+    }
+
     final result = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (routeContext) => StoreEditScreen(store: store),
