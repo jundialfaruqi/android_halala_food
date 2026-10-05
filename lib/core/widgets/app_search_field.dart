@@ -30,58 +30,47 @@ class AppSearchField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget field;
+    Widget? suffixIcon;
 
     if (controller != null) {
-      field = ValueListenableBuilder<TextEditingValue>(
+      suffixIcon = ValueListenableBuilder<TextEditingValue>(
         valueListenable: controller!,
         builder: (context, value, _) {
-          return AppTextField(
-            controller: controller,
-            focusNode: focusNode,
-            enabled: enabled,
-            hintText: hintText,
-            textInputAction: TextInputAction.search,
-            onChanged: onChanged,
-            onFieldSubmitted: onSubmitted,
-            prefixIcon: const Icon(
-              TablerIcons.search,
-              size: 20,
-              color: AppColors.brandWarmGray,
-            ),
-            suffixIcon: value.text.isNotEmpty
-                ? IconButton(
-                    icon: const Icon(TablerIcons.x, size: 18),
-                    color: AppColors.brandWarmGray,
-                    tooltip: 'Hapus Pencarian',
-                    onPressed: () {
-                      controller!.clear();
-                      if (onClear != null) {
-                        onClear!();
-                      } else if (onChanged != null) {
-                        onChanged!('');
-                      }
-                    },
-                  )
-                : null,
+          if (value.text.isEmpty) {
+            return const SizedBox.shrink();
+          }
+          return IconButton(
+            icon: const Icon(TablerIcons.x, size: 18),
+            color: AppColors.brandWarmGray,
+            tooltip: 'Hapus Pencarian',
+            onPressed: () {
+              controller!.clear();
+              if (onClear != null) {
+                onClear!();
+              } else if (onChanged != null) {
+                onChanged!('');
+              }
+            },
           );
         },
       );
-    } else {
-      field = AppTextField(
-        focusNode: focusNode,
-        enabled: enabled,
-        hintText: hintText,
-        textInputAction: TextInputAction.search,
-        onChanged: onChanged,
-        onFieldSubmitted: onSubmitted,
-        prefixIcon: const Icon(
-          TablerIcons.search,
-          size: 20,
-          color: AppColors.brandWarmGray,
-        ),
-      );
     }
+
+    final field = AppTextField(
+      controller: controller,
+      focusNode: focusNode,
+      enabled: enabled,
+      hintText: hintText,
+      textInputAction: TextInputAction.search,
+      onChanged: onChanged,
+      onFieldSubmitted: onSubmitted,
+      prefixIcon: const Icon(
+        TablerIcons.search,
+        size: 20,
+        color: AppColors.brandWarmGray,
+      ),
+      suffixIcon: suffixIcon,
+    );
 
     if (padding != null) {
       return Padding(

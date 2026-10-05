@@ -81,7 +81,7 @@ class _StoreCoordinatesScreenState
 
   void _onSearchFocusChanged() {
     if (_searchFocusNode.hasFocus &&
-        _searchController.text.trim().isNotEmpty &&
+        _searchController.text.trim().length >= 3 &&
         _searchResults.isNotEmpty) {
       setState(() {
         _showSearchResults = true;
@@ -92,25 +92,35 @@ class _StoreCoordinatesScreenState
   void _onSearchChanged(String query) {
     _searchDebounce?.cancel();
 
-    if (query.trim().isEmpty) {
-      setState(() {
-        _showSearchResults = false;
-        _searchResults = [];
-      });
+    final trimmed = query.trim();
+    // User ketik minimal 3 huruf baru mencari
+    if (trimmed.length < 3) {
+      if (_showSearchResults || _searchResults.isNotEmpty) {
+        setState(() {
+          _showSearchResults = false;
+          _searchResults = [];
+        });
+      }
       return;
     }
 
-    // Debounce 300ms agar menu hasil pencarian muncul setelah user selesai mengetik
-    _searchDebounce = Timer(const Duration(milliseconds: 300), () {
+    // Debounce 350ms agar menu hasil pencarian muncul setelah user selesai mengetik minimal 3 huruf
+    _searchDebounce = Timer(const Duration(milliseconds: 350), () {
       if (!mounted) return;
-      _performSearch(query.trim());
+      _performSearch(trimmed);
     });
   }
 
   void _onSearchSubmitted(String query) {
     _searchDebounce?.cancel();
-    if (query.trim().isNotEmpty) {
-      _performSearch(query.trim());
+    final trimmed = query.trim();
+    if (trimmed.length >= 3) {
+      _performSearch(trimmed);
+    } else {
+      setState(() {
+        _showSearchResults = false;
+        _searchResults = [];
+      });
     }
   }
 
@@ -869,6 +879,7 @@ class _StoreCoordinatesScreenState
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.dark,
       safeAreaBottom: false,
+      unfocusOnTap: false,
       appBar: const AppAppBar(
         title: 'Kordinat',
       ),
@@ -927,26 +938,29 @@ class _StoreCoordinatesScreenState
             ],
           ),
 
-          // Modal barrier transparan untuk menutup hasil pencarian saat user klik di luar
-          if (_showSearchResults)
-            Positioned.fill(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () {
-                  _searchFocusNode.unfocus();
-                  setState(() {
-                    _showSearchResults = false;
-                  });
-                },
-                child: const SizedBox.expand(),
-              ),
+          // Modal barrier transparan permanen (Ignored saat hasil pencarian tidak aktif)
+          // Memastikan susunan anak Stack selalu stabil tanpa rebuild atau unmount
+          IgnorePointer(
+            key: const ValueKey('coordinates_search_barrier'),
+            ignoring: !_showSearchResults,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                _searchFocusNode.unfocus();
+                setState(() {
+                  _showSearchResults = false;
+                });
+              },
+              child: const SizedBox.expand(),
             ),
+          ),
 
           // 2. Bar Pencarian Nama Toko Mitra, Hasil Pencarian, & Filter Rute
           if (!_isLoading &&
               _errorMessage == null &&
               _storesWithCoords.isNotEmpty)
             Positioned(
+              key: const ValueKey('coordinates_search_bar_overlay'),
               top: 14,
               left: 16,
               right: 16,
@@ -968,16 +982,17 @@ class _StoreCoordinatesScreenState
                       ],
                     ),
                     child: AppSearchField(
+                      key: const ValueKey('coordinates_search_field'),
                       controller: _searchController,
                       focusNode: _searchFocusNode,
-                      hintText: 'Cari nama toko mitra...',
+                      hintText: 'Cari nama toko mitra (min. 3 huruf)...',
                       onChanged: _onSearchChanged,
                       onSubmitted: _onSearchSubmitted,
                       onClear: _onClearSearch,
                     ),
                   ),
 
-                  // Menu Hasil Pencarian (Muncul setelah user selesai mengetik)
+                  // Menu Hasil Pencarian (Muncul setelah user selesai mengetik minimal 3 huruf)
                   if (_showSearchResults)
                     _buildSearchResultsDropdown(),
 

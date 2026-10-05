@@ -83,16 +83,28 @@ void main() {
     await tester.pumpAndSettle();
 
     // Verify search field exists
-    expect(find.byType(TextField), findsOneWidget);
+    final textFieldFinder = find.byType(TextField);
+    expect(textFieldFinder, findsOneWidget);
     expect(find.text('2 Toko Terpetakan'), findsOneWidget);
 
-    // Enter search query
-    await tester.enterText(find.byType(TextField), 'Berkah');
+    // 1. Enter 1 letter ('B') - should NOT trigger search even after 400ms
+    await tester.enterText(textFieldFinder, 'B');
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byType(ListView), findsNothing);
+
+    // 2. Enter 2 letters ('Be') - should NOT trigger search even after 400ms
+    await tester.enterText(textFieldFinder, 'Be');
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byType(ListView), findsNothing);
+
+    // 3. Enter 3+ letters ('Ber')
+    await tester.enterText(textFieldFinder, 'Ber');
     // Pump before debounce finishes (200ms) - should not show yet
     await tester.pump(const Duration(milliseconds: 200));
+    expect(find.byType(ListView), findsNothing);
 
     // Pump past debounce (350ms total)
-    await tester.pump(const Duration(milliseconds: 200));
+    await tester.pump(const Duration(milliseconds: 250));
 
     // Verify search dropdown shows 'Toko Berkah Jaya'
     expect(find.text('Toko Berkah Jaya'), findsWidgets);
