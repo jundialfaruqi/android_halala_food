@@ -521,7 +521,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
 
   /// Card statistik ringkasan operasional Halala Food dengan widget core AppCard.stacked
   Widget _buildStatsCard() {
-    return AppCard(
+    return AppCard.stacked(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
       child: Column(
         mainAxisSize: MainAxisSize.min,

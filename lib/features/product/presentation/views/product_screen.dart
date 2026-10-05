@@ -121,7 +121,7 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
   /// Bagian Atas: Search Input, Filter Status, dan Filter Satuan
   Widget _buildFilterHeader(ProductState state, ProductViewModel notifier) {
     return Container(
-      color: Colors.white,
+      color: AppColors.background,
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

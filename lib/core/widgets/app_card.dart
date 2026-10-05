@@ -79,15 +79,15 @@ class AppCard extends StatelessWidget {
         _stackOffsetVertical = 0,
         boxShadow = null;
 
-  /// Card dengan efek tumpukan 3 layer (3-card stacked deck effect)
+  /// Card dengan efek tumpukan 3 layer (3-card stacked deck effect) lengkap dengan shadow
   const AppCard.stacked({
     super.key,
     required this.child,
     this.padding = const EdgeInsets.all(16.0),
     this.margin,
     this.backgroundColor = Colors.white,
-    this.borderColor = Colors.transparent,
-    this.borderWidth = 0.0,
+    this.borderColor = AppColors.brandBorder,
+    this.borderWidth = 1.0,
     this.borderRadius = 16.0,
     this.onTap,
     this.onLongPress,
@@ -180,6 +180,19 @@ class AppCard extends StatelessWidget {
     );
   }
 
+  static final List<BoxShadow> _stackedFrontShadow = [
+    BoxShadow(
+      color: Colors.black.withValues(alpha: 0.07),
+      blurRadius: 14,
+      offset: const Offset(0, 4),
+    ),
+    BoxShadow(
+      color: Colors.black.withValues(alpha: 0.02),
+      blurRadius: 4,
+      offset: const Offset(0, 1),
+    ),
+  ];
+
   Widget _buildCardContainer() {
     Widget card = Container(
       padding: padding,
@@ -189,7 +202,7 @@ class AppCard extends StatelessWidget {
         border: borderWidth > 0
             ? Border.all(color: borderColor, width: borderWidth)
             : null,
-        boxShadow: boxShadow,
+        boxShadow: boxShadow ?? (_isStacked ? _stackedFrontShadow : null),
       ),
       child: child,
     );
@@ -240,7 +253,13 @@ class AppCard extends StatelessWidget {
                 border: borderWidth > 0
                     ? Border.all(color: borderColor, width: borderWidth)
                     : null,
-                boxShadow: boxShadow,
+                boxShadow: boxShadow ?? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
               ),
             ),
           ),
@@ -258,7 +277,13 @@ class AppCard extends StatelessWidget {
                 border: borderWidth > 0
                     ? Border.all(color: borderColor, width: borderWidth)
                     : null,
-                boxShadow: boxShadow,
+                boxShadow: boxShadow ?? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
             ),
           ),
