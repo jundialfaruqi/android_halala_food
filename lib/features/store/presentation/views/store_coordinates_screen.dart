@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart' hide Path;
 import 'package:url_launcher/url_launcher.dart';
 
@@ -14,8 +15,10 @@ import '../../data/repositories/store_repository_impl.dart';
 
 /// Halaman Kordinat Mitra Toko yang dibangun menggunakan seluruh Core Widget Halala Food:
 /// AppScaffold (bg white), AppAppBar, AppStatusBar, AppCard, AppButton, AppCachedImage, AppSearchField.
-/// Menampilkan peta berisi titik koordinat semua mitra toko dengan marker foto toko.
-/// Dilengkapi input pencarian nama toko dengan dropdown hasil pencarian otomatis setelah user mengetik.
+/// Menampilkan peta berisi titik koordinat semua mitra toko dengan marker foto toko dan titik lokasi saya.
+/// Jika GPS aktif, menampilkan titik mark lokasi saya di peta dan otomatis fokus ke koordinat saya.
+/// Jika GPS tidak aktif, menampilkan modal untuk mengaktifkan GPS atau menutup ke Home screen.
+/// Dilengkapi input pencarian nama toko dengan dropdown hasil pencarian otomatis setelah user mengetik (min. 3 huruf).
 /// Saat hasil pencarian diklik, kamera peta langsung menampilkan kordinat toko tersebut dan membuka detailnya.
 /// Dilengkapi juga filter rute di samping badge count toko untuk menampilkan titik kordinat toko rute tertentu.
 /// Desain UI clean, tanpa icon dekoratif berlebihan, tanpa badge, tanpa banyak warna.
@@ -28,7 +31,8 @@ class StoreCoordinatesScreen extends ConsumerStatefulWidget {
 }
 
 class _StoreCoordinatesScreenState
-    extends ConsumerState<StoreCoordinatesScreen> {
+    extends ConsumerState<StoreCoordinatesScreen>
+    with WidgetsBindingObserver {
   late final MapController _mapController;
   late final TextEditingController _searchController;
   late final FocusNode _searchFocusNode;
@@ -39,6 +43,11 @@ class _StoreCoordinatesScreenState
   List<StoreModel> _storesWithCoords = [];
   List<String> _availableRoutes = [];
   String? _selectedRoute;
+
+  // State untuk lokasi pengguna saat ini (Lokasi Saya)
+  LatLng? _myLocation;
+  bool _isCheckingGps = false;
+  bool _isGpsModalOpen = false;
 
   // State untuk pencarian nama toko
   bool _showSearchResults = false;
@@ -62,21 +71,38 @@ class _StoreCoordinatesScreenState
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _mapController = MapController();
     _searchController = TextEditingController();
     _searchFocusNode = FocusNode();
     _searchFocusNode.addListener(_onSearchFocusChanged);
     _fetchStoreCoordinates();
+
+    // Periksa status GPS perangkat setelah build pertama
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _checkGpsAndFocusLocation();
+      }
+    });
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _searchDebounce?.cancel();
     _searchFocusNode.removeListener(_onSearchFocusChanged);
     _searchFocusNode.dispose();
     _searchController.dispose();
     _mapController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Saat user kembali dari menu pengaturan HP untuk mengaktifkan GPS
+      _checkGpsAndFocusLocation(isResumed: true);
+    }
   }
 
   void _onSearchFocusChanged() {
@@ -178,6 +204,184 @@ class _StoreCoordinatesScreenState
     _showStoreDetailModalCard(store);
   }
 
+  /// Memeriksa status GPS dan memusatkan peta ke lokasi saya jika aktif
+  Future<void> _checkGpsAndFocusLocation({bool isResumed = false}) async {
+    if (_isCheckingGps) return;
+    _isCheckingGps = true;
+
+    try {
+      final isServiceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!isServiceEnabled) {
+        if (mounted && !_isGpsModalOpen) {
+          _showGpsPromptModal();
+        }
+        return;
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          if (mounted && !_isGpsModalOpen) {
+            _showGpsPromptModal(isPermissionDenied: true);
+          }
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        if (mounted && !_isGpsModalOpen) {
+          _showGpsPromptModal(isPermissionDenied: true);
+        }
+        return;
+      }
+
+      // Jika modal prompt masih terbuka, tutup
+      if (_isGpsModalOpen && mounted) {
+        Navigator.of(context, rootNavigator: true).maybePop();
+        _isGpsModalOpen = false;
+      }
+
+      // Ambil kordinat lokasi pengguna saat ini
+      Position? position;
+      try {
+        position = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+            timeLimit: Duration(seconds: 10),
+          ),
+        );
+      } catch (_) {
+        position = await Geolocator.getLastKnownPosition();
+      }
+
+      if (position != null && mounted) {
+        final myLatLng = LatLng(position.latitude, position.longitude);
+        setState(() {
+          _myLocation = myLatLng;
+        });
+
+        // Overlay maps langsung fokus ke kordinat saya
+        _mapController.move(myLatLng, 16.0);
+      }
+    } catch (_) {
+    } finally {
+      _isCheckingGps = false;
+    }
+  }
+
+  /// Modal Tampilkan Lokasi Saya di Maps saat GPS tidak aktif
+  void _showGpsPromptModal({bool isPermissionDenied = false}) {
+    if (_isGpsModalOpen) return;
+    _isGpsModalOpen = true;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isDismissible: false,
+      enableDrag: false,
+      builder: (modalContext) {
+        return PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, result) {
+            if (didPop) return;
+            _isGpsModalOpen = false;
+            Navigator.of(modalContext).pop();
+            Navigator.of(context).maybePop();
+          },
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: AppCard(
+                backgroundColor: Colors.white,
+                borderRadius: 20,
+                padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Handle bar minimalis
+                    Center(
+                      child: Container(
+                        width: 36,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: AppColors.brandBorder,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+
+                    // Judul Modal
+                    const Text(
+                      'Tampilkan Lokasi Saya',
+                      style: TextStyle(
+                        fontFamily: 'PlusJakartaSans',
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.brandEspresso,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Deskripsi Informasi GPS
+                    Text(
+                      isPermissionDenied
+                          ? 'Izin akses lokasi belum diberikan. Aktifkan izin lokasi untuk menampilkan posisi Anda saat ini di peta.'
+                          : 'Layanan GPS perangkat belum aktif. Hidupkan GPS untuk menampilkan lokasi Anda di peta dan otomatis memusatkan kordinat saya.',
+                      style: const TextStyle(
+                        fontFamily: 'PlusJakartaSans',
+                        fontSize: 13,
+                        color: AppColors.brandWarmGray,
+                        height: 1.45,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Tombol Call to Action: "Ya, hidupkan GPS"
+                    AppButton(
+                      text: isPermissionDenied
+                          ? 'Buka Pengaturan Izin'
+                          : 'Ya, hidupkan GPS',
+                      onPressed: () async {
+                        _isGpsModalOpen = false;
+                        Navigator.of(modalContext).pop();
+
+                        if (isPermissionDenied) {
+                          await Geolocator.openAppSettings();
+                        } else {
+                          await Geolocator.openLocationSettings();
+                        }
+
+                        // Saat user kembali ke screen kordinat, titik di maps otomatis fokus ke kordinat saya
+                        _checkGpsAndFocusLocation(isResumed: true);
+                      },
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Tombol Call to Action: "Tutup / Cancel"
+                    // Menutup modal & menutup kordinat screen menuju home screen
+                    AppButton.outline(
+                      text: 'Tutup / Cancel',
+                      onPressed: () {
+                        _isGpsModalOpen = false;
+                        Navigator.of(modalContext).pop();
+                        Navigator.of(context).maybePop();
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    ).then((_) {
+      _isGpsModalOpen = false;
+    });
+  }
+
   Future<void> _fetchStoreCoordinates() async {
     setState(() {
       _isLoading = true;
@@ -232,7 +436,7 @@ class _StoreCoordinatesScreenState
         _availableRoutes = sortedRoutes;
       });
 
-      // Fit kamera ke seluruh titik koordinat toko mitra jika ada
+      // Fit kamera ke seluruh titik koordinat toko mitra jika ada (dan lokasi saya belum aktif)
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || _storesWithCoords.isEmpty) return;
         _fitCameraToStores();
@@ -247,6 +451,9 @@ class _StoreCoordinatesScreenState
   }
 
   void _fitCameraToStores({List<StoreModel>? targetStores}) {
+    // Jika GPS aktif dan lokasi saya sudah ditemukan, jangan override kamera yang sudah fokus ke lokasi saya
+    if (_myLocation != null && targetStores == null) return;
+
     final stores = targetStores ?? _filteredStores;
     if (stores.isEmpty) return;
 
@@ -867,12 +1074,13 @@ class _StoreCoordinatesScreenState
   @override
   Widget build(BuildContext context) {
     final displayStores = _filteredStores;
-    final initialCenter = displayStores.isNotEmpty
-        ? LatLng(
-            displayStores.first.latitude!,
-            displayStores.first.longitude!,
-          )
-        : _defaultLocation;
+    final initialCenter = _myLocation ??
+        (displayStores.isNotEmpty
+            ? LatLng(
+                displayStores.first.latitude!,
+                displayStores.first.longitude!,
+              )
+            : _defaultLocation);
 
     return AppScaffold(
       backgroundColor: Colors.white,
@@ -922,18 +1130,28 @@ class _StoreCoordinatesScreenState
                 ),
               ),
               MarkerLayer(
-                markers: displayStores.map((store) {
-                  return Marker(
-                    point: LatLng(store.latitude!, store.longitude!),
-                    width: 48,
-                    height: 56,
-                    alignment: Alignment.topCenter,
-                    child: _StoreMapPinMarker(
-                      store: store,
-                      onTap: () => _onStoreMarkerTapped(store),
+                markers: [
+                  ...displayStores.map((store) {
+                    return Marker(
+                      point: LatLng(store.latitude!, store.longitude!),
+                      width: 48,
+                      height: 56,
+                      alignment: Alignment.topCenter,
+                      child: _StoreMapPinMarker(
+                        store: store,
+                        onTap: () => _onStoreMarkerTapped(store),
+                      ),
+                    );
+                  }),
+                  if (_myLocation != null)
+                    Marker(
+                      point: _myLocation!,
+                      width: 36,
+                      height: 36,
+                      alignment: Alignment.center,
+                      child: const _MyLocationMarker(),
                     ),
-                  );
-                }).toList(),
+                ],
               ),
             ],
           ),
@@ -1044,7 +1262,45 @@ class _StoreCoordinatesScreenState
               ),
             ),
 
-          // 3. Status Loading Ringan
+          // 3. Tombol Floating Re-Center Lokasi Saya (Pojok Kanan Bawah)
+          Positioned(
+            bottom: 24,
+            right: 16,
+            child: Material(
+              color: Colors.white,
+              elevation: 4,
+              borderRadius: BorderRadius.circular(12),
+              shadowColor: Colors.black.withValues(alpha: 0.15),
+              child: Tooltip(
+                message: 'Lokasi Saya',
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () {
+                    if (_myLocation != null) {
+                      _mapController.move(_myLocation!, 16.5);
+                    } else {
+                      _checkGpsAndFocusLocation();
+                    }
+                  },
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.brandBorder),
+                    ),
+                    child: const Icon(
+                      TablerIcons.current_location,
+                      size: 22,
+                      color: AppColors.brandPrimary,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // 4. Status Loading Ringan
           if (_isLoading)
             Positioned.fill(
               child: Container(
@@ -1061,7 +1317,7 @@ class _StoreCoordinatesScreenState
               ),
             ),
 
-          // 4. Status Error / Kosong
+          // 5. Status Error / Kosong
           if (!_isLoading && _errorMessage != null)
             Positioned.fill(
               child: Container(
@@ -1205,3 +1461,52 @@ class _PinTipPainter extends CustomPainter {
   bool shouldRepaint(covariant _PinTipPainter oldDelegate) =>
       color != oldDelegate.color;
 }
+
+/// Widget marker titik lokasi saya di maps
+class _MyLocationMarker extends StatelessWidget {
+  const _MyLocationMarker();
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        // Lingkaran luar transparan dengan efek halo
+        Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: const Color(0xFF1976D2).withValues(alpha: 0.2),
+          ),
+        ),
+        // Lingkaran putih sebagai border kontras
+        Container(
+          width: 18,
+          height: 18,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.25),
+                blurRadius: 4,
+                offset: const Offset(0, 1),
+              ),
+            ],
+          ),
+        ),
+        // Titik biru solid di tengah (Lokasi Saya)
+        Container(
+          width: 12,
+          height: 12,
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            color: Color(0xFF1976D2),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
