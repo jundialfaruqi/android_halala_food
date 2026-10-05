@@ -78,6 +78,11 @@ class RouterNotifier extends ChangeNotifier {
       authViewModelProvider,
       (previous, next) {
         if (previous?.status != next.status) {
+          // Tutup seluruh modal/pushed screen di atas root navigator jika sesi berakhir / logout
+          if (next.status == AuthStatus.unauthenticated &&
+              previous?.status == AuthStatus.authenticated) {
+            rootNavigatorKey.currentState?.popUntil((route) => route.isFirst);
+          }
           notifyListeners();
         }
       },

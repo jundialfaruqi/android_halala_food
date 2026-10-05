@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/widgets/app_snack_bar.dart';
 import '../../data/models/user_model.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../domain/repositories/auth_repository.dart';
@@ -74,6 +75,15 @@ class AuthViewModel extends Notifier<AuthState> {
     state = state.copyWith(status: AuthStatus.loading);
     await _repository.logout();
     state = const AuthState(status: AuthStatus.unauthenticated);
+  }
+
+  void handleSessionExpired() {
+    if (state.status != AuthStatus.authenticated) return;
+    state = const AuthState(status: AuthStatus.unauthenticated);
+    AppSnackBar.showError(
+      null,
+      message: 'Sesi Anda telah berakhir. Silakan login kembali.',
+    );
   }
 
   Future<UserModel?> refreshUserProfile() async {

@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../features/auth/presentation/viewmodels/auth_viewmodel.dart';
 import '../config/app_config.dart';
 import '../storage/secure_storage_service.dart';
 import 'api_exceptions.dart';
@@ -8,13 +9,21 @@ import 'interceptors/auth_interceptor.dart';
 
 final dioClientProvider = Provider<DioClient>((ref) {
   final storage = ref.watch(secureStorageServiceProvider);
-  return DioClient(storage: storage);
+  return DioClient(
+    storage: storage,
+    onSessionExpired: () {
+      ref.read(authViewModelProvider.notifier).handleSessionExpired();
+    },
+  );
 });
 
 class DioClient {
   late final Dio _dio;
 
-  DioClient({required SecureStorageService storage}) {
+  DioClient({
+    required SecureStorageService storage,
+    VoidCallback? onSessionExpired,
+  }) {
     _dio = Dio(
       BaseOptions(
         baseUrl: AppConfig.baseUrl,
@@ -33,6 +42,7 @@ class DioClient {
       AuthInterceptor(
         storage: storage,
         dio: _dio,
+        onSessionExpired: onSessionExpired,
       ),
     );
 

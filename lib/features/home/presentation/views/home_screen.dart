@@ -20,7 +20,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    precacheImage(const AssetImage(AppAssets.whyChooseUs), context);
     final route = ModalRoute.of(context);
     if (route != null) {
       appRouteObserver.subscribe(this, route);
@@ -92,18 +91,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                             color: Color(0xFF1E293B),
                           ),
                           // Gambar Background Aspek Video
-                          Image.asset(
-                            AppAssets.whyChooseUs,
+                          const Image(
+                            image: AssetImage(AppAssets.whyChooseUs),
                             fit: BoxFit.cover,
                             gaplessPlayback: true,
-                            frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-                              if (wasSynchronouslyLoaded || frame != null) {
-                                return child;
-                              }
-                              return const ColoredBox(
-                                color: Color(0xFF1E293B),
-                              );
-                            },
                           ),
                           // Dark Gradient Overlay untuk kontras teks & icon status bar
                           DecoratedBox(

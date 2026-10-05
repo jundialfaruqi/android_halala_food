@@ -1,17 +1,20 @@
 import 'dart:async';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import '../../constants/api_endpoints.dart';
 import '../../storage/secure_storage_service.dart';
 
 class AuthInterceptor extends QueuedInterceptor {
   final SecureStorageService _storage;
   final Dio _dio;
+  final VoidCallback? onSessionExpired;
   bool _isRefreshing = false;
   Completer<String?>? _refreshCompleter;
 
   AuthInterceptor({
     required SecureStorageService storage,
     required Dio dio,
+    this.onSessionExpired,
   })  : _storage = storage,
         _dio = dio;
 
@@ -44,6 +47,7 @@ class AuthInterceptor extends QueuedInterceptor {
     final response = err.response;
     final is401 = response?.statusCode == 401;
     final isAuthPublicPath = err.requestOptions.path.contains(ApiEndpoints.login) ||
+        err.requestOptions.path.contains(ApiEndpoints.register) ||
         err.requestOptions.path.contains(ApiEndpoints.refreshToken);
 
     if (is401 && !isAuthPublicPath) {
@@ -59,10 +63,12 @@ class AuthInterceptor extends QueuedInterceptor {
           return handler.resolve(retryResponse);
         } else {
           await _storage.clearSession();
+          onSessionExpired?.call();
           return handler.next(err);
         }
       } catch (e) {
         await _storage.clearSession();
+        onSessionExpired?.call();
         return handler.next(err);
       }
     }

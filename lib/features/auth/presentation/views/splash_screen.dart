@@ -3,8 +3,20 @@ import '../../../../core/constants/app_assets.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/widgets.dart';
 
-class SplashScreen extends StatelessWidget {
+class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
+
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    precacheImage(const AssetImage(AppAssets.whyChooseUs), context);
+    precacheImage(const AssetImage(AppAssets.loginBg), context);
+  }
 
   @override
   Widget build(BuildContext context) {
