@@ -96,8 +96,9 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    // 1. Initial state: dropdown displays 'Semua Satuan'
+    // 1. Initial state: dropdown displays 'Semua Satuan' and summary text below filter
     expect(find.text('Semua Satuan'), findsOneWidget);
+    expect(find.text('Menampilkan 2 Produk'), findsOneWidget);
     expect(find.text('Keripik Tempe Pcs'), findsOneWidget);
     expect(find.text('Keripik Tempe Dus'), findsOneWidget);
     expect(mockRepo.lastUnitIdRequested, isNull);
@@ -116,6 +117,8 @@ void main() {
 
     // Label should now be 'Dus' and repository called with unitId: 2
     expect(find.text('Dus'), findsOneWidget);
+    expect(find.text('Menampilkan 1 dari 1 Produk'), findsOneWidget);
+    expect(find.text('Reset Filter'), findsOneWidget);
     expect(mockRepo.lastUnitIdRequested, equals(2));
     expect(find.text('Keripik Tempe Dus'), findsOneWidget);
     expect(find.text('Keripik Tempe Pcs'), findsNothing);
@@ -129,8 +132,9 @@ void main() {
     await tester.tap(find.text('Semua Satuan'));
     await tester.pumpAndSettle();
 
-    // 5. Verify dropdown returns to 'Semua Satuan' and repository called with unitId: null
+    // 5. Verify dropdown returns to 'Semua Satuan', count text resets, and repository called with unitId: null
     expect(find.text('Semua Satuan'), findsOneWidget);
+    expect(find.text('Menampilkan 2 Produk'), findsOneWidget);
     expect(mockRepo.lastUnitIdRequested, isNull);
     expect(find.text('Keripik Tempe Pcs'), findsOneWidget);
     expect(find.text('Keripik Tempe Dus'), findsOneWidget);

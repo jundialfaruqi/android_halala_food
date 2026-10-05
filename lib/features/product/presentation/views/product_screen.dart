@@ -63,7 +63,54 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
           // Filter & Search Bar Atas
           _buildFilterHeader(state, notifier),
 
-          const Divider(height: 1, color: AppColors.brandBorder),
+          // Ringkasan Total Data Produk (kayak halaman mitra toko)
+          if (!state.isLoading)
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 4.0,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      state.hasFilter
+                          ? 'Menampilkan ${state.products.length} dari ${state.total} Produk'
+                          : 'Menampilkan ${state.total} Produk',
+                      style: const TextStyle(
+                        fontFamily: 'PlusJakartaSans',
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.brandWarmGray,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (state.hasFilter) ...[
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () {
+                        _searchController.clear();
+                        notifier.resetFilters();
+                      },
+                      child: const Text(
+                        'Reset Filter',
+                        style: TextStyle(
+                          fontFamily: 'PlusJakartaSans',
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.brandPrimary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+
+          const SizedBox(height: 6),
 
           // Konten Daftar Produk
           Expanded(
@@ -74,11 +121,11 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
     );
   }
 
-  /// Bagian Atas: Search Input, Filter Status, Filter Satuan, dan Indikator Jumlah
+  /// Bagian Atas: Search Input, Filter Status, dan Filter Satuan
   Widget _buildFilterHeader(ProductState state, ProductViewModel notifier) {
     return Container(
       color: Colors.white,
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -93,7 +140,7 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
 
           const SizedBox(height: 10),
 
-          // Bar Filter Dropdown & Text Counter (SingleChildScrollView agar aman pada semua ukuran layar)
+          // Bar Filter Dropdown
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -105,19 +152,6 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
 
                 // Filter Select Satuan Kemasan
                 _buildUnitDropdown(state, notifier),
-
-                const SizedBox(width: 14),
-
-                // Indikator Jumlah Produk (Clean Text)
-                Text(
-                  'Menampilkan ${state.total} produk',
-                  style: const TextStyle(
-                    fontFamily: 'PlusJakartaSans',
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.brandWarmGray,
-                  ),
-                ),
               ],
             ),
           ),
