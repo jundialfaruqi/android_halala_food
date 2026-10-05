@@ -210,7 +210,6 @@ class _StoreMapPickerScreenState extends State<StoreMapPickerScreen> {
       backgroundColor: Colors.white,
       appBar: const AppAppBar(
         title: 'Pilih Lokasi di Peta',
-        showBottomBorder: true,
       ),
       body: Stack(
         children: [

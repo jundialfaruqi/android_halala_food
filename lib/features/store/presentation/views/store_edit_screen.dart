@@ -535,8 +535,6 @@ class _StoreEditScreenState extends ConsumerState<StoreEditScreen> {
           : 'Menyimpan perubahan data toko...',
       appBar: const AppAppBar(
         title: 'Ubah Data Toko',
-        showBottomBorder: false,
-        scrolledUnderElevation: 2,
       ),
       bottomNavigationBar: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

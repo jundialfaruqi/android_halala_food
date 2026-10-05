@@ -4,7 +4,7 @@ import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
 import '../constants/app_assets.dart';
 import '../constants/app_colors.dart';
 
-class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
+class AppAppBar extends StatefulWidget implements PreferredSizeWidget {
   final String? title;
   final Widget? titleWidget;
   final bool showLogo;
@@ -20,10 +20,12 @@ class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
   final Color? shadowColor;
   final Color? surfaceTintColor;
   final bool hasShadow;
+  final bool alwaysShowShadow;
   final bool showBottomBorder;
   final List<BoxShadow>? customShadow;
   final double? titleSpacing;
   final SystemUiOverlayStyle? systemOverlayStyle;
+  final ScrollNotificationPredicate? notificationPredicate;
 
   const AppAppBar({
     super.key,
@@ -42,10 +44,12 @@ class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.shadowColor,
     this.surfaceTintColor = Colors.transparent,
     this.hasShadow = true,
+    this.alwaysShowShadow = false,
     this.showBottomBorder = false,
     this.customShadow,
     this.titleSpacing,
     this.systemOverlayStyle,
+    this.notificationPredicate,
   });
 
   @override
@@ -54,11 +58,62 @@ class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
       );
 
   @override
+  State<AppAppBar> createState() => _AppAppBarState();
+}
+
+class _AppAppBarState extends State<AppAppBar> {
+  ScrollNotificationObserverState? _scrollNotificationObserver;
+  bool _scrolledUnder = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _scrollNotificationObserver?.removeListener(_handleScrollNotification);
+    _scrollNotificationObserver = ScrollNotificationObserver.maybeOf(context);
+    _scrollNotificationObserver?.addListener(_handleScrollNotification);
+  }
+
+  @override
+  void dispose() {
+    if (_scrollNotificationObserver != null) {
+      _scrollNotificationObserver!.removeListener(_handleScrollNotification);
+      _scrollNotificationObserver = null;
+    }
+    super.dispose();
+  }
+
+  void _handleScrollNotification(ScrollNotification notification) {
+    if (notification.metrics.axis == Axis.vertical) {
+      final predicate = widget.notificationPredicate ??
+          (ScrollNotification n) => n.depth == 0;
+      if (predicate(notification)) {
+        final ScrollMetrics metrics = notification.metrics;
+        final bool isScrolled;
+        switch (metrics.axisDirection) {
+          case AxisDirection.up:
+            isScrolled = metrics.extentAfter > 0;
+            break;
+          case AxisDirection.down:
+          default:
+            isScrolled = metrics.extentBefore > 0;
+            break;
+        }
+
+        if (_scrolledUnder != isScrolled) {
+          setState(() {
+            _scrolledUnder = isScrolled;
+          });
+        }
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    Widget? computedTitle = titleWidget;
+    Widget? computedTitle = widget.titleWidget;
 
     if (computedTitle == null) {
-      if (showLogo) {
+      if (widget.showLogo) {
         computedTitle = Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -71,40 +126,40 @@ class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
                 color: AppColors.brandPrimary,
               ),
             ),
-            if (title != null && title!.isNotEmpty) ...[
+            if (widget.title != null && widget.title!.isNotEmpty) ...[
               const SizedBox(width: 10),
               Text(
-                title!,
+                widget.title!,
                 style: TextStyle(
                   fontFamily: 'PlusJakartaSans',
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: foregroundColor,
+                  color: widget.foregroundColor,
                 ),
               ),
             ],
           ],
         );
-      } else if (title != null) {
+      } else if (widget.title != null) {
         computedTitle = Text(
-          title!,
+          widget.title!,
           style: TextStyle(
             fontFamily: 'PlusJakartaSans',
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: foregroundColor,
+            color: widget.foregroundColor,
           ),
         );
       }
     }
 
-    Widget? leadingWidget = leading;
+    Widget? leadingWidget = widget.leading;
     if (leadingWidget == null &&
-        automaticallyImplyLeading &&
+        widget.automaticallyImplyLeading &&
         Navigator.of(context).canPop()) {
       leadingWidget = IconButton(
         icon: const Icon(TablerIcons.chevron_left, size: 22),
-        color: foregroundColor,
+        color: widget.foregroundColor,
         tooltip: 'Kembali',
         onPressed: () => Navigator.of(context).maybePop(),
       );
@@ -112,18 +167,18 @@ class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
 
     final appBarWidget = AppBar(
       title: computedTitle,
-      centerTitle: centerTitle,
-      titleSpacing: titleSpacing,
+      centerTitle: widget.centerTitle,
+      titleSpacing: widget.titleSpacing,
       leading: leadingWidget,
       automaticallyImplyLeading: false,
-      actions: actions,
-      bottom: bottom,
-      backgroundColor: backgroundColor,
-      foregroundColor: foregroundColor,
+      actions: widget.actions,
+      bottom: widget.bottom,
+      backgroundColor: widget.backgroundColor,
+      foregroundColor: widget.foregroundColor,
       elevation: 0,
       scrolledUnderElevation: 0,
-      surfaceTintColor: surfaceTintColor,
-      systemOverlayStyle: systemOverlayStyle ??
+      surfaceTintColor: widget.surfaceTintColor,
+      systemOverlayStyle: widget.systemOverlayStyle ??
           const SystemUiOverlayStyle(
             statusBarColor: Colors.transparent,
             statusBarIconBrightness: Brightness.dark, // Icon hitam di Android
@@ -131,8 +186,11 @@ class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
           ),
     );
 
-    final List<BoxShadow>? computedShadow = hasShadow
-        ? (customShadow ??
+    final bool shouldShowShadow =
+        widget.hasShadow && (_scrolledUnder || widget.alwaysShowShadow);
+
+    final List<BoxShadow>? computedShadow = shouldShowShadow
+        ? (widget.customShadow ??
             [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.05),
@@ -142,24 +200,21 @@ class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
             ])
         : null;
 
-    if (hasShadow || showBottomBorder) {
-      return Container(
-        decoration: BoxDecoration(
-          color: backgroundColor,
-          boxShadow: computedShadow,
-          border: showBottomBorder
-              ? const Border(
-                  bottom: BorderSide(
-                    color: AppColors.brandBorder,
-                    width: 1,
-                  ),
-                )
-              : null,
-        ),
-        child: appBarWidget,
-      );
-    }
-
-    return appBarWidget;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      decoration: BoxDecoration(
+        color: widget.backgroundColor,
+        boxShadow: computedShadow,
+        border: widget.showBottomBorder
+            ? const Border(
+                bottom: BorderSide(
+                  color: AppColors.brandBorder,
+                  width: 1,
+                ),
+              )
+            : null,
+      ),
+      child: appBarWidget,
+    );
   }
 }

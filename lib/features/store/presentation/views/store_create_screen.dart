@@ -525,8 +525,6 @@ class _StoreCreateScreenState extends ConsumerState<StoreCreateScreen> {
           : 'Menyimpan data toko mitra...',
       appBar: const AppAppBar(
         title: 'Tambah Mitra Toko',
-        showBottomBorder: false,
-        scrolledUnderElevation: 2,
       ),
       bottomNavigationBar: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
