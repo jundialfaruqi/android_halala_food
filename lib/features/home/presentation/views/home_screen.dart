@@ -34,17 +34,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
 
   @override
   void didPushNext() {
-    // Sinkronisasi instan saat layar lain (Profil/Toko) mulai di-push di atas Home
+    // Status bar konsisten hitam di semua layar
     AppStatusBar.setDark();
   }
 
   @override
   void didPopNext() {
-    // Sinkronisasi instan saat layar di atasnya di-pop dan kembali ke Home
-    AppStatusBar.setLight();
+    // Status bar konsisten hitam saat kembali ke Home
+    AppStatusBar.setDark();
   }
 
-  /// Helper navigasi sinkron yang langsung mengubah status bar di frame ke-0
+  /// Helper navigasi sinkron yang langsung memastikan status bar gelap (ikon hitam)
   Future<T?> _navigateTo<T>(Widget screen) async {
     AppStatusBar.setDark();
     final result = await Navigator.of(context).push<T>(
@@ -53,7 +53,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
       ),
     );
     if (mounted) {
-      AppStatusBar.setLight();
+      AppStatusBar.setDark();
     }
     return result;
   }
@@ -67,7 +67,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
       backgroundColor: Colors.white,
       safeAreaTop: false,
       statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
+      statusBarIconBrightness: Brightness.dark,
       appBar: null,
       body: LayoutBuilder(
         builder: (context, constraints) {
@@ -96,18 +96,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                             fit: BoxFit.cover,
                             gaplessPlayback: true,
                           ),
-                          // Dark Gradient Overlay untuk kontras teks & icon status bar
+                          // Gradient Overlay disesuaikan agar icon status bar hitam di bagian atas kontras dan teks header terbaca jelas
                           DecoratedBox(
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 begin: Alignment.topCenter,
                                 end: Alignment.bottomCenter,
                                 colors: [
-                                  Colors.black.withValues(alpha: 0.72),
-                                  Colors.black.withValues(alpha: 0.28),
-                                  Colors.black.withValues(alpha: 0.65),
+                                  Colors.white.withValues(alpha: 0.30),
+                                  Colors.black.withValues(alpha: 0.25),
+                                  Colors.black.withValues(alpha: 0.70),
                                 ],
-                                stops: const [0.0, 0.45, 1.0],
+                                stops: const [0.0, 0.40, 1.0],
                               ),
                             ),
                           ),
