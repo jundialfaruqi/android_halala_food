@@ -1,10 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:android_halala_food/core/constants/app_colors.dart';
+import 'package:android_halala_food/features/auth/data/models/user_model.dart';
+import 'package:android_halala_food/features/auth/presentation/viewmodels/auth_state.dart';
+import 'package:android_halala_food/features/auth/presentation/viewmodels/auth_viewmodel.dart';
 import 'package:android_halala_food/features/store/data/models/store_model.dart';
 import 'package:android_halala_food/features/store/domain/repositories/store_repository.dart';
 import 'package:android_halala_food/features/store/data/repositories/store_repository_impl.dart';
 import 'package:android_halala_food/features/store/presentation/views/store_coordinates_screen.dart';
+import 'package:android_halala_food/features/store/presentation/views/store_edit_screen.dart';
+
+class FakeAuthViewModel extends AuthViewModel {
+  @override
+  AuthState build() {
+    return AuthState(
+      status: AuthStatus.authenticated,
+      user: UserModel(
+        id: 1,
+        name: 'Admin Tester',
+        email: 'admin@halala-food.id',
+        roles: ['dev'],
+      ),
+    );
+  }
+}
 
 class MockStoreRepository implements StoreRepository {
   final List<StoreModel> dummyStores = [
@@ -116,5 +137,136 @@ void main() {
     // Verify store detail modal card is opened
     expect(find.text('Buka di Google Maps'), findsOneWidget);
     expect(find.text('+628123456789'), findsOneWidget);
+  });
+
+  testWidgets(
+      'Focus all points button is displayed above Lokasi Saya and works on tap',
+      (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          storeRepositoryProvider.overrideWithValue(MockStoreRepository()),
+        ],
+        child: const MaterialApp(
+          home: StoreCoordinatesScreen(),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    // Verify both floating buttons exist
+    final focusAllFinder = find.byTooltip('Fokus Semua Titik');
+    final focusMeFinder = find.byTooltip('Lokasi Saya');
+    expect(focusAllFinder, findsOneWidget);
+    expect(focusMeFinder, findsOneWidget);
+
+    // Verify the position: focusAll is ABOVE focusMe
+    final focusAllCenter = tester.getCenter(focusAllFinder);
+    final focusMeCenter = tester.getCenter(focusMeFinder);
+    expect(focusAllCenter.dy < focusMeCenter.dy, isTrue);
+
+    // Tap the focus all button
+    await tester.tap(focusAllFinder);
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('Selecting a route filter focuses camera to stores in that route',
+      (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          storeRepositoryProvider.overrideWithValue(MockStoreRepository()),
+        ],
+        child: const MaterialApp(
+          home: StoreCoordinatesScreen(),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    // Verify filter dropdown button exists
+    expect(find.text('Semua Rute'), findsOneWidget);
+
+    // Tap filter dropdown
+    await tester.tap(find.text('Semua Rute'));
+    await tester.pumpAndSettle();
+
+    // Tap 'Rute A'
+    expect(find.text('Rute A'), findsWidgets);
+    await tester.tap(find.text('Rute A').last);
+    await tester.pumpAndSettle();
+
+    // Verify filter changed to 'Rute: Rute A' and badge shows 1 Toko Terpetakan
+    expect(find.text('Rute: Rute A'), findsOneWidget);
+    expect(find.text('1 Toko Terpetakan'), findsOneWidget);
+
+    // Tap filter dropdown again to select 'Semua Rute'
+    await tester.tap(find.text('Rute: Rute A'));
+    await tester.pumpAndSettle();
+
+    // Tap 'Semua Rute'
+    expect(find.text('Semua Rute'), findsWidgets);
+    await tester.tap(find.text('Semua Rute').last);
+    await tester.pumpAndSettle();
+
+    // Verify filter reset to 'Semua Rute' and badge shows 2 Toko Terpetakan
+    expect(find.text('Semua Rute'), findsOneWidget);
+    expect(find.text('2 Toko Terpetakan'), findsOneWidget);
+  });
+
+  testWidgets(
+      'Store detail modal shows circular ghost edit button and navigates to StoreEditScreen',
+      (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          storeRepositoryProvider.overrideWithValue(MockStoreRepository()),
+          authViewModelProvider.overrideWith(() => FakeAuthViewModel()),
+        ],
+        child: const MaterialApp(
+          home: StoreCoordinatesScreen(),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    // Search and tap a store to open the detail modal card
+    final textFieldFinder = find.byType(TextField);
+    await tester.enterText(textFieldFinder, 'Berkah');
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.tap(find.text('Toko Berkah Jaya').first);
+    await tester.pumpAndSettle();
+
+    // Verify detail modal card is open
+    expect(find.text('Toko Berkah Jaya'), findsWidgets);
+
+    // Verify circular ghost edit button exists with border abu
+    final editButtonFinder = find.byTooltip('Ubah Data Toko');
+    expect(editButtonFinder, findsOneWidget);
+    expect(find.byIcon(TablerIcons.pencil), findsOneWidget);
+
+    final containerFinder = find.descendant(
+      of: editButtonFinder,
+      matching: find.byWidgetPredicate((widget) {
+        if (widget is Container && widget.decoration is BoxDecoration) {
+          final decoration = widget.decoration as BoxDecoration;
+          return decoration.shape == BoxShape.circle &&
+              decoration.color == Colors.transparent &&
+              decoration.border?.top.color == AppColors.brandBorder;
+        }
+        return false;
+      }),
+    );
+    expect(containerFinder, findsOneWidget);
+
+    // Tap edit button to open StoreEditScreen
+    await tester.tap(editButtonFinder);
+    await tester.pumpAndSettle();
+
+    // Verify StoreEditScreen is opened
+    expect(find.byType(StoreEditScreen), findsOneWidget);
   });
 }

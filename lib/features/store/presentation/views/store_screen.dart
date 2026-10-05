@@ -1158,13 +1158,13 @@ class _StoreScreenState extends ConsumerState<StoreScreen> {
       return;
     }
 
-    final result = await Navigator.of(context).push<bool>(
+    final result = await Navigator.of(context).push<dynamic>(
       MaterialPageRoute(
         builder: (routeContext) => StoreEditScreen(store: store),
       ),
     );
 
-    if (result == true && mounted) {
+    if (result != null && mounted) {
       // Refresh list agar data terbaru terupdate
       ref.read(storeViewModelProvider.notifier).fetchStores(refresh: true);
     }

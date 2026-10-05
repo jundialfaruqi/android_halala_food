@@ -145,6 +145,55 @@ void main() {
     expect(find.text('Tampilkan Lokasi Saya'), findsNothing);
   });
 
+  testWidgets(
+      'When Ya, hidupkan GPS is tapped, screen stays open and resumes to focus location',
+      (tester) async {
+    mockGeolocator.serviceEnabled = false;
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          storeRepositoryProvider.overrideWithValue(DummyStoreRepository()),
+        ],
+        child: const MaterialApp(
+          home: Scaffold(
+            body: StoreCoordinatesScreen(),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    // Verify modal is shown
+    expect(find.text('Tampilkan Lokasi Saya'), findsOneWidget);
+    expect(find.text('Ya, hidupkan GPS'), findsOneWidget);
+
+    // Tap "Ya, hidupkan GPS"
+    await tester.tap(find.text('Ya, hidupkan GPS'));
+    await tester.pumpAndSettle();
+
+    // Verify StoreCoordinatesScreen is STILL OPEN and modal is closed
+    expect(find.byType(StoreCoordinatesScreen), findsOneWidget);
+    expect(find.text('Tampilkan Lokasi Saya'), findsNothing);
+
+    // Now simulate GPS turned on and user resuming app from settings
+    mockGeolocator.serviceEnabled = true;
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+
+    // Screen is still open and my location marker is now displayed
+    expect(find.byType(StoreCoordinatesScreen), findsOneWidget);
+    final markerTapTarget = find.byWidgetPredicate(
+      (widget) =>
+          widget is Container &&
+          widget.decoration is BoxDecoration &&
+          (widget.decoration as BoxDecoration).shape == BoxShape.circle &&
+          (widget.decoration as BoxDecoration).color == const Color(0xFF1976D2),
+    );
+    expect(markerTapTarget, findsOneWidget);
+  });
+
   testWidgets('When GPS is enabled, current location marker is displayed',
       (tester) async {
     mockGeolocator.serviceEnabled = true;

@@ -496,7 +496,7 @@ class _StoreEditScreenState extends ConsumerState<StoreEditScreen> {
       if (!mounted) return;
 
       _showSnackbar('Perubahan data toko "${updated.name}" berhasil disimpan.');
-      Navigator.of(context).pop(true);
+      Navigator.of(context).pop(updated);
     } catch (e) {
       if (!mounted) return;
 

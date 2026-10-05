@@ -158,10 +158,11 @@ class ProductViewModel extends Notifier<ProductState> {
   }
 
   void selectUnit(int? unitId) {
-    if (state.selectedUnitId == unitId) return;
+    final effectiveUnitId = (unitId == null || unitId <= 0) ? null : unitId;
+    if (state.selectedUnitId == effectiveUnitId) return;
     state = state.copyWith(
-      selectedUnitId: unitId,
-      clearUnit: unitId == null,
+      selectedUnitId: effectiveUnitId,
+      clearUnit: effectiveUnitId == null,
     );
     fetchProducts(refresh: true);
   }

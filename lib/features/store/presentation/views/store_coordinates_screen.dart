@@ -15,6 +15,7 @@ import '../../../auth/presentation/viewmodels/auth_viewmodel.dart';
 import '../../data/models/store_model.dart';
 import '../../data/repositories/store_repository_impl.dart';
 import 'store_create_screen.dart';
+import 'store_edit_screen.dart';
 
 /// Halaman Kordinat Mitra Toko yang dibangun menggunakan seluruh Core Widget Halala Food:
 /// AppScaffold (bg white), AppAppBar, AppStatusBar, AppCard, AppButton, AppCachedImage, AppSearchField.
@@ -55,6 +56,8 @@ class _StoreCoordinatesScreenState
   final Dio _geoDio = Dio();
   bool _isCheckingGps = false;
   bool _isGpsModalOpen = false;
+  bool _isOpeningGpsSettings = false;
+  BuildContext? _gpsModalContext;
 
   // State untuk pencarian nama toko
   bool _showSearchResults = false;
@@ -218,8 +221,16 @@ class _StoreCoordinatesScreenState
     _isCheckingGps = true;
 
     try {
-      final isServiceEnabled = await Geolocator.isLocationServiceEnabled();
+      bool isServiceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!isServiceEnabled && isResumed) {
+        // Beri jeda singkat untuk OS Android memperbarui status GPS service saat kembali dari Setting HP
+        await Future.delayed(const Duration(milliseconds: 400));
+        if (!mounted) return;
+        isServiceEnabled = await Geolocator.isLocationServiceEnabled();
+      }
+
       if (!isServiceEnabled) {
+        _isOpeningGpsSettings = false;
         if (mounted && !_isGpsModalOpen) {
           _showGpsPromptModal();
         }
@@ -229,7 +240,9 @@ class _StoreCoordinatesScreenState
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
+        if (permission == LocationPermission.denied ||
+            permission == LocationPermission.deniedForever) {
+          _isOpeningGpsSettings = false;
           if (mounted && !_isGpsModalOpen) {
             _showGpsPromptModal(isPermissionDenied: true);
           }
@@ -238,16 +251,23 @@ class _StoreCoordinatesScreenState
       }
 
       if (permission == LocationPermission.deniedForever) {
+        _isOpeningGpsSettings = false;
         if (mounted && !_isGpsModalOpen) {
           _showGpsPromptModal(isPermissionDenied: true);
         }
         return;
       }
 
-      // Jika modal prompt masih terbuka, tutup
-      if (_isGpsModalOpen && mounted) {
-        Navigator.of(context, rootNavigator: true).maybePop();
+      // GPS & Permission aktif -> reset flag pembukaan settings
+      _isOpeningGpsSettings = false;
+
+      // Jika modal prompt masih terbuka, tutup hanya modalnya
+      if (_isGpsModalOpen &&
+          _gpsModalContext != null &&
+          _gpsModalContext!.mounted) {
+        Navigator.of(_gpsModalContext!).pop();
         _isGpsModalOpen = false;
+        _gpsModalContext = null;
       }
 
       // Ambil kordinat lokasi pengguna saat ini
@@ -292,13 +312,21 @@ class _StoreCoordinatesScreenState
       isDismissible: false,
       enableDrag: false,
       builder: (modalContext) {
+        _gpsModalContext = modalContext;
         return PopScope(
-          canPop: false,
+          canPop: true,
           onPopInvokedWithResult: (didPop, result) {
-            if (didPop) return;
             _isGpsModalOpen = false;
-            Navigator.of(modalContext).pop();
-            Navigator.of(context).maybePop();
+            _gpsModalContext = null;
+            // Jika modal ditutup bukan karena menuju setting GPS (misal: tombol back HP atau cancel),
+            // tutup kordinat screen menuju home screen sesuai requirement
+            if (!_isOpeningGpsSettings && mounted) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  Navigator.of(context).maybePop();
+                }
+              });
+            }
           },
           child: SafeArea(
             child: Padding(
@@ -356,7 +384,9 @@ class _StoreCoordinatesScreenState
                           ? 'Buka Pengaturan Izin'
                           : 'Ya, hidupkan GPS',
                       onPressed: () async {
+                        _isOpeningGpsSettings = true;
                         _isGpsModalOpen = false;
+                        _gpsModalContext = null;
                         Navigator.of(modalContext).pop();
 
                         if (isPermissionDenied) {
@@ -364,9 +394,6 @@ class _StoreCoordinatesScreenState
                         } else {
                           await Geolocator.openLocationSettings();
                         }
-
-                        // Saat user kembali ke screen kordinat, titik di maps otomatis fokus ke kordinat saya
-                        _checkGpsAndFocusLocation(isResumed: true);
                       },
                     ),
                     const SizedBox(height: 10),
@@ -376,9 +403,13 @@ class _StoreCoordinatesScreenState
                     AppButton.outline(
                       text: 'Tutup / Cancel',
                       onPressed: () {
+                        _isOpeningGpsSettings = false;
                         _isGpsModalOpen = false;
+                        _gpsModalContext = null;
                         Navigator.of(modalContext).pop();
-                        Navigator.of(context).maybePop();
+                        if (mounted) {
+                          Navigator.of(context).maybePop();
+                        }
                       },
                     ),
                   ],
@@ -390,6 +421,7 @@ class _StoreCoordinatesScreenState
       },
     ).then((_) {
       _isGpsModalOpen = false;
+      _gpsModalContext = null;
     });
   }
 
@@ -463,9 +495,9 @@ class _StoreCoordinatesScreenState
     }
   }
 
-  void _fitCameraToStores({List<StoreModel>? targetStores}) {
-    // Jika GPS aktif dan lokasi saya sudah ditemukan, jangan override kamera yang sudah fokus ke lokasi saya
-    if (_myLocation != null && targetStores == null) return;
+  void _fitCameraToStores({List<StoreModel>? targetStores, bool force = false}) {
+    // Jika GPS aktif dan lokasi saya sudah ditemukan saat initial load, jangan override kamera yang sudah fokus ke lokasi saya
+    if (_myLocation != null && targetStores == null && !force) return;
 
     final stores = targetStores ?? _filteredStores;
     if (stores.isEmpty) return;
@@ -475,12 +507,55 @@ class _StoreCoordinatesScreenState
         .toList();
 
     if (points.length == 1) {
+      _mapController.move(points.first, 16.0);
+    } else {
+      _mapController.fitCamera(
+        CameraFit.coordinates(
+          coordinates: points,
+          padding: const EdgeInsets.fromLTRB(40, 110, 40, 120),
+          maxZoom: 16.0,
+        ),
+      );
+    }
+  }
+
+  /// Memusatkan dan zoom out kamera peta agar menampilkan seluruh titik (semua toko mitra & lokasi saya)
+  void _zoomFitAllPoints() {
+    if (_searchFocusNode.hasFocus || _showSearchResults) {
+      _searchFocusNode.unfocus();
+      setState(() {
+        _showSearchResults = false;
+      });
+    }
+
+    final points = <LatLng>[];
+
+    // Masukkan seluruh titik toko yang sedang aktif / difilter di peta
+    final stores =
+        _filteredStores.isNotEmpty ? _filteredStores : _storesWithCoords;
+    for (final s in stores) {
+      if (s.latitude != null && s.longitude != null) {
+        points.add(LatLng(s.latitude!, s.longitude!));
+      }
+    }
+
+    // Masukkan titik lokasi saya jika tersedia
+    if (_myLocation != null) {
+      points.add(_myLocation!);
+    }
+
+    if (points.isEmpty) {
+      _mapController.move(_defaultLocation, 12.0);
+      return;
+    }
+
+    if (points.length == 1) {
       _mapController.move(points.first, 15.5);
     } else {
       _mapController.fitCamera(
         CameraFit.coordinates(
           coordinates: points,
-          padding: const EdgeInsets.all(60),
+          padding: const EdgeInsets.fromLTRB(40, 110, 40, 120),
           maxZoom: 16.0,
         ),
       );
@@ -488,19 +563,28 @@ class _StoreCoordinatesScreenState
   }
 
   void _onSelectRoute(String? route) {
+    final effectiveRoute = (route == null || route.isEmpty) ? null : route;
+
+    if (_searchFocusNode.hasFocus || _showSearchResults) {
+      _searchFocusNode.unfocus();
+      setState(() {
+        _showSearchResults = false;
+      });
+    }
+
     setState(() {
-      _selectedRoute = route;
+      _selectedRoute = effectiveRoute;
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      if (_filteredStores.isEmpty && route != null) {
+      if (_filteredStores.isEmpty && effectiveRoute != null) {
         AppSnackBar.showInfo(
           context,
-          message: 'Tidak ada kordinat toko pada rute $route.',
+          message: 'Tidak ada kordinat toko pada rute $effectiveRoute.',
         );
       } else {
-        _fitCameraToStores();
+        _fitCameraToStores(force: true);
       }
     });
   }
@@ -757,6 +841,71 @@ class _StoreCoordinatesScreenState
     }
   }
 
+  /// Navigasi ke Halaman Formulir Edit Toko Mitra dari Modal Detail Toko
+  Future<void> _navigateToEditStore(
+    StoreModel store,
+    BuildContext modalContext,
+  ) async {
+    Navigator.of(modalContext).pop();
+
+    final authState = ref.read(authViewModelProvider);
+    final canEdit = authState.user?.hasPermission('toko-edit') ?? false;
+
+    if (!canEdit) {
+      AppSnackBar.showError(
+        context,
+        message: 'Anda tidak memiliki hak akses untuk mengubah data toko mitra.',
+      );
+      return;
+    }
+
+    final result = await Navigator.of(context).push<dynamic>(
+      MaterialPageRoute(
+        builder: (routeContext) => StoreEditScreen(store: store),
+      ),
+    );
+
+    if (!mounted) return;
+
+    if (result != null) {
+      // Jika filter rute sedang aktif dan rute toko yang diedit berbeda, reset filter agar toko tetap terlihat
+      if (result is StoreModel) {
+        if (_selectedRoute != null && result.route != null) {
+          if (_selectedRoute!.trim().toLowerCase() !=
+              result.route!.trim().toLowerCase()) {
+            _selectedRoute = null;
+          }
+        }
+      }
+
+      // Refresh data kordinat toko agar perubahan langsung terupdate di peta
+      await _fetchStoreCoordinates(skipFitCamera: true);
+
+      if (!mounted) return;
+
+      if (result is StoreModel) {
+        // Fokuskan kamera peta ke kordinat toko yang baru diubah
+        if (result.latitude != null && result.longitude != null) {
+          _mapController.move(
+            LatLng(result.latitude!, result.longitude!),
+            16.5,
+          );
+        }
+
+        // Tampilkan snackbar global sukses
+        AppSnackBar.showSuccess(
+          context,
+          message: 'Perubahan data toko "${result.name}" berhasil disimpan.',
+        );
+      } else {
+        AppSnackBar.showSuccess(
+          context,
+          message: 'Perubahan data toko "${store.name}" berhasil disimpan.',
+        );
+      }
+    }
+  }
+
   /// Menampilkan modal core card dengan detail toko lengkap dan tombol buka Google Maps
   /// Sesuai instruksi: UI clean tanpa icon, tanpa badge, tanpa banyak warna
   void _showStoreDetailModalCard(StoreModel store) {
@@ -834,6 +983,37 @@ class _StoreCoordinatesScreenState
                               ),
                             ],
                           ],
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      // Tombol Ubah Toko Mitra: Icon with rounded circle background, border abu, ghost
+                      Tooltip(
+                        message: 'Ubah Data Toko',
+                        child: Material(
+                          color: Colors.transparent,
+                          shape: const CircleBorder(),
+                          child: InkWell(
+                            onTap: () => _navigateToEditStore(store, modalContext),
+                            customBorder: const CircleBorder(),
+                            child: Container(
+                              width: 38,
+                              height: 38,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.transparent,
+                                border: Border.all(
+                                  color: AppColors.brandBorder,
+                                  width: 1.2,
+                                ),
+                              ),
+                              alignment: Alignment.center,
+                              child: const Icon(
+                                TablerIcons.pencil,
+                                size: 18,
+                                color: AppColors.brandEspresso,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -1075,7 +1255,7 @@ class _StoreCoordinatesScreenState
   Widget _buildRouteFilter() {
     final isFiltered = _selectedRoute != null;
 
-    return PopupMenuButton<String?>(
+    return PopupMenuButton<String>(
       tooltip: 'Filter Rute',
       offset: const Offset(0, 38),
       elevation: 6,
@@ -1087,8 +1267,8 @@ class _StoreCoordinatesScreenState
       onSelected: _onSelectRoute,
       itemBuilder: (context) {
         return [
-          PopupMenuItem<String?>(
-            value: null,
+          PopupMenuItem<String>(
+            value: '',
             height: 40,
             child: Text(
               'Semua Rute',
@@ -1104,7 +1284,7 @@ class _StoreCoordinatesScreenState
           ),
           const PopupMenuDivider(height: 1),
           ..._availableRoutes.map(
-            (route) => PopupMenuItem<String?>(
+            (route) => PopupMenuItem<String>(
               value: route,
               height: 40,
               child: Text(
@@ -1518,41 +1698,76 @@ class _StoreCoordinatesScreenState
               ),
             ),
 
-          // 3. Tombol Floating Re-Center Lokasi Saya (Pojok Kanan Bawah)
+          // 3. Tombol Floating Kontrol Peta: Fokus Zoom Out Semua Titik & Fokus Lokasi Saya
           Positioned(
             bottom: 24,
             right: 16,
-            child: Material(
-              color: Colors.white,
-              elevation: 4,
-              borderRadius: BorderRadius.circular(12),
-              shadowColor: Colors.black.withValues(alpha: 0.15),
-              child: Tooltip(
-                message: 'Lokasi Saya',
-                child: InkWell(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Tombol Fokus Zoom Out Semua Titik di Maps (Di atas tombol fokus me)
+                Material(
+                  color: Colors.white,
+                  elevation: 4,
                   borderRadius: BorderRadius.circular(12),
-                  onTap: () {
-                    if (_myLocation != null) {
-                      _mapController.move(_myLocation!, 16.5);
-                    } else {
-                      _checkGpsAndFocusLocation();
-                    }
-                  },
-                  child: Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
+                  shadowColor: Colors.black.withValues(alpha: 0.15),
+                  child: Tooltip(
+                    message: 'Fokus Semua Titik',
+                    child: InkWell(
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.brandBorder),
-                    ),
-                    child: const Icon(
-                      TablerIcons.current_location,
-                      size: 22,
-                      color: AppColors.brandPrimary,
+                      onTap: _zoomFitAllPoints,
+                      child: Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.brandBorder),
+                        ),
+                        child: const Icon(
+                          TablerIcons.zoom_scan,
+                          size: 22,
+                          color: AppColors.brandPrimary,
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
+                const SizedBox(height: 10),
+
+                // Tombol Floating Re-Center Lokasi Saya (Fokus Me)
+                Material(
+                  color: Colors.white,
+                  elevation: 4,
+                  borderRadius: BorderRadius.circular(12),
+                  shadowColor: Colors.black.withValues(alpha: 0.15),
+                  child: Tooltip(
+                    message: 'Lokasi Saya',
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () {
+                        if (_myLocation != null) {
+                          _mapController.move(_myLocation!, 16.5);
+                        } else {
+                          _checkGpsAndFocusLocation();
+                        }
+                      },
+                      child: Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.brandBorder),
+                        ),
+                        child: const Icon(
+                          TablerIcons.current_location,
+                          size: 22,
+                          color: AppColors.brandPrimary,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
 

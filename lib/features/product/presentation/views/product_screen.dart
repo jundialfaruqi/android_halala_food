@@ -216,7 +216,7 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
       currentLabel = unit != null ? unit.shortName : 'Satuan';
     }
 
-    return PopupMenuButton<int?>(
+    return PopupMenuButton<int>(
       tooltip: 'Pilih Satuan',
       offset: const Offset(0, 36),
       elevation: 6,
@@ -225,11 +225,11 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
         borderRadius: BorderRadius.circular(12),
         side: const BorderSide(color: AppColors.brandBorder),
       ),
-      onSelected: (unitId) => notifier.selectUnit(unitId),
+      onSelected: (unitId) => notifier.selectUnit(unitId == 0 ? null : unitId),
       itemBuilder: (context) {
         return [
-          PopupMenuItem<int?>(
-            value: null,
+          PopupMenuItem<int>(
+            value: 0,
             height: 38,
             child: Text(
               'Semua Satuan',
@@ -246,7 +246,7 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
           if (state.availableUnits.isNotEmpty)
             const PopupMenuDivider(height: 1),
           ...state.availableUnits.map(
-            (unit) => PopupMenuItem<int?>(
+            (unit) => PopupMenuItem<int>(
               value: unit.id,
               height: 38,
               child: Text(
