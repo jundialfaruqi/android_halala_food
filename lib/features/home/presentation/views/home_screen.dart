@@ -369,7 +369,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
         crossAxisCount: 4,
         mainAxisSpacing: 16,
         crossAxisSpacing: 10,
-        mainAxisExtent: 90, // tinggi konsisten setiap item
+        mainAxisExtent: 102, // tinggi konsisten setiap item
       ),
       itemCount: accessibleMenus.length,
       itemBuilder: (context, index) {
@@ -399,8 +399,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
             children: [
               // Icon container rounded circle tanpa border dengan shadow tipis
               Container(
-                width: 52,
-                height: 52,
+                width: 64,
+                height: 64,
                 decoration: BoxDecoration(
                   color: AppColors.brandSoftCream,
                   shape: BoxShape.circle,
@@ -416,10 +416,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                 child: Icon(
                   menu.icon,
                   color: AppColors.brandPrimary,
-                  size: 25,
+                  size: 32,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               // Label menu di bawah icon
               Text(
                 menu.title,
@@ -428,7 +428,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   fontFamily: 'PlusJakartaSans',
-                  fontSize: 11,
+                  fontSize: 11.5,
                   fontWeight: FontWeight.w600,
                   color: AppColors.brandEspresso,
                 ),

@@ -273,7 +273,14 @@ class _StoreCoordinatesScreenState
 
                   // Detail Informasi Lengkap (Clean: No Icons, No Badges)
                   _buildDetailRow('Pemilik', store.ownerName?.trim().isNotEmpty == true ? store.ownerName! : '-'),
-                  _buildDetailRow('Telepon', store.phone?.trim().isNotEmpty == true ? store.phone! : '-'),
+                  _buildDetailRow(
+                    'Telepon',
+                    _formatPhoneWithPlus(store.phone),
+                    isClickable: store.phone != null && store.phone!.trim().isNotEmpty,
+                    onTap: (store.phone != null && store.phone!.trim().isNotEmpty)
+                        ? () => _openWhatsApp(store)
+                        : null,
+                  ),
                   _buildDetailRow('Rute', store.route?.trim().isNotEmpty == true ? store.route! : '-'),
                   _buildDetailRow('Status', store.isActive ? 'Aktif' : 'Tidak Aktif'),
                   _buildDetailRow(
@@ -319,7 +326,34 @@ class _StoreCoordinatesScreenState
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
+  String _formatPhoneWithPlus(String? rawPhone) {
+    if (rawPhone == null || rawPhone.trim().isEmpty) return '-';
+    final trimmed = rawPhone.trim();
+    if (trimmed.startsWith('+')) return trimmed;
+    if (trimmed.startsWith('0')) {
+      return '+62${trimmed.substring(1)}';
+    }
+    return '+$trimmed';
+  }
+
+  Widget _buildDetailRow(
+    String label,
+    String value, {
+    bool isClickable = false,
+    VoidCallback? onTap,
+  }) {
+    final textWidget = Text(
+      value,
+      style: TextStyle(
+        fontFamily: 'PlusJakartaSans',
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        color: isClickable ? AppColors.brandPrimary : AppColors.brandEspresso,
+        decoration: isClickable ? TextDecoration.underline : null,
+        decorationColor: AppColors.brandPrimary.withValues(alpha: 0.5),
+      ),
+    );
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 9),
       child: Row(
@@ -339,19 +373,78 @@ class _StoreCoordinatesScreenState
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(
-                fontFamily: 'PlusJakartaSans',
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: AppColors.brandEspresso,
-              ),
-            ),
+            child: isClickable && onTap != null
+                ? GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: onTap,
+                    child: textWidget,
+                  )
+                : textWidget,
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _openWhatsApp(StoreModel store) async {
+    final rawPhone = store.phone;
+    if (rawPhone == null || rawPhone.trim().isEmpty) {
+      if (mounted) {
+        AppSnackBar.showError(
+          context,
+          message: 'Nomor telepon toko tidak tersedia.',
+        );
+      }
+      return;
+    }
+
+    var digits = rawPhone.replaceAll(RegExp(r'\D'), '');
+    if (digits.startsWith('0')) {
+      digits = '62${digits.substring(1)}';
+    }
+
+    if (digits.isEmpty) {
+      if (mounted) {
+        AppSnackBar.showError(
+          context,
+          message: 'Nomor telepon tidak valid.',
+        );
+      }
+      return;
+    }
+
+    final message = Uri.encodeComponent(
+      'Halo ${store.name}, saya dari Halala Food.',
+    );
+    final whatsappUri =
+        Uri.parse('whatsapp://send?phone=$digits&text=$message');
+    final webUri = Uri.parse('https://wa.me/$digits?text=$message');
+
+    try {
+      if (await canLaunchUrl(whatsappUri)) {
+        await launchUrl(whatsappUri, mode: LaunchMode.externalApplication);
+      } else if (await canLaunchUrl(webUri)) {
+        await launchUrl(webUri, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          AppSnackBar.showError(
+            context,
+            message: 'Tidak dapat membuka aplikasi WhatsApp.',
+          );
+        }
+      }
+    } catch (_) {
+      try {
+        await launchUrl(webUri, mode: LaunchMode.externalApplication);
+      } catch (_) {
+        if (mounted) {
+          AppSnackBar.showError(
+            context,
+            message: 'Gagal membuka tautan WhatsApp.',
+          );
+        }
+      }
+    }
   }
 
   Future<void> _openGoogleMaps(StoreModel store) async {
