@@ -68,29 +68,13 @@ class _StoreScreenState extends ConsumerState<StoreScreen> {
         onRefresh: () => notifier.fetchStores(refresh: true),
         child: Column(
           children: [
-            // Search Bar Input menggunakan AppTextField Core Widget
-            Padding(
+            // Search Bar Input menggunakan AppSearchField Core Widget
+            AppSearchField(
+              controller: _searchController,
+              hintText: 'Cari nama toko mitra...',
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
-              child: AppTextField(
-                controller: _searchController,
-                hintText: 'Cari nama toko mitra...',
-                prefixIcon: const Icon(
-                  TablerIcons.search,
-                  size: 20,
-                  color: AppColors.brandWarmGray,
-                ),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(TablerIcons.x, size: 18),
-                        color: AppColors.brandWarmGray,
-                        onPressed: () {
-                          _searchController.clear();
-                          notifier.clearSearch();
-                        },
-                      )
-                    : null,
-                onChanged: (value) => notifier.onSearchChanged(value),
-              ),
+              onChanged: (value) => notifier.onSearchChanged(value),
+              onClear: () => notifier.clearSearch(),
             ),
 
             // Filter Rute Pengantaran (Horizontal Chips)

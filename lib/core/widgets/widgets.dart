@@ -9,6 +9,7 @@ export 'app_empty_card.dart';
 export 'app_floating_action_button.dart';
 export 'app_list_tile.dart';
 export 'app_scaffold.dart';
+export 'app_search_field.dart';
 export 'app_snack_bar.dart';
 export 'app_status_bar.dart';
 export 'app_text_field.dart';

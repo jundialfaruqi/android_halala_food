@@ -7,6 +7,7 @@ import '../../../../core/widgets/widgets.dart';
 import '../../../auth/data/models/user_model.dart';
 import '../../../auth/presentation/viewmodels/auth_viewmodel.dart';
 import '../../../auth/presentation/views/profile_screen.dart';
+import '../../../product/presentation/views/product_screen.dart';
 import '../../../store/presentation/views/store_coordinates_screen.dart';
 import '../../../store/presentation/views/store_screen.dart';
 
@@ -389,6 +390,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
         return GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: () {
+            if (menu.title == 'Produk') {
+              _navigateTo(const ProductScreen());
+              return;
+            }
+
             if (menu.title == 'Mitra Toko') {
               _navigateTo(const StoreScreen());
               return;
