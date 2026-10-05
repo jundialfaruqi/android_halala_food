@@ -1133,13 +1133,13 @@ class _StoreScreenState extends ConsumerState<StoreScreen> {
 
   /// Action Tombol FAB Tambah Mitra Toko -> Buka Halaman Formulir Create Toko Mitra
   Future<void> _onCreateStore(BuildContext context) async {
-    final result = await Navigator.of(context).push<bool>(
+    final result = await Navigator.of(context).push<dynamic>(
       MaterialPageRoute(
         builder: (routeContext) => const StoreCreateScreen(),
       ),
     );
 
-    if (result == true && mounted) {
+    if (result != null && mounted) {
       // Refresh list agar data toko baru langsung tampil
       ref.read(storeViewModelProvider.notifier).fetchStores(refresh: true);
     }

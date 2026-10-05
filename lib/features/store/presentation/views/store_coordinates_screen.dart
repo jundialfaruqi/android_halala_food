@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,8 +11,10 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/widgets.dart';
+import '../../../auth/presentation/viewmodels/auth_viewmodel.dart';
 import '../../data/models/store_model.dart';
 import '../../data/repositories/store_repository_impl.dart';
+import 'store_create_screen.dart';
 
 /// Halaman Kordinat Mitra Toko yang dibangun menggunakan seluruh Core Widget Halala Food:
 /// AppScaffold (bg white), AppAppBar, AppStatusBar, AppCard, AppButton, AppCachedImage, AppSearchField.
@@ -46,6 +49,10 @@ class _StoreCoordinatesScreenState
 
   // State untuk lokasi pengguna saat ini (Lokasi Saya)
   LatLng? _myLocation;
+  String? _myLocationAddress;
+  bool _isFetchingMyLocationAddress = false;
+  StateSetter? _modalSetState;
+  final Dio _geoDio = Dio();
   bool _isCheckingGps = false;
   bool _isGpsModalOpen = false;
 
@@ -89,6 +96,7 @@ class _StoreCoordinatesScreenState
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _geoDio.close(force: true);
     _searchDebounce?.cancel();
     _searchFocusNode.removeListener(_onSearchFocusChanged);
     _searchFocusNode.dispose();
@@ -261,6 +269,9 @@ class _StoreCoordinatesScreenState
           _myLocation = myLatLng;
         });
 
+        // Ambil data alamat reverse geocoding untuk lokasi saya
+        _fetchMyLocationAddress(myLatLng);
+
         // Overlay maps langsung fokus ke kordinat saya
         _mapController.move(myLatLng, 16.0);
       }
@@ -382,7 +393,7 @@ class _StoreCoordinatesScreenState
     });
   }
 
-  Future<void> _fetchStoreCoordinates() async {
+  Future<void> _fetchStoreCoordinates({bool skipFitCamera = false}) async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -436,11 +447,13 @@ class _StoreCoordinatesScreenState
         _availableRoutes = sortedRoutes;
       });
 
-      // Fit kamera ke seluruh titik koordinat toko mitra jika ada (dan lokasi saya belum aktif)
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted || _storesWithCoords.isEmpty) return;
-        _fitCameraToStores();
-      });
+      if (!skipFitCamera) {
+        // Fit kamera ke seluruh titik koordinat toko mitra jika ada (dan lokasi saya belum aktif)
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || _storesWithCoords.isEmpty) return;
+          _fitCameraToStores();
+        });
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -501,6 +514,247 @@ class _StoreCoordinatesScreenState
     }
 
     _showStoreDetailModalCard(store);
+  }
+
+  /// Mengambil nama alamat lokasi pengguna saat ini via OpenStreetMap Nominatim
+  Future<void> _fetchMyLocationAddress(LatLng loc) async {
+    if (_isFetchingMyLocationAddress) return;
+    _isFetchingMyLocationAddress = true;
+
+    try {
+      final response = await _geoDio.get(
+        'https://nominatim.openstreetmap.org/reverse',
+        queryParameters: {
+          'format': 'json',
+          'lat': loc.latitude,
+          'lon': loc.longitude,
+          'zoom': 18,
+          'addressdetails': 1,
+        },
+        options: Options(
+          headers: {
+            'User-Agent':
+                'HalalaFoodAndroidApp/1.0 (contact: admin@halala-food.id)',
+          },
+          sendTimeout: const Duration(seconds: 5),
+          receiveTimeout: const Duration(seconds: 5),
+        ),
+      );
+
+      if (response.statusCode == 200 && response.data is Map) {
+        final data = response.data as Map<String, dynamic>;
+        final displayName = data['display_name'] as String?;
+        if (mounted && displayName != null && displayName.isNotEmpty) {
+          setState(() {
+            _myLocationAddress = displayName;
+          });
+          _modalSetState?.call(() {});
+        }
+      }
+    } catch (_) {
+      // Fallback silently jika offline / limit request OSM
+    } finally {
+      _isFetchingMyLocationAddress = false;
+      if (mounted) {
+        _modalSetState?.call(() {});
+      }
+    }
+  }
+
+  /// Menampilkan modal card core widget untuk data lokasi saya (alamat, latitude, longitude)
+  /// serta tombol Call to Action "Tambahkan Toko Mitra pada Titik Ini"
+  void _showMyLocationDetailModalCard() {
+    if (_myLocation == null) return;
+
+    if (_searchFocusNode.hasFocus || _showSearchResults) {
+      _searchFocusNode.unfocus();
+      setState(() {
+        _showSearchResults = false;
+      });
+    }
+
+    // Jika alamat belum pernah diambil, panggil reverse geocoding
+    if (_myLocationAddress == null && !_isFetchingMyLocationAddress) {
+      _fetchMyLocationAddress(_myLocation!);
+    }
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (modalContext) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            _modalSetState = setModalState;
+
+            final addressText = _myLocationAddress ??
+                (_isFetchingMyLocationAddress
+                    ? 'Sedang mengambil alamat lokasi...'
+                    : 'Area sekitar titik koordinat');
+
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: AppCard(
+                  backgroundColor: Colors.white,
+                  borderRadius: 20,
+                  padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Handle bar minimalis
+                      Center(
+                        child: Container(
+                          width: 36,
+                          height: 4,
+                          margin: const EdgeInsets.only(bottom: 16),
+                          decoration: BoxDecoration(
+                            color: AppColors.brandBorder,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+
+                      // Header Modal: Judul & Subjudul
+                      const Text(
+                        'Lokasi Saya Saat Ini',
+                        style: TextStyle(
+                          fontFamily: 'PlusJakartaSans',
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.brandEspresso,
+                          height: 1.25,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Informasi titik koordinat GPS perangkat Anda saat ini.',
+                        style: TextStyle(
+                          fontFamily: 'PlusJakartaSans',
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.brandWarmGray,
+                        ),
+                      ),
+
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 14),
+                        child: Divider(
+                          height: 1,
+                          thickness: 1,
+                          color: AppColors.brandBorder,
+                        ),
+                      ),
+
+                      // Detail Data Koordinat & Alamat
+                      _buildDetailRow(
+                        'Latitude',
+                        _myLocation!.latitude.toStringAsFixed(6),
+                      ),
+                      _buildDetailRow(
+                        'Longitude',
+                        _myLocation!.longitude.toStringAsFixed(6),
+                      ),
+                      _buildDetailRow(
+                        'Alamat',
+                        addressText,
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // Tombol Call to Action: Tambahkan Toko Mitra pada Titik Ini
+                      AppButton(
+                        text: 'Tambahkan Toko Mitra pada Titik Ini',
+                        height: 46,
+                        onPressed: () {
+                          Navigator.of(modalContext).pop();
+                          _navigateToAddStoreAtMyLocation();
+                        },
+                      ),
+                      const SizedBox(height: 10),
+
+                      // Tombol Tutup Modal
+                      AppButton.outline(
+                        text: 'Tutup',
+                        height: 46,
+                        onPressed: () => Navigator.of(modalContext).pop(),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    ).then((_) {
+      _modalSetState = null;
+    });
+  }
+
+  /// Navigasi ke formulir tambah toko mitra baru dengan koordinat lokasi saya sudah terisi
+  Future<void> _navigateToAddStoreAtMyLocation() async {
+    if (_myLocation == null) return;
+
+    final authState = ref.read(authViewModelProvider);
+    final canCreate = authState.user?.hasPermission('toko-create') ?? false;
+
+    if (!canCreate) {
+      AppSnackBar.showError(
+        context,
+        message: 'Anda tidak memiliki izin untuk menambahkan toko mitra baru.',
+      );
+      return;
+    }
+
+    final result = await Navigator.of(context).push<dynamic>(
+      MaterialPageRoute(
+        builder: (routeContext) => StoreCreateScreen(
+          initialLocation: _myLocation,
+        ),
+      ),
+    );
+
+    if (!mounted) return;
+
+    if (result != null) {
+      // Jika filter rute sedang aktif dan rute toko baru berbeda, reset filter agar toko baru langsung terlihat
+      if (result is StoreModel) {
+        if (_selectedRoute != null && result.route != null) {
+          if (_selectedRoute!.trim().toLowerCase() !=
+              result.route!.trim().toLowerCase()) {
+            _selectedRoute = null;
+          }
+        }
+      }
+
+      // Refresh data kordinat toko agar titik mark toko baru langsung muncul di peta
+      await _fetchStoreCoordinates(skipFitCamera: true);
+
+      if (!mounted) return;
+
+      if (result is StoreModel) {
+        // Fokuskan kamera peta ke kordinat toko mitra baru
+        if (result.latitude != null && result.longitude != null) {
+          _mapController.move(
+            LatLng(result.latitude!, result.longitude!),
+            16.5,
+          );
+        }
+
+        // Tampilkan snackbar global sukses
+        AppSnackBar.showSuccess(
+          context,
+          message: 'Toko mitra "${result.name}" berhasil ditambahkan.',
+        );
+      } else {
+        AppSnackBar.showSuccess(
+          context,
+          message: 'Toko mitra baru berhasil ditambahkan.',
+        );
+      }
+    }
   }
 
   /// Menampilkan modal core card dengan detail toko lengkap dan tombol buka Google Maps
@@ -1146,10 +1400,12 @@ class _StoreCoordinatesScreenState
                   if (_myLocation != null)
                     Marker(
                       point: _myLocation!,
-                      width: 36,
-                      height: 36,
+                      width: 44,
+                      height: 44,
                       alignment: Alignment.center,
-                      child: const _MyLocationMarker(),
+                      child: _MyLocationMarker(
+                        onTap: _showMyLocationDetailModalCard,
+                      ),
                     ),
                 ],
               ),
@@ -1332,7 +1588,7 @@ class _StoreCoordinatesScreenState
                 ),
               ),
             )
-          else if (!_isLoading && _storesWithCoords.isEmpty)
+          else if (!_isLoading && _storesWithCoords.isEmpty && _myLocation == null)
             Positioned.fill(
               child: Container(
                 color: Colors.white,
@@ -1462,50 +1718,56 @@ class _PinTipPainter extends CustomPainter {
       color != oldDelegate.color;
 }
 
-/// Widget marker titik lokasi saya di maps
+/// Widget marker titik lokasi saya di maps (dapat diklik)
 class _MyLocationMarker extends StatelessWidget {
-  const _MyLocationMarker();
+  final VoidCallback? onTap;
+
+  const _MyLocationMarker({this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        // Lingkaran luar transparan dengan efek halo
-        Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: const Color(0xFF1976D2).withValues(alpha: 0.2),
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Lingkaran luar transparan dengan efek halo
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFF1976D2).withValues(alpha: 0.2),
+            ),
           ),
-        ),
-        // Lingkaran putih sebagai border kontras
-        Container(
-          width: 18,
-          height: 18,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.white,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.25),
-                blurRadius: 4,
-                offset: const Offset(0, 1),
-              ),
-            ],
+          // Lingkaran putih sebagai border kontras
+          Container(
+            width: 18,
+            height: 18,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.25),
+                  blurRadius: 4,
+                  offset: const Offset(0, 1),
+                ),
+              ],
+            ),
           ),
-        ),
-        // Titik biru solid di tengah (Lokasi Saya)
-        Container(
-          width: 12,
-          height: 12,
-          decoration: const BoxDecoration(
-            shape: BoxShape.circle,
-            color: Color(0xFF1976D2),
+          // Titik biru solid di tengah (Lokasi Saya)
+          Container(
+            width: 12,
+            height: 12,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: Color(0xFF1976D2),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

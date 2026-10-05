@@ -94,13 +94,18 @@ class AppButton extends StatelessWidget {
                 icon!,
                 const SizedBox(width: 8),
               ],
-              Text(
-                text,
-                style: TextStyle(
-                  fontFamily: 'PlusJakartaSans',
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: effectiveTextColor,
+              Flexible(
+                child: Text(
+                  text,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'PlusJakartaSans',
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w600,
+                    color: effectiveTextColor,
+                  ),
                 ),
               ),
             ],

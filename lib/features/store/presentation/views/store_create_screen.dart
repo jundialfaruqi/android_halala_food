@@ -18,7 +18,12 @@ import 'store_map_picker_screen.dart';
 /// Halaman Formulir Tambah Data Toko Mitra Baru
 /// Desain 100% konsisten dan identik dengan Formulir Ubah Data Toko (clean, flat, minimalis).
 class StoreCreateScreen extends ConsumerStatefulWidget {
-  const StoreCreateScreen({super.key});
+  final LatLng? initialLocation;
+
+  const StoreCreateScreen({
+    super.key,
+    this.initialLocation,
+  });
 
   @override
   ConsumerState<StoreCreateScreen> createState() => _StoreCreateScreenState();
@@ -68,9 +73,23 @@ class _StoreCreateScreenState extends ConsumerState<StoreCreateScreen> {
     _phoneController = TextEditingController();
     _addressController = TextEditingController();
     _routeController = TextEditingController();
-    _latitudeController = TextEditingController();
-    _longitudeController = TextEditingController();
+    _latitudeController = TextEditingController(
+      text: widget.initialLocation != null
+          ? widget.initialLocation!.latitude.toStringAsFixed(6)
+          : '',
+    );
+    _longitudeController = TextEditingController(
+      text: widget.initialLocation != null
+          ? widget.initialLocation!.longitude.toStringAsFixed(6)
+          : '',
+    );
     _notesController = TextEditingController();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && widget.initialLocation != null) {
+        _mapController.move(widget.initialLocation!, 16.0);
+      }
+    });
   }
 
   @override
@@ -485,7 +504,7 @@ class _StoreCreateScreenState extends ConsumerState<StoreCreateScreen> {
       if (!mounted) return;
 
       _showSnackbar('Toko mitra "${created.name}" berhasil ditambahkan.');
-      Navigator.of(context).pop(true);
+      Navigator.of(context).pop(created);
     } catch (e) {
       if (!mounted) return;
 

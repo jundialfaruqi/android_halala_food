@@ -408,7 +408,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
             // Menu lainnya
             AppSnackBar.showInfo(
               context,
-              message: 'Membuka menu ${menu.title}',
+              message: 'Menu ${menu.title} belum tersedia',
             );
           },
           child: Column(
