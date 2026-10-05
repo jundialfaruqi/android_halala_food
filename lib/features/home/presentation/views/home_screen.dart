@@ -48,11 +48,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
   /// Helper navigasi sinkron yang langsung memastikan status bar gelap (ikon hitam)
   Future<T?> _navigateTo<T>(Widget screen) async {
     AppStatusBar.setDark();
-    final result = await Navigator.of(context).push<T>(
-      MaterialPageRoute(
-        builder: (_) => screen,
-      ),
-    );
+    final result = await Navigator.of(
+      context,
+    ).push<T>(MaterialPageRoute(builder: (_) => screen));
     if (mounted) {
       AppStatusBar.setDark();
     }
@@ -88,9 +86,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                         fit: StackFit.expand,
                         children: [
                           // Base dark placeholder agar tidak ada kilatan putih saat gambar di-decode
-                          const ColoredBox(
-                            color: Color(0xFF1E293B),
-                          ),
+                          const ColoredBox(color: Color(0xFF1E293B)),
                           // Gambar Background Aspek Video
                           const Image(
                             image: AssetImage(AppAssets.whyChooseUs),
@@ -135,7 +131,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                                         ),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: Colors.black.withValues(alpha: 0.35),
+                                            color: Colors.black.withValues(
+                                              alpha: 0.35,
+                                            ),
                                             blurRadius: 10,
                                             offset: const Offset(0, 3),
                                           ),
@@ -159,11 +157,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                                     // Info Nama & Role (Teks bersih tanpa badge)
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           Text(
-                                            user?.name ?? 'Pengguna Halala Food',
+                                            user?.name ??
+                                                'Pengguna Halala Food',
                                             style: TextStyle(
                                               fontFamily: 'PlusJakartaSans',
                                               fontSize: 16,
@@ -171,7 +171,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                                               color: Colors.white,
                                               shadows: [
                                                 Shadow(
-                                                  color: Colors.black.withValues(alpha: 0.8),
+                                                  color: Colors.black
+                                                      .withValues(alpha: 0.8),
                                                   blurRadius: 8,
                                                   offset: const Offset(0, 1),
                                                 ),
@@ -187,10 +188,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                                               fontFamily: 'PlusJakartaSans',
                                               fontSize: 12,
                                               fontWeight: FontWeight.w500,
-                                              color: Colors.white.withValues(alpha: 0.90),
+                                              color: Colors.white.withValues(
+                                                alpha: 0.90,
+                                              ),
                                               shadows: [
                                                 Shadow(
-                                                  color: Colors.black.withValues(alpha: 0.8),
+                                                  color: Colors.black
+                                                      .withValues(alpha: 0.8),
                                                   blurRadius: 6,
                                                   offset: const Offset(0, 1),
                                                 ),
@@ -211,15 +215,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                                         width: 40,
                                         height: 40,
                                         decoration: BoxDecoration(
-                                          color: Colors.black.withValues(alpha: 0.35),
+                                          color: Colors.black.withValues(
+                                            alpha: 0.35,
+                                          ),
                                           shape: BoxShape.circle,
                                           border: Border.all(
-                                            color: Colors.white.withValues(alpha: 0.35),
+                                            color: Colors.white.withValues(
+                                              alpha: 0.35,
+                                            ),
                                             width: 1.2,
                                           ),
                                           boxShadow: [
                                             BoxShadow(
-                                              color: Colors.black.withValues(alpha: 0.25),
+                                              color: Colors.black.withValues(
+                                                alpha: 0.25,
+                                              ),
                                               blurRadius: 6,
                                               offset: const Offset(0, 2),
                                             ),
@@ -306,7 +316,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                             const Center(
                               child: Padding(
                                 padding: EdgeInsets.all(24.0),
-                                child: CircularProgressIndicator(color: AppColors.brandPrimary),
+                                child: CircularProgressIndicator(
+                                  color: AppColors.brandPrimary,
+                                ),
                               ),
                             ),
                         ],
@@ -399,8 +411,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
             children: [
               // Icon container rounded circle tanpa border dengan shadow tipis
               Container(
-                width: 64,
-                height: 64,
+                width: 58,
+                height: 58,
                 decoration: BoxDecoration(
                   color: AppColors.brandSoftCream,
                   shape: BoxShape.circle,
@@ -413,11 +425,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                   ],
                 ),
                 alignment: Alignment.center,
-                child: Icon(
-                  menu.icon,
-                  color: AppColors.brandPrimary,
-                  size: 32,
-                ),
+                child: Icon(menu.icon, color: AppColors.brandPrimary, size: 32),
               ),
               const SizedBox(height: 6),
               // Label menu di bawah icon
@@ -442,18 +450,47 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
 
   /// Daftar menu yang disesuaikan dengan permission Spatie backend
   List<({String title, IconData icon, String permission})> _getAccessibleMenus(
-      UserModel user) {
+    UserModel user,
+  ) {
     final List<({String title, IconData icon, String permission})> allMenus = [
       (title: 'Produk', icon: TablerIcons.box, permission: 'produk-view'),
-      (title: 'Pengantaran', icon: TablerIcons.truck, permission: 'pengantaran-view'),
-      (title: 'Faktur', icon: TablerIcons.file_invoice, permission: 'faktur-view'),
-      (title: 'Mitra Toko', icon: TablerIcons.building_store, permission: 'toko-view'),
+      (
+        title: 'Pengantaran',
+        icon: TablerIcons.truck,
+        permission: 'pengantaran-view',
+      ),
+      (
+        title: 'Faktur',
+        icon: TablerIcons.file_invoice,
+        permission: 'faktur-view',
+      ),
+      (
+        title: 'Mitra Toko',
+        icon: TablerIcons.building_store,
+        permission: 'toko-view',
+      ),
       (title: 'Kordinat', icon: TablerIcons.map_pin, permission: 'toko-view'),
       (title: 'Produksi', icon: TablerIcons.tools, permission: 'produksi-view'),
-      (title: 'Bahan Baku', icon: TablerIcons.packages, permission: 'bahan-baku-view'),
-      (title: 'Buku Kas', icon: TablerIcons.wallet, permission: 'buku-kas-view'),
-      (title: 'Pembelian', icon: TablerIcons.shopping_cart, permission: 'pembelian-view'),
-      (title: 'Laporan', icon: TablerIcons.chart_histogram, permission: 'laporan-view'),
+      (
+        title: 'Bahan Baku',
+        icon: TablerIcons.packages,
+        permission: 'bahan-baku-view',
+      ),
+      (
+        title: 'Buku Kas',
+        icon: TablerIcons.wallet,
+        permission: 'buku-kas-view',
+      ),
+      (
+        title: 'Pembelian',
+        icon: TablerIcons.shopping_cart,
+        permission: 'pembelian-view',
+      ),
+      (
+        title: 'Laporan',
+        icon: TablerIcons.chart_histogram,
+        permission: 'laporan-view',
+      ),
       (title: 'Pengguna', icon: TablerIcons.users, permission: 'user-manage'),
     ];
 
@@ -517,21 +554,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                 label: 'Penjualan',
                 value: 'Rp 4,8 Jt',
               ),
-              Container(
-                width: 1,
-                height: 38,
-                color: AppColors.brandBorder,
-              ),
+              Container(width: 1, height: 38, color: AppColors.brandBorder),
               _buildStatColumn(
                 icon: TablerIcons.packages,
                 label: 'Produksi',
                 value: '180 Box',
               ),
-              Container(
-                width: 1,
-                height: 38,
-                color: AppColors.brandBorder,
-              ),
+              Container(width: 1, height: 38, color: AppColors.brandBorder),
               _buildStatColumn(
                 icon: TablerIcons.truck_delivery,
                 label: 'Pengantaran',
@@ -556,11 +585,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              size: 15,
-              color: AppColors.brandPrimary,
-            ),
+            Icon(icon, size: 15, color: AppColors.brandPrimary),
             const SizedBox(width: 5),
             Text(
               label,
@@ -598,10 +623,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
       isDanger: true,
       onConfirm: () async {
         await ref.read(authViewModelProvider.notifier).logout();
-        AppSnackBar.showSuccess(
-          null,
-          message: 'Anda telah berhasil keluar.',
-        );
+        AppSnackBar.showSuccess(null, message: 'Anda telah berhasil keluar.');
       },
     );
   }
