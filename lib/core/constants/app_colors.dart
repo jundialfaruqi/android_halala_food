@@ -15,8 +15,9 @@ class AppColors {
   static const Color brandNaturalGreen = Color(0xFF5F8D4E);   // #5F8D4E (Sukses / Halal)
 
   // Status & UI Colors
-  static const Color background = Color(0xFFFFFBF2);          // Soft cream light background
+  static const Color background = Color(0xFFF7F7F7);          // #F7F7F7 (Background Scaffold, AppBar, StatusBar)
   static const Color surface = Colors.white;
+  static const Color card = Colors.white;
   static const Color error = Color(0xFFDC2626);
   static const Color success = brandNaturalGreen;
   static const Color warning = Color(0xFFF59E0B);

@@ -537,7 +537,6 @@ class _StoreCreateScreenState extends ConsumerState<StoreCreateScreen> {
     );
 
     return AppScaffold(
-      backgroundColor: Colors.white,
       isLoading: _isSubmitting || _isProcessingPhoto,
       loadingMessage: _isProcessingPhoto
           ? 'Memproses & mengompresi foto toko...'

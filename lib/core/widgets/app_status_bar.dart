@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../constants/app_colors.dart';
 
 /// Global RouteObserver untuk melacak transisi rute dan menyinkronkan status bar secara instan
 final RouteObserver<ModalRoute<dynamic>> appRouteObserver =
@@ -15,14 +16,14 @@ class AppStatusBar extends StatelessWidget {
   const AppStatusBar({
     super.key,
     required this.child,
-    this.statusBarColor = Colors.transparent,
+    this.statusBarColor = AppColors.background,
     this.statusBarIconBrightness = Brightness.dark,
     this.navigationBarColor,
     this.navigationBarIconBrightness = Brightness.dark,
   });
 
   /// Terapkan gaya status bar gelap (ikon hitam) secara instan di frame ke-0
-  static void setDark({Color statusBarColor = Colors.transparent}) {
+  static void setDark({Color statusBarColor = AppColors.background}) {
     SystemChrome.setSystemUIOverlayStyle(
       SystemUiOverlayStyle(
         statusBarColor: statusBarColor,

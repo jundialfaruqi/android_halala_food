@@ -1517,7 +1517,6 @@ class _StoreCoordinatesScreenState
             : _defaultLocation);
 
     return AppScaffold(
-      backgroundColor: Colors.white,
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.dark,
       safeAreaBottom: false,

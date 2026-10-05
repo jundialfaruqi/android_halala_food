@@ -52,9 +52,6 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
     final notifier = ref.read(productViewModelProvider.notifier);
 
     return AppScaffold(
-      backgroundColor: Colors.white,
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.dark,
       appBar: const AppAppBar(
         title: 'Produk',
       ),

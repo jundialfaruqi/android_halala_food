@@ -64,7 +64,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
     final user = authState.user;
 
     return AppScaffold(
-      backgroundColor: Colors.white,
       safeAreaTop: false,
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.dark,
@@ -522,7 +521,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
 
   /// Card statistik ringkasan operasional Halala Food dengan widget core AppCard.stacked
   Widget _buildStatsCard() {
-    return AppCard.stacked(
+    return AppCard(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
       child: Column(
         mainAxisSize: MainAxisSize.min,

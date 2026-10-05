@@ -25,15 +25,15 @@ class AppCard extends StatelessWidget {
   final double _stackInsetHorizontal;
   final double _stackOffsetVertical;
 
-  /// Card standar dengan border halus dan bayangan lembut
+  /// Card standar (#ffffff, tanpa shadow, tanpa border)
   const AppCard({
     super.key,
     required this.child,
     this.padding = const EdgeInsets.all(16.0),
     this.margin,
     this.backgroundColor = Colors.white,
-    this.borderColor = AppColors.brandBorder,
-    this.borderWidth = 1.0,
+    this.borderColor = Colors.transparent,
+    this.borderWidth = 0.0,
     this.borderRadius = 16.0,
     this.onTap,
     this.onLongPress,
@@ -50,8 +50,8 @@ class AppCard extends StatelessWidget {
     this.padding = const EdgeInsets.all(16.0),
     this.margin,
     this.backgroundColor = AppColors.brandSoftCreamLight,
-    this.borderColor = AppColors.brandBorder,
-    this.borderWidth = 1.0,
+    this.borderColor = Colors.transparent,
+    this.borderWidth = 0.0,
     this.borderRadius = 16.0,
     this.onTap,
     this.onLongPress,
@@ -68,8 +68,8 @@ class AppCard extends StatelessWidget {
     this.padding = const EdgeInsets.all(16.0),
     this.margin,
     this.backgroundColor = Colors.white,
-    this.borderColor = AppColors.brandBorder,
-    this.borderWidth = 1.0,
+    this.borderColor = Colors.transparent,
+    this.borderWidth = 0.0,
     this.borderRadius = 16.0,
     this.onTap,
     this.onLongPress,
@@ -86,8 +86,8 @@ class AppCard extends StatelessWidget {
     this.padding = const EdgeInsets.all(16.0),
     this.margin,
     this.backgroundColor = Colors.white,
-    this.borderColor = AppColors.brandBorder,
-    this.borderWidth = 1.0,
+    this.borderColor = Colors.transparent,
+    this.borderWidth = 0.0,
     this.borderRadius = 16.0,
     this.onTap,
     this.onLongPress,
@@ -110,7 +110,8 @@ class AppCard extends StatelessWidget {
     EdgeInsetsGeometry padding = const EdgeInsets.all(16.0),
     EdgeInsetsGeometry? margin,
     Color backgroundColor = Colors.white,
-    Color borderColor = AppColors.brandBorder,
+    Color borderColor = Colors.transparent,
+    double borderWidth = 0.0,
     double borderRadius = 16.0,
     VoidCallback? onTap,
     bool showDivider = true,
@@ -179,19 +180,6 @@ class AppCard extends StatelessWidget {
     );
   }
 
-  List<BoxShadow> get _defaultShadow => [
-        BoxShadow(
-          color: Colors.black.withValues(alpha: 0.06),
-          blurRadius: 14,
-          offset: const Offset(0, 4),
-        ),
-        BoxShadow(
-          color: Colors.black.withValues(alpha: 0.02),
-          blurRadius: 4,
-          offset: const Offset(0, 1),
-        ),
-      ];
-
   Widget _buildCardContainer() {
     Widget card = Container(
       padding: padding,
@@ -201,7 +189,7 @@ class AppCard extends StatelessWidget {
         border: borderWidth > 0
             ? Border.all(color: borderColor, width: borderWidth)
             : null,
-        boxShadow: boxShadow ?? _defaultShadow,
+        boxShadow: boxShadow,
       ),
       child: child,
     );
@@ -249,14 +237,10 @@ class AppCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppColors.brandSoftCreamLight,
                 borderRadius: BorderRadius.circular(borderRadius),
-                border: Border.all(color: borderColor, width: borderWidth),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
+                border: borderWidth > 0
+                    ? Border.all(color: borderColor, width: borderWidth)
+                    : null,
+                boxShadow: boxShadow,
               ),
             ),
           ),
@@ -271,14 +255,10 @@ class AppCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(borderRadius),
-                border: Border.all(color: borderColor, width: borderWidth),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+                border: borderWidth > 0
+                    ? Border.all(color: borderColor, width: borderWidth)
+                    : null,
+                boxShadow: boxShadow,
               ),
             ),
           ),

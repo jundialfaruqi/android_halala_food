@@ -52,7 +52,6 @@ class _StoreScreenState extends ConsumerState<StoreScreen> {
     final canCreateStore = authState.user?.hasPermission('toko-create') ?? false;
 
     return AppScaffold(
-      backgroundColor: Colors.white,
       appBar: const AppAppBar(title: 'Mitra Toko'),
       floatingActionButton: canCreateStore
           ? AppFloatingActionButton.extended(

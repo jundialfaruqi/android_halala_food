@@ -36,14 +36,14 @@ class AppAppBar extends StatefulWidget implements PreferredSizeWidget {
     this.automaticallyImplyLeading = true,
     this.actions,
     this.bottom,
-    this.backgroundColor = Colors.white,
+    this.backgroundColor = AppColors.background,
     this.foregroundColor = AppColors.brandEspresso,
     this.centerTitle = false,
     this.elevation = 0,
     this.scrolledUnderElevation = 0,
     this.shadowColor,
     this.surfaceTintColor = Colors.transparent,
-    this.hasShadow = true,
+    this.hasShadow = false,
     this.alwaysShowShadow = false,
     this.showBottomBorder = false,
     this.customShadow,
@@ -179,8 +179,8 @@ class _AppAppBarState extends State<AppAppBar> {
       scrolledUnderElevation: 0,
       surfaceTintColor: widget.surfaceTintColor,
       systemOverlayStyle: widget.systemOverlayStyle ??
-          const SystemUiOverlayStyle(
-            statusBarColor: Colors.transparent,
+          SystemUiOverlayStyle(
+            statusBarColor: widget.backgroundColor,
             statusBarIconBrightness: Brightness.dark, // Icon hitam di Android
             statusBarBrightness: Brightness.light,    // Icon hitam di iOS
           ),

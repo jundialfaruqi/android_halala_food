@@ -528,7 +528,6 @@ class _StoreEditScreenState extends ConsumerState<StoreEditScreen> {
     );
 
     return AppScaffold(
-      backgroundColor: Colors.white,
       isLoading: _isSubmitting || _isProcessingPhoto,
       loadingMessage: _isProcessingPhoto
           ? 'Memproses & mengompresi foto toko...'

@@ -18,7 +18,6 @@ class ProfileScreen extends ConsumerWidget {
     final fallbackUser = authState.user;
 
     return AppScaffold(
-      backgroundColor: Colors.white,
       appBar: const AppAppBar(
         title: 'Profil Saya',
       ),

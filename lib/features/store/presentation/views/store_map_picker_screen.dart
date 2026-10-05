@@ -207,7 +207,6 @@ class _StoreMapPickerScreenState extends State<StoreMapPickerScreen> {
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
-      backgroundColor: Colors.white,
       appBar: const AppAppBar(
         title: 'Pilih Lokasi di Peta',
       ),
