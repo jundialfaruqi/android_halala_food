@@ -19,7 +19,9 @@ class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
   final double scrolledUnderElevation;
   final Color? shadowColor;
   final Color? surfaceTintColor;
+  final bool hasShadow;
   final bool showBottomBorder;
+  final List<BoxShadow>? customShadow;
   final double? titleSpacing;
   final SystemUiOverlayStyle? systemOverlayStyle;
 
@@ -36,10 +38,12 @@ class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.foregroundColor = AppColors.brandEspresso,
     this.centerTitle = false,
     this.elevation = 0,
-    this.scrolledUnderElevation = 3.0,
+    this.scrolledUnderElevation = 0,
     this.shadowColor,
     this.surfaceTintColor = Colors.transparent,
+    this.hasShadow = true,
     this.showBottomBorder = false,
+    this.customShadow,
     this.titleSpacing,
     this.systemOverlayStyle,
   });
@@ -116,9 +120,8 @@ class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
       bottom: bottom,
       backgroundColor: backgroundColor,
       foregroundColor: foregroundColor,
-      elevation: elevation,
-      scrolledUnderElevation: scrolledUnderElevation,
-      shadowColor: shadowColor ?? Colors.black.withValues(alpha: 0.12),
+      elevation: 0,
+      scrolledUnderElevation: 0,
       surfaceTintColor: surfaceTintColor,
       systemOverlayStyle: systemOverlayStyle ??
           const SystemUiOverlayStyle(
@@ -128,15 +131,30 @@ class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
           ),
     );
 
-    if (showBottomBorder) {
+    final List<BoxShadow>? computedShadow = hasShadow
+        ? (customShadow ??
+            [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ])
+        : null;
+
+    if (hasShadow || showBottomBorder) {
       return Container(
-        decoration: const BoxDecoration(
-          border: Border(
-            bottom: BorderSide(
-              color: AppColors.brandBorder,
-              width: 1,
-            ),
-          ),
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          boxShadow: computedShadow,
+          border: showBottomBorder
+              ? const Border(
+                  bottom: BorderSide(
+                    color: AppColors.brandBorder,
+                    width: 1,
+                  ),
+                )
+              : null,
         ),
         child: appBarWidget,
       );

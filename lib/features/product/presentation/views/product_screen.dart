@@ -57,8 +57,6 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
       statusBarIconBrightness: Brightness.dark,
       appBar: const AppAppBar(
         title: 'Produk',
-        showBottomBorder: true,
-        backgroundColor: Colors.white,
       ),
       body: Column(
         children: [

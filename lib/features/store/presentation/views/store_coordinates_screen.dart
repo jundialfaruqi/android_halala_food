@@ -611,8 +611,6 @@ class _StoreCoordinatesScreenState
       safeAreaBottom: false,
       appBar: const AppAppBar(
         title: 'Kordinat',
-        showBottomBorder: true,
-        backgroundColor: Colors.white,
       ),
       body: Stack(
         children: [

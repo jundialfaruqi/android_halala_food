@@ -20,7 +20,6 @@ class ProfileScreen extends ConsumerWidget {
       backgroundColor: Colors.white,
       appBar: const AppAppBar(
         title: 'Profil Saya',
-        showBottomBorder: false,
       ),
       body: RefreshIndicator(
         color: AppColors.brandPrimary,

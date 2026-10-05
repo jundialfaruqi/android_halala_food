@@ -53,7 +53,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen> {
 
     return AppScaffold(
       backgroundColor: Colors.white,
-      appBar: const AppAppBar(title: 'Mitra Toko', showBottomBorder: false),
+      appBar: const AppAppBar(title: 'Mitra Toko'),
       floatingActionButton: canCreateStore
           ? AppFloatingActionButton.extended(
               onPressed: () => _onCreateStore(context),
