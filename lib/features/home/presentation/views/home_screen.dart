@@ -7,6 +7,7 @@ import '../../../../core/widgets/widgets.dart';
 import '../../../auth/data/models/user_model.dart';
 import '../../../auth/presentation/viewmodels/auth_viewmodel.dart';
 import '../../../auth/presentation/views/profile_screen.dart';
+import '../../../store/presentation/views/store_coordinates_screen.dart';
 import '../../../store/presentation/views/store_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -381,6 +382,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
               return;
             }
 
+            if (menu.title == 'Kordinat') {
+              _navigateTo(const StoreCoordinatesScreen());
+              return;
+            }
+
             // Menu lainnya
             AppSnackBar.showInfo(
               context,
@@ -442,13 +448,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
       (title: 'Pengantaran', icon: TablerIcons.truck, permission: 'pengantaran-view'),
       (title: 'Faktur', icon: TablerIcons.file_invoice, permission: 'faktur-view'),
       (title: 'Mitra Toko', icon: TablerIcons.building_store, permission: 'toko-view'),
+      (title: 'Kordinat', icon: TablerIcons.map_pin, permission: 'toko-view'),
       (title: 'Produksi', icon: TablerIcons.tools, permission: 'produksi-view'),
       (title: 'Bahan Baku', icon: TablerIcons.packages, permission: 'bahan-baku-view'),
       (title: 'Buku Kas', icon: TablerIcons.wallet, permission: 'buku-kas-view'),
       (title: 'Pembelian', icon: TablerIcons.shopping_cart, permission: 'pembelian-view'),
       (title: 'Laporan', icon: TablerIcons.chart_histogram, permission: 'laporan-view'),
       (title: 'Pengguna', icon: TablerIcons.users, permission: 'user-manage'),
-      (title: 'Pengaturan', icon: TablerIcons.settings, permission: 'pengaturan-view'),
     ];
 
     return allMenus
