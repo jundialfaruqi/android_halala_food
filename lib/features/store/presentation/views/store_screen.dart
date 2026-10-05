@@ -147,7 +147,14 @@ class _StoreScreenState extends ConsumerState<StoreScreen> {
             const SizedBox(height: 6),
 
             // Daftar Toko Mitra (Card List)
-            Expanded(child: _buildStoreListContent(context, state, notifier)),
+            Expanded(
+              child: _buildStoreListContent(
+                context,
+                state,
+                notifier,
+                canCreateStore,
+              ),
+            ),
           ],
         ),
       ),
@@ -158,6 +165,7 @@ class _StoreScreenState extends ConsumerState<StoreScreen> {
     BuildContext context,
     StoreState state,
     StoreViewModel notifier,
+    bool canCreateStore,
   ) {
     // 1. Loading State menggunakan ShimmerLoading Core Widget
     if (state.isLoading) {
@@ -232,11 +240,14 @@ class _StoreScreenState extends ConsumerState<StoreScreen> {
                     notifier.clearAllFilters();
                   },
                 )
-              : const AppEmptyCard(
+              : AppEmptyCard(
                   icon: TablerIcons.building_store,
                   title: 'Belum Ada Toko Mitra',
                   message:
                       'Data toko mitra belum tersedia di sistem Halala Food.',
+                  actionText: canCreateStore ? 'Tambah Mitra Toko' : null,
+                  actionIcon: canCreateStore ? TablerIcons.plus : null,
+                  onAction: canCreateStore ? () => _onCreateStore(context) : null,
                 ),
         ),
       );

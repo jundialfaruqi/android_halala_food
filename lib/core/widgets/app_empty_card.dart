@@ -13,17 +13,32 @@ class AppEmptyCard extends StatelessWidget {
   /// Custom widget icon/ilustrasi jika tidak menggunakan [icon]
   final Widget? iconWidget;
 
+  /// Ukuran icon jika tidak menggunakan [iconWidget]
+  final double iconSize;
+
+  /// Warna icon jika tidak menggunakan [iconWidget]
+  final Color? iconColor;
+
   /// Judul pesan kosong
   final String title;
 
   /// Deskripsi atau penjelasan tambahan
   final String? message;
 
-  /// Teks tombol aksi opsional (misal: 'Reset Pencarian', 'Muat Ulang')
+  /// Teks tombol aksi opsional (misal: 'Tambah Mitra Toko', 'Hapus Pencarian')
   final String? actionText;
 
   /// Icon untuk tombol aksi
   final IconData? actionIcon;
+
+  /// Lebar tombol aksi opsional (null untuk menyesuaikan panjang teks otomatis)
+  final double? actionWidth;
+
+  /// Custom widget tombol aksi jika tidak menggunakan [actionText]
+  final Widget? actionWidget;
+
+  /// Varian tombol aksi (default: [AppButtonVariant.primary])
+  final AppButtonVariant actionVariant;
 
   /// Callback saat tombol aksi ditekan
   final VoidCallback? onAction;
@@ -37,6 +52,9 @@ class AppEmptyCard extends StatelessWidget {
   /// Warna latar card
   final Color backgroundColor;
 
+  /// Tampilkan border
+  final bool hasBorder;
+
   /// Tampilkan shadow lembut
   final bool hasShadow;
 
@@ -44,15 +62,21 @@ class AppEmptyCard extends StatelessWidget {
     super.key,
     this.icon = TablerIcons.inbox,
     this.iconWidget,
+    this.iconSize = 54.0,
+    this.iconColor,
     required this.title,
     this.message,
     this.actionText,
     this.actionIcon,
+    this.actionWidth,
+    this.actionWidget,
+    this.actionVariant = AppButtonVariant.primary,
     this.onAction,
     this.padding = const EdgeInsets.symmetric(horizontal: 24.0, vertical: 36.0),
     this.margin,
-    this.backgroundColor = Colors.white,
-    this.hasShadow = true,
+    this.backgroundColor = Colors.transparent,
+    this.hasBorder = false,
+    this.hasShadow = false,
   });
 
   /// Factory untuk kondisi pencarian tidak menemukan hasil
@@ -61,10 +85,18 @@ class AppEmptyCard extends StatelessWidget {
     String? query,
     VoidCallback? onReset,
     String? message,
+    Color backgroundColor = Colors.transparent,
+    bool hasBorder = false,
+    bool hasShadow = false,
+    double iconSize = 54.0,
+    Color? iconColor,
+    double? actionWidth,
   }) {
     return AppEmptyCard(
       key: key,
       icon: TablerIcons.search_off,
+      iconSize: iconSize,
+      iconColor: iconColor,
       title: 'Tidak Ada Hasil Ditemukan',
       message: message ??
           (query != null && query.isNotEmpty
@@ -72,7 +104,11 @@ class AppEmptyCard extends StatelessWidget {
               : 'Tidak ada data yang sesuai dengan kriteria pencarian Anda.'),
       actionText: onReset != null ? 'Hapus Pencarian' : null,
       actionIcon: TablerIcons.x,
+      actionWidth: actionWidth,
       onAction: onReset,
+      backgroundColor: backgroundColor,
+      hasBorder: hasBorder,
+      hasShadow: hasShadow,
     );
   }
 
@@ -82,31 +118,19 @@ class AppEmptyCard extends StatelessWidget {
       margin: margin,
       padding: padding,
       backgroundColor: backgroundColor,
+      borderWidth: hasBorder ? 1.0 : 0.0,
       boxShadow: hasShadow ? null : const [],
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Container Icon Berbulat Lembut
+            // Icon Only dengan warna memudar lembut
             iconWidget ??
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    color: AppColors.brandSoftCream,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: AppColors.brandBorder,
-                      width: 1.2,
-                    ),
-                  ),
-                  alignment: Alignment.center,
-                  child: Icon(
-                    icon,
-                    size: 28,
-                    color: AppColors.brandPrimary,
-                  ),
+                Icon(
+                  icon,
+                  size: iconSize,
+                  color: iconColor ?? AppColors.brandWarmGray.withValues(alpha: 0.55),
                 ),
             const SizedBox(height: 16),
 
@@ -138,18 +162,21 @@ class AppEmptyCard extends StatelessWidget {
               ),
             ],
 
-            // Tombol Aksi Opsional
-            if (actionText != null && onAction != null) ...[
+            // Tombol Aksi Opsional (Call to Action)
+            if (actionWidget != null) ...[
+              const SizedBox(height: 20),
+              actionWidget!,
+            ] else if (actionText != null && onAction != null) ...[
               const SizedBox(height: 20),
               AppButton(
                 text: actionText!,
                 icon: actionIcon != null
-                    ? Icon(actionIcon, size: 16)
+                    ? Icon(actionIcon, size: 18)
                     : null,
-                width: 170,
-                height: 42,
-                variant: AppButtonVariant.primary,
-                borderRadius: 10,
+                width: actionWidth,
+                height: 44,
+                variant: actionVariant,
+                borderRadius: 12,
                 onPressed: onAction,
               ),
             ],
