@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/utils/package_info_provider.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../data/models/user_model.dart';
 import '../viewmodels/auth_viewmodel.dart';
@@ -129,15 +130,26 @@ class ProfileScreen extends ConsumerWidget {
 
           const SizedBox(height: 16),
 
-          // Versi Aplikasi
-          Text(
-            'Halala Food App v1.0.0',
-            style: const TextStyle(
-              fontFamily: 'PlusJakartaSans',
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: AppColors.brandWarmGray,
-            ),
+          // Versi Aplikasi (Dinamis dari pubspec.yaml via package_info_plus)
+          Consumer(
+            builder: (context, ref, _) {
+              final packageInfoAsync = ref.watch(packageInfoProvider);
+              final versionText = packageInfoAsync.when(
+                data: (info) => 'Halala Food App v${info.version}',
+                loading: () => 'Halala Food App',
+                error: (_, __) => 'Halala Food App',
+              );
+
+              return Text(
+                versionText,
+                style: const TextStyle(
+                  fontFamily: 'PlusJakartaSans',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.brandWarmGray,
+                ),
+              );
+            },
           ),
           const SizedBox(height: 24),
         ],

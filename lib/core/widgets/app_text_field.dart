@@ -21,6 +21,7 @@ class AppTextField extends StatefulWidget {
   final List<TextInputFormatter>? inputFormatters;
 
   final String? errorText;
+  final EdgeInsets scrollPadding;
 
   const AppTextField({
     super.key,
@@ -40,6 +41,7 @@ class AppTextField extends StatefulWidget {
     this.focusNode,
     this.inputFormatters,
     this.errorText,
+    this.scrollPadding = const EdgeInsets.all(20.0),
   });
 
   @override
@@ -92,6 +94,7 @@ class _AppTextFieldState extends State<AppTextField> {
         TextFormField(
           controller: widget.controller,
           focusNode: widget.focusNode,
+          scrollPadding: widget.scrollPadding,
           obscureText: _obscureText,
           keyboardType: widget.keyboardType,
           inputFormatters: widget.inputFormatters,
