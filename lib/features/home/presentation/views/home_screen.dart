@@ -379,9 +379,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 4,
-        mainAxisSpacing: 16,
+        mainAxisSpacing: 8,
         crossAxisSpacing: 10,
-        mainAxisExtent: 102, // tinggi konsisten setiap item
+        mainAxisExtent: 86, // tinggi konsisten setiap item
       ),
       itemCount: accessibleMenus.length,
       itemBuilder: (context, index) {
