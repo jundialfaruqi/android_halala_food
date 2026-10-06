@@ -14,6 +14,7 @@ class AppButton extends StatelessWidget {
   final double borderRadius;
   final Color? backgroundColor;
   final Color? textColor;
+  final Color? borderColor;
 
   const AppButton({
     super.key,
@@ -27,6 +28,7 @@ class AppButton extends StatelessWidget {
     this.borderRadius = 12.0,
     this.backgroundColor,
     this.textColor,
+    this.borderColor,
   });
 
   const AppButton.outline({
@@ -40,6 +42,7 @@ class AppButton extends StatelessWidget {
     this.borderRadius = 12.0,
     this.backgroundColor,
     this.textColor,
+    this.borderColor,
   }) : variant = AppButtonVariant.outline;
 
   const AppButton.secondary({
@@ -53,6 +56,7 @@ class AppButton extends StatelessWidget {
     this.borderRadius = 12.0,
     this.backgroundColor,
     this.textColor,
+    this.borderColor,
   }) : variant = AppButtonVariant.secondary;
 
   const AppButton.text({
@@ -66,6 +70,7 @@ class AppButton extends StatelessWidget {
     this.borderRadius = 8.0,
     this.backgroundColor,
     this.textColor,
+    this.borderColor,
   }) : variant = AppButtonVariant.text;
 
   @override
@@ -113,7 +118,7 @@ class AppButton extends StatelessWidget {
 
     final buttonStyle = switch (variant) {
       AppButtonVariant.outline => OutlinedButton.styleFrom(
-          side: const BorderSide(color: AppColors.brandBorder),
+          side: BorderSide(color: borderColor ?? const Color(0xFFD1D5DB)),
           backgroundColor: effectiveBgColor,
           foregroundColor: effectiveTextColor,
           shape: RoundedRectangleBorder(

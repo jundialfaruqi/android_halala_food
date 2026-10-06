@@ -14,6 +14,10 @@ class ApiEndpoints {
   static const String stores = '/stores';
   static const String storeRoutes = '/stores/routes';
 
+  // Users (Staf & Hak Akses)
+  static const String users = '/users';
+  static const String userRoles = '/users/roles';
+
   // Dashboard & Profile
   static const String dashboard = '/dashboard';
 }

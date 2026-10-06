@@ -10,6 +10,7 @@ import '../../../auth/presentation/views/profile_screen.dart';
 import '../../../product/presentation/views/product_screen.dart';
 import '../../../store/presentation/views/store_coordinates_screen.dart';
 import '../../../store/presentation/views/store_screen.dart';
+import '../../../user/presentation/views/user_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -401,6 +402,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
 
             if (menu.title == 'Kordinat') {
               _navigateTo(const StoreCoordinatesScreen());
+              return;
+            }
+
+            if (menu.title == 'Pengguna') {
+              _navigateTo(const UserScreen());
               return;
             }
 
