@@ -1,7 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/widgets.dart';
@@ -220,58 +219,28 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Pemilihan Peran (Dropdown tanpa icon berlebihan)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Peran / Jabatan',
-                    style: TextStyle(
-                      fontFamily: 'PlusJakartaSans',
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.brandEspresso,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  DropdownButtonFormField<String>(
-                    initialValue: _selectedRole,
-                    isExpanded: true,
-                    dropdownColor: Colors.white,
-                    icon: const Icon(
-                      TablerIcons.chevron_down,
-                      size: 18,
-                      color: AppColors.brandWarmGray,
-                    ),
-                    decoration: const InputDecoration(
-                      hintText: 'Pilih peran pengguna',
-                    ),
-                    items: _roleOptions.entries.map((entry) {
-                      return DropdownMenuItem<String>(
-                        value: entry.key,
-                        child: Text(
-                          entry.value,
-                          style: const TextStyle(
-                            fontFamily: 'PlusJakartaSans',
-                            fontSize: 14,
-                            color: AppColors.brandEspresso,
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (val) {
-                      if (val != null) {
-                        setState(() => _selectedRole = val);
-                      }
-                    },
-                    validator: (val) {
-                      if (val == null || val.isEmpty) {
-                        return 'Pilih peran untuk pengguna.';
-                      }
-                      return null;
-                    },
-                  ),
-                ],
+              // Pemilihan Peran (Material 3 Menus Core Widget)
+              AppMenuSelect<String>(
+                labelText: 'Peran / Jabatan',
+                hintText: 'Pilih peran pengguna',
+                initialSelection: _selectedRole,
+                entries: _roleOptions.entries.map((entry) {
+                  return AppMenuSelectEntry<String>(
+                    value: entry.key,
+                    label: entry.value,
+                  );
+                }).toList(),
+                onSelected: (val) {
+                  if (val != null) {
+                    setState(() => _selectedRole = val);
+                  }
+                },
+                validator: (val) {
+                  if (val == null || val.isEmpty) {
+                    return 'Pilih peran untuk pengguna.';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 16),
 
