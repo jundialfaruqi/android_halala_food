@@ -207,7 +207,60 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                                         ],
                                       ),
                                     ),
-                                    const SizedBox(width: 8),
+                                    const SizedBox(width: 6),
+
+                                    // Icon Lonceng Notifikasi (Icon only white dengan dot number notifikasi)
+                                    InkWell(
+                                      onTap: () {
+                                        AppSnackBar.showInfo(
+                                          context,
+                                          message: 'Belum ada notifikasi baru.',
+                                        );
+                                      },
+                                      borderRadius: BorderRadius.circular(20),
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(6.0),
+                                        child: Stack(
+                                          clipBehavior: Clip.none,
+                                          children: [
+                                            const Icon(
+                                              TablerIcons.bell,
+                                              size: 23,
+                                              color: Colors.white,
+                                            ),
+                                            Positioned(
+                                              top: -3,
+                                              right: -3,
+                                              child: Container(
+                                                width: 17,
+                                                height: 17,
+                                                decoration: BoxDecoration(
+                                                  color: AppColors.error,
+                                                  shape: BoxShape.circle,
+                                                  border: Border.all(
+                                                    color: Colors.white,
+                                                    width: 1.5,
+                                                  ),
+                                                ),
+                                                alignment: Alignment.center,
+                                                child: const Text(
+                                                  '3',
+                                                  style: TextStyle(
+                                                    fontFamily: 'PlusJakartaSans',
+                                                    fontSize: 9.5,
+                                                    fontWeight: FontWeight.w800,
+                                                    color: Colors.white,
+                                                    height: 1,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
 
                                     // Tombol Dropdown Menu Akun (Frosted circular button)
                                     AppDropdownMenu<String>(
