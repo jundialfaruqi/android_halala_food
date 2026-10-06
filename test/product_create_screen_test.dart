@@ -92,6 +92,25 @@ class MockProductRepoForCreateTest implements ProductRepository {
       isActive: data['is_active'] ?? true,
     );
   }
+
+  @override
+  Future<ProductModel> updateProduct(int id, Map<String, dynamic> data) async {
+    return ProductModel(
+      id: id,
+      name: data['name'] ?? '',
+      unitId: data['unit_id'],
+      consignmentPrice: (data['consignment_price'] as num?)?.toDouble() ?? 0.0,
+      consignmentPriceFormatted: 'Rp ${data['consignment_price'] ?? 0}',
+      retailPrice: (data['retail_price'] as num?)?.toDouble() ?? 0.0,
+      retailPriceFormatted: 'Rp ${data['retail_price'] ?? 0}',
+      stockReady: data['stock_ready'] ?? 0,
+      description: data['description'],
+      isActive: data['is_active'] ?? true,
+    );
+  }
+
+  @override
+  Future<void> deleteProduct(int id) async {}
 }
 
 void main() {

@@ -82,6 +82,13 @@ class MockProductRepository implements ProductRepository {
   @override
   Future<ProductModel> createProduct(Map<String, dynamic> data) async =>
       dummyProducts.first;
+
+  @override
+  Future<ProductModel> updateProduct(int id, Map<String, dynamic> data) async =>
+      dummyProducts.first;
+
+  @override
+  Future<void> deleteProduct(int id) async {}
 }
 
 class FakeAuthViewModel extends AuthViewModel {

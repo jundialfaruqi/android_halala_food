@@ -182,4 +182,17 @@ class ProductViewModel extends Notifier<ProductState> {
     await fetchProducts(refresh: true);
     return newProduct;
   }
+
+  /// Update data produk dan refresh katalog produk
+  Future<ProductModel> updateProduct(int id, Map<String, dynamic> data) async {
+    final updatedProduct = await _repository.updateProduct(id, data);
+    await fetchProducts(refresh: true);
+    return updatedProduct;
+  }
+
+  /// Hapus data produk dan refresh katalog produk
+  Future<void> deleteProduct(int id) async {
+    await _repository.deleteProduct(id);
+    await fetchProducts(refresh: true);
+  }
 }

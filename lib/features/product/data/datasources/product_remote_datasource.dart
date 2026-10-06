@@ -23,6 +23,10 @@ abstract class ProductRemoteDataSource {
   Future<ProductModel> getProductDetail(int id);
 
   Future<ProductModel> createProduct(Map<String, dynamic> data);
+
+  Future<ProductModel> updateProduct(int id, Map<String, dynamic> data);
+
+  Future<void> deleteProduct(int id);
 }
 
 class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
@@ -134,5 +138,25 @@ class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
             : response;
 
     return ProductModel.fromJson(responseData as Map<String, dynamic>);
+  }
+
+  @override
+  Future<ProductModel> updateProduct(int id, Map<String, dynamic> data) async {
+    final response = await _dioClient.put(
+      '${ApiEndpoints.products}/$id',
+      data: data,
+    );
+
+    final responseData =
+        (response is Map<String, dynamic> && response.containsKey('data'))
+            ? response['data']
+            : response;
+
+    return ProductModel.fromJson(responseData as Map<String, dynamic>);
+  }
+
+  @override
+  Future<void> deleteProduct(int id) async {
+    await _dioClient.delete('${ApiEndpoints.products}/$id');
   }
 }

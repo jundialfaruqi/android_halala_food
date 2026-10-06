@@ -42,6 +42,16 @@ class DelayedProductRepository implements ProductRepository {
   Future<ProductModel> createProduct(Map<String, dynamic> data) async {
     throw UnimplementedError();
   }
+
+  @override
+  Future<ProductModel> updateProduct(int id, Map<String, dynamic> data) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> deleteProduct(int id) async {
+    throw UnimplementedError();
+  }
 }
 
 class FakeAuthViewModel extends AuthViewModel {

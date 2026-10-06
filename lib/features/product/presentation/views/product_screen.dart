@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
@@ -8,6 +9,7 @@ import '../../../auth/presentation/viewmodels/auth_viewmodel.dart';
 import '../../data/models/product_model.dart';
 import '../viewmodels/product_viewmodel.dart';
 import 'product_create_screen.dart';
+import 'product_edit_screen.dart';
 
 /// Halaman Master Produk Jadi & Harga Halala Food
 /// Dibangun menggunakan seluruh Core Widget: AppScaffold (bg white), AppAppBar, AppStatusBar, AppCard, AppCachedImage, AppEmptyCard, AppFloatingActionButton.
@@ -55,6 +57,10 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
     final authState = ref.watch(authViewModelProvider);
     final canCreateProduct =
         authState.user?.hasPermission('produk-create') ?? false;
+    final canEditProduct =
+        authState.user?.hasPermission('produk-edit') ?? false;
+    final canDeleteProduct =
+        authState.user?.hasPermission('produk-delete') ?? false;
 
     return AppScaffold(
       appBar: const AppAppBar(
@@ -124,7 +130,13 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
 
           // Konten Daftar Produk
           Expanded(
-            child: _buildProductContent(state, notifier, canCreateProduct),
+            child: _buildProductContent(
+              state,
+              notifier,
+              canCreateProduct,
+              canEditProduct,
+              canDeleteProduct,
+            ),
           ),
         ],
       ),
@@ -352,6 +364,8 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
     ProductState state,
     ProductViewModel notifier,
     bool canCreateProduct,
+    bool canEditProduct,
+    bool canDeleteProduct,
   ) {
     if (state.isLoading) {
       return _buildShimmerLoadingList();
@@ -424,7 +438,7 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
           }
 
           final product = state.products[index];
-          return _buildProductCardItem(product);
+          return _buildProductCardItem(product, canEditProduct, canDeleteProduct);
         },
       ),
     );
@@ -545,7 +559,11 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
   }
 
   /// Card Item Produk: Bersih tanpa dot, tanpa badge, tanpa icon bg, tanpa banyak warna
-  Widget _buildProductCardItem(ProductModel product) {
+  Widget _buildProductCardItem(
+    ProductModel product,
+    bool canEditProduct,
+    bool canDeleteProduct,
+  ) {
     final photoUrl = product.photoUrl;
     final hasPhoto = photoUrl != null && photoUrl.trim().isNotEmpty;
     final unitLabel = product.unitShort ?? product.unitName ?? '';
@@ -556,6 +574,7 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
         backgroundColor: Colors.white,
         borderRadius: 16,
         padding: const EdgeInsets.all(16),
+        onTap: canEditProduct ? () => _onEditProduct(product) : null,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -678,6 +697,34 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
                 ),
               ],
             ),
+
+            // Card Footer: Tombol Hapus & Edit (Ghost Button Border Abu)
+            if (canEditProduct || canDeleteProduct) ...[
+              const SizedBox(height: 12),
+              const Divider(height: 1, color: AppColors.brandBorder),
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  if (canDeleteProduct)
+                    _buildGhostButton(
+                      label: 'Hapus',
+                      icon: TablerIcons.trash,
+                      isDanger: true,
+                      onTap: () => _confirmDeleteProduct(product),
+                    ),
+                  if (canDeleteProduct && canEditProduct)
+                    const SizedBox(width: 8),
+                  if (canEditProduct)
+                    _buildGhostButton(
+                      label: 'Edit',
+                      icon: TablerIcons.pencil,
+                      isDanger: false,
+                      onTap: () => _onEditProduct(product),
+                    ),
+                ],
+              ),
+            ],
           ],
         ),
       ),
@@ -731,6 +778,113 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
             : 'Produk kemasan baru berhasil ditambahkan ke katalog.',
       );
       ref.read(productViewModelProvider.notifier).fetchProducts(refresh: true);
+    }
+  }
+
+  /// Action Buka Halaman Formulir Edit Produk Jadi
+  Future<void> _onEditProduct(ProductModel product) async {
+    final result = await Navigator.of(context).push<dynamic>(
+      MaterialPageRoute(
+        builder: (routeContext) => ProductEditScreen(product: product),
+      ),
+    );
+
+    if (result != null && mounted) {
+      final productName =
+          (result is ProductModel) ? result.name : product.name;
+      AppSnackBar.showSuccess(
+        context,
+        message: 'Data produk "$productName" berhasil diperbarui.',
+      );
+      ref.read(productViewModelProvider.notifier).fetchProducts(refresh: true);
+    }
+  }
+
+  /// Tombol Ghost dengan Border Abu untuk Card Footer Item Produk
+  Widget _buildGhostButton({
+    required String label,
+    required IconData icon,
+    required bool isDanger,
+    required VoidCallback onTap,
+  }) {
+    final color = isDanger ? AppColors.error : AppColors.brandEspresso;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: AppColors.brandBorder,
+              width: 1,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 15, color: color),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontFamily: 'PlusJakartaSans',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Dialog Konfirmasi Global AppConfirmDialog untuk Hapus Data Produk
+  void _confirmDeleteProduct(ProductModel product) {
+    AppConfirmDialog.show(
+      context,
+      title: 'Hapus Produk',
+      message:
+          'Apakah Anda yakin ingin menghapus produk "${product.name}"? Tindakan ini tidak dapat dibatalkan.',
+      confirmText: 'Hapus',
+      cancelText: 'Batal',
+      isDanger: true,
+      icon: TablerIcons.trash,
+      onConfirm: () => _executeDeleteProduct(product),
+    );
+  }
+
+  /// Eksekusi Penghapusan Produk dan Tampilkan AppSnackBar Sukses
+  Future<void> _executeDeleteProduct(ProductModel product) async {
+    try {
+      await ref
+          .read(productViewModelProvider.notifier)
+          .deleteProduct(product.id);
+      if (!mounted) return;
+      AppSnackBar.showSuccess(
+        context,
+        message: 'Produk "${product.name}" berhasil dihapus.',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      String errorMsg = 'Gagal menghapus produk.';
+      if (e is DioException) {
+        if (e.response?.statusCode == 403) {
+          errorMsg = 'Anda tidak memiliki hak akses untuk menghapus produk.';
+        } else if (e.response?.data is Map &&
+            e.response?.data['message'] != null) {
+          errorMsg = e.response?.data['message'].toString() ?? errorMsg;
+        }
+      }
+      AppSnackBar.showError(
+        context,
+        message: errorMsg,
+      );
     }
   }
 }

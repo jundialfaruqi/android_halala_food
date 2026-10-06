@@ -45,4 +45,14 @@ class ProductRepositoryImpl implements ProductRepository {
   Future<ProductModel> createProduct(Map<String, dynamic> data) {
     return _remoteDataSource.createProduct(data);
   }
+
+  @override
+  Future<ProductModel> updateProduct(int id, Map<String, dynamic> data) {
+    return _remoteDataSource.updateProduct(id, data);
+  }
+
+  @override
+  Future<void> deleteProduct(int id) {
+    return _remoteDataSource.deleteProduct(id);
+  }
 }
