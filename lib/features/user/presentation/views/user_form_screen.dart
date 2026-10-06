@@ -50,7 +50,14 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
     final u = widget.user;
     _nameController = TextEditingController(text: u?.name ?? '');
     _emailController = TextEditingController(text: u?.email ?? '');
-    _phoneController = TextEditingController(text: u?.phone ?? '');
+
+    String displayPhone = u?.phone ?? '';
+    if (displayPhone.startsWith('62')) {
+      displayPhone = displayPhone.substring(2);
+    } else if (displayPhone.startsWith('0')) {
+      displayPhone = displayPhone.substring(1);
+    }
+    _phoneController = TextEditingController(text: displayPhone);
     _passwordController = TextEditingController();
 
     if (u != null && u.roles.isNotEmpty) {
@@ -84,8 +91,11 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
       'role': _selectedRole!,
     };
 
-    if (_phoneController.text.trim().isNotEmpty) {
-      payload['phone'] = _phoneController.text.trim();
+    final phoneDigits = _phoneController.text.trim();
+    if (phoneDigits.isNotEmpty) {
+      payload['phone'] = phoneDigits;
+    } else if (widget.isEdit) {
+      payload['phone'] = null;
     }
 
     if (!widget.isEdit || _passwordController.text.trim().isNotEmpty) {
@@ -141,16 +151,11 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Section Info Akun
-              _buildSectionTitle('Informasi Pengguna'),
-              const SizedBox(height: 12),
-
               // Input Nama Lengkap
               AppTextField(
                 controller: _nameController,
                 labelText: 'Nama Lengkap',
                 hintText: 'Contoh: Ahmad Fauzi',
-                prefixIcon: const Icon(TablerIcons.user, size: 20),
                 validator: (val) {
                   if (val == null || val.trim().isEmpty) {
                     return 'Nama lengkap pengguna wajib diisi.';
@@ -166,7 +171,6 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
                 labelText: 'Alamat Email',
                 hintText: 'Contoh: ahmad@halala-food.id',
                 keyboardType: TextInputType.emailAddress,
-                prefixIcon: const Icon(TablerIcons.mail, size: 20),
                 validator: (val) {
                   if (val == null || val.trim().isEmpty) {
                     return 'Alamat email wajib diisi.';
@@ -184,109 +188,101 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
               AppTextField(
                 controller: _phoneController,
                 labelText: 'Nomor WhatsApp / HP',
-                hintText: 'Contoh: 081234567890',
+                hintText: '81234567890',
                 keyboardType: TextInputType.phone,
-                prefixIcon: const Icon(TablerIcons.phone, size: 20),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'Nomor akan otomatis dinormalisasi ke format WhatsApp (+62)',
-                style: TextStyle(
-                  fontFamily: 'PlusJakartaSans',
-                  fontSize: 11,
-                  color: AppColors.brandWarmGray,
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Section Hak Akses & Peran
-              _buildSectionTitle('Peran & Hak Akses'),
-              const SizedBox(height: 8),
-              const Text(
-                'Peran menentukan fitur apa saja yang dapat diakses oleh staf di aplikasi web dan mobile.',
-                style: TextStyle(
-                  fontFamily: 'PlusJakartaSans',
-                  fontSize: 12,
-                  color: AppColors.brandWarmGray,
-                  height: 1.35,
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Selector Peran (Role Cards)
-              ..._roleOptions.entries.map((entry) {
-                final isSelected = _selectedRole == entry.key;
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
-                  child: InkWell(
-                    onTap: () => setState(() => _selectedRole = entry.key),
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: isSelected ? AppColors.brandSoftCreamLight : Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: isSelected ? AppColors.brandPrimary : AppColors.brandBorder,
-                          width: isSelected ? 1.5 : 1.0,
+                inputFormatters: const [IndonesianPhoneInputFormatter()],
+                prefixIcon: const Padding(
+                  padding: EdgeInsets.only(left: 14, right: 8),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '+62',
+                        style: TextStyle(
+                          fontFamily: 'PlusJakartaSans',
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.brandEspresso,
                         ),
                       ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            _getRoleIcon(entry.key),
-                            size: 20,
-                            color: isSelected ? AppColors.brandPrimary : AppColors.brandWarmGray,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  entry.value,
-                                  style: TextStyle(
-                                    fontFamily: 'PlusJakartaSans',
-                                    fontSize: 13.5,
-                                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                                    color: isSelected ? AppColors.brandPrimary : AppColors.brandEspresso,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  _getRoleDescription(entry.key),
-                                  style: const TextStyle(
-                                    fontFamily: 'PlusJakartaSans',
-                                    fontSize: 11,
-                                    color: AppColors.brandWarmGray,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Icon(
-                            isSelected ? TablerIcons.circle_check_filled : TablerIcons.circle,
-                            size: 20,
-                            color: isSelected ? AppColors.brandPrimary : AppColors.brandBorder,
-                          ),
-                        ],
+                      SizedBox(width: 8),
+                      SizedBox(
+                        height: 20,
+                        child: VerticalDivider(
+                          width: 1,
+                          thickness: 1,
+                          color: AppColors.brandBorder,
+                        ),
                       ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Pemilihan Peran (Dropdown tanpa icon berlebihan)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Peran / Jabatan',
+                    style: TextStyle(
+                      fontFamily: 'PlusJakartaSans',
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.brandEspresso,
                     ),
                   ),
-                );
-              }),
-              const SizedBox(height: 24),
+                  const SizedBox(height: 6),
+                  DropdownButtonFormField<String>(
+                    initialValue: _selectedRole,
+                    isExpanded: true,
+                    dropdownColor: Colors.white,
+                    icon: const Icon(
+                      TablerIcons.chevron_down,
+                      size: 18,
+                      color: AppColors.brandWarmGray,
+                    ),
+                    decoration: const InputDecoration(
+                      hintText: 'Pilih peran pengguna',
+                    ),
+                    items: _roleOptions.entries.map((entry) {
+                      return DropdownMenuItem<String>(
+                        value: entry.key,
+                        child: Text(
+                          entry.value,
+                          style: const TextStyle(
+                            fontFamily: 'PlusJakartaSans',
+                            fontSize: 14,
+                            color: AppColors.brandEspresso,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(() => _selectedRole = val);
+                      }
+                    },
+                    validator: (val) {
+                      if (val == null || val.isEmpty) {
+                        return 'Pilih peran untuk pengguna.';
+                      }
+                      return null;
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
 
-              // Section Keamanan Kata Sandi
-              _buildSectionTitle(widget.isEdit ? 'Ubah Kata Sandi (Opsional)' : 'Kata Sandi'),
-              const SizedBox(height: 12),
-
+              // Input Kata Sandi
               AppTextField(
                 controller: _passwordController,
                 labelText: widget.isEdit ? 'Kata Sandi Baru' : 'Kata Sandi',
-                hintText: widget.isEdit ? 'Kosongkan jika tidak ingin mengubah sandi' : 'Minimal 6 karakter',
+                hintText: widget.isEdit
+                    ? 'Kosongkan jika tidak ingin mengubah sandi'
+                    : 'Minimal 6 karakter',
                 isPassword: true,
-                prefixIcon: const Icon(TablerIcons.lock, size: 20),
                 validator: (val) {
                   if (!widget.isEdit) {
                     if (val == null || val.trim().isEmpty) {
@@ -311,43 +307,5 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
         onConfirm: _submitForm,
       ),
     );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: const TextStyle(
-        fontFamily: 'PlusJakartaSans',
-        fontSize: 15,
-        fontWeight: FontWeight.w700,
-        color: AppColors.brandEspresso,
-      ),
-    );
-  }
-
-  IconData _getRoleIcon(String role) {
-    switch (role.toLowerCase()) {
-      case 'dev':
-        return TablerIcons.shield_check;
-      case 'manager':
-        return TablerIcons.briefcase;
-      case 'kurir':
-        return TablerIcons.truck;
-      default:
-        return TablerIcons.user;
-    }
-  }
-
-  String _getRoleDescription(String role) {
-    switch (role.toLowerCase()) {
-      case 'dev':
-        return 'Akses penuh ke seluruh sistem, master data, dan konfigurasi';
-      case 'manager':
-        return 'Kelola produksi, keuangan, pesanan, dan monitoring tim';
-      case 'kurir':
-        return 'Akses surat jalan pengantaran, rute toko, dan penerimaan retur';
-      default:
-        return 'Hak akses terbatas sesuai staf';
-    }
   }
 }
