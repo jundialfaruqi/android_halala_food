@@ -284,6 +284,11 @@ class _StoreCoordinatesScreenState
       }
 
       if (position != null && mounted) {
+        if (position.isMocked) {
+          AppSecurityService.reportMockGpsDetected();
+          return;
+        }
+
         final myLatLng = LatLng(position.latitude, position.longitude);
         setState(() {
           _myLocation = myLatLng;

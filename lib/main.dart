@@ -36,8 +36,10 @@ class HalalaFoodApp extends ConsumerWidget {
       theme: AppTheme.lightTheme,
       routerConfig: router,
       builder: (context, child) {
-        return AppConnectivityWrapper(
-          child: child ?? const SizedBox.shrink(),
+        return AppSecurityWrapper(
+          child: AppConnectivityWrapper(
+            child: child ?? const SizedBox.shrink(),
+          ),
         );
       },
     );

@@ -173,6 +173,11 @@ class _StoreMapPickerScreenState extends State<StoreMapPickerScreen> {
         ),
       );
 
+      if (pos.isMocked) {
+        AppSecurityService.reportMockGpsDetected();
+        return;
+      }
+
       final currentLatLng = LatLng(pos.latitude, pos.longitude);
       setState(() {
         _selectedLocation = currentLatLng;

@@ -423,6 +423,11 @@ class _StoreEditScreenState extends ConsumerState<StoreEditScreen> {
         ),
       );
 
+      if (position.isMocked) {
+        AppSecurityService.reportMockGpsDetected();
+        return;
+      }
+
       final currentPoint = LatLng(position.latitude, position.longitude);
       setState(() {
         _latitudeController.text = position.latitude.toString();

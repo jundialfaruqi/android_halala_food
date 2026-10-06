@@ -9,7 +9,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          appBar: const AppAppBar(title: 'Test'),
+          appBar: const AppAppBar(title: 'Test', hasShadow: true),
           body: ListView.builder(
             controller: scrollController,
             itemCount: 100,
@@ -56,7 +56,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          appBar: const AppAppBar(title: 'Mitra Toko'),
+          appBar: const AppAppBar(title: 'Mitra Toko', hasShadow: true),
           body: Column(
             children: [
               Container(height: 60, color: Colors.white, child: const Text('Header')),
