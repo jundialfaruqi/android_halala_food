@@ -225,15 +225,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                                           children: [
                                             const Icon(
                                               TablerIcons.bell,
-                                              size: 23,
+                                              size: 26,
                                               color: Colors.white,
                                             ),
                                             Positioned(
-                                              top: -3,
-                                              right: -3,
+                                              top: -4,
+                                              right: -4,
                                               child: Container(
-                                                width: 17,
-                                                height: 17,
+                                                width: 18,
+                                                height: 18,
                                                 decoration: BoxDecoration(
                                                   color: AppColors.error,
                                                   shape: BoxShape.circle,
@@ -243,16 +243,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                                                   ),
                                                 ),
                                                 alignment: Alignment.center,
-                                                child: const Text(
-                                                  '3',
-                                                  style: TextStyle(
-                                                    fontFamily: 'PlusJakartaSans',
-                                                    fontSize: 9.5,
-                                                    fontWeight: FontWeight.w800,
-                                                    color: Colors.white,
-                                                    height: 1,
+                                                child: const Center(
+                                                  child: Text(
+                                                    '3',
+                                                    textAlign: TextAlign.center,
+                                                    textHeightBehavior: TextHeightBehavior(
+                                                      applyHeightToFirstAscent: false,
+                                                      applyHeightToLastDescent: false,
+                                                    ),
+                                                    style: TextStyle(
+                                                      fontFamily: 'PlusJakartaSans',
+                                                      fontSize: 10,
+                                                      fontWeight: FontWeight.w800,
+                                                      color: Colors.white,
+                                                    ),
                                                   ),
-                                                  textAlign: TextAlign.center,
                                                 ),
                                               ),
                                             ),
