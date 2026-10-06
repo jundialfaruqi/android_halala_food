@@ -840,51 +840,44 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // 6. Status Produk Aktif Switch Tile
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.brandBorder),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
-                            Text(
-                              'Produk Aktif',
-                              style: TextStyle(
-                                fontFamily: 'PlusJakartaSans',
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.brandEspresso,
-                              ),
+                // 6. Status Produk Aktif (Polos tanpa card)
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text(
+                            'Produk Aktif',
+                            style: TextStyle(
+                              fontFamily: 'PlusJakartaSans',
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.brandEspresso,
                             ),
-                            SizedBox(height: 2),
-                            Text(
-                              'Produk aktif dapat dipilih dalam formulir produksi, surat jalan, dan faktur.',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: AppColors.brandWarmGray,
-                              ),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'Produk aktif dapat dipilih dalam formulir produksi, surat jalan, dan faktur.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.brandWarmGray,
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                      Switch(
-                        value: _isActive,
-                        activeThumbColor: AppColors.brandPrimary,
-                        onChanged: (val) {
-                          setState(() {
-                            _isActive = val;
-                          });
-                        },
-                      ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 8),
+                    Switch(
+                      value: _isActive,
+                      activeThumbColor: AppColors.brandPrimary,
+                      onChanged: (val) {
+                        setState(() {
+                          _isActive = val;
+                        });
+                      },
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
 
