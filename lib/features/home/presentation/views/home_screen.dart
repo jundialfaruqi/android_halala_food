@@ -329,7 +329,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
 
                 // Layer 2: Card Statistik Floating simetris di atas batas Header & Body (Dipaint paling atas)
                 Positioned(
-                  top: headerHeight - 60,
+                  top: headerHeight - 72,
                   left: 16,
                   right: 16,
                   child: _buildStatsCard(),
@@ -419,7 +419,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                 width: 58,
                 height: 58,
                 decoration: BoxDecoration(
-                  color: AppColors.brandSoftCream,
+                  color: Colors.white,
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
@@ -522,6 +522,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
   /// Card statistik ringkasan operasional Halala Food dengan widget core AppCard.stacked
   Widget _buildStatsCard() {
     return AppCard.stacked(
+      stackAtTop: true,
+      isGlass: true,
+      borderWidth: 0.0,
+      borderColor: Colors.transparent,
+      stackOffsetVertical: 9.0,
+      stackInsetHorizontal: 13.0,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
       child: Column(
         mainAxisSize: MainAxisSize.min,

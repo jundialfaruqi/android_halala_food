@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 
@@ -24,6 +25,8 @@ class AppCard extends StatelessWidget {
   final bool _isStacked;
   final double _stackInsetHorizontal;
   final double _stackOffsetVertical;
+  final bool stackAtTop;
+  final bool isGlass;
 
   /// Card standar (#ffffff, tanpa shadow, tanpa border)
   const AppCard({
@@ -41,7 +44,9 @@ class AppCard extends StatelessWidget {
     this.clipBehavior = Clip.antiAlias,
   })  : _isStacked = false,
         _stackInsetHorizontal = 0,
-        _stackOffsetVertical = 0;
+        _stackOffsetVertical = 0,
+        stackAtTop = false,
+        isGlass = false;
 
   /// Card bernuansa krem lembut khas Halala Food
   const AppCard.soft({
@@ -59,6 +64,8 @@ class AppCard extends StatelessWidget {
   })  : _isStacked = false,
         _stackInsetHorizontal = 0,
         _stackOffsetVertical = 0,
+        stackAtTop = false,
+        isGlass = false,
         boxShadow = null;
 
   /// Card minimalis bergaris tepi tanpa efek bayangan
@@ -77,6 +84,8 @@ class AppCard extends StatelessWidget {
   })  : _isStacked = false,
         _stackInsetHorizontal = 0,
         _stackOffsetVertical = 0,
+        stackAtTop = false,
+        isGlass = false,
         boxShadow = null;
 
   /// Card dengan efek tumpukan 3 layer (3-card stacked deck effect) lengkap dengan shadow
@@ -86,15 +95,17 @@ class AppCard extends StatelessWidget {
     this.padding = const EdgeInsets.all(16.0),
     this.margin,
     this.backgroundColor = Colors.white,
-    this.borderColor = AppColors.brandBorder,
-    this.borderWidth = 1.0,
+    this.borderColor = Colors.transparent,
+    this.borderWidth = 0.0,
     this.borderRadius = 16.0,
     this.onTap,
     this.onLongPress,
     this.boxShadow,
     this.clipBehavior = Clip.antiAlias,
-    double stackInsetHorizontal = 11.0,
-    double stackOffsetVertical = 5.0,
+    double stackInsetHorizontal = 13.0,
+    double stackOffsetVertical = 8.5,
+    this.stackAtTop = false,
+    this.isGlass = true,
   })  : _isStacked = true,
         _stackInsetHorizontal = stackInsetHorizontal,
         _stackOffsetVertical = stackOffsetVertical;
@@ -193,7 +204,26 @@ class AppCard extends StatelessWidget {
     ),
   ];
 
-  Widget _buildCardContainer() {
+  static final List<BoxShadow> _stackedFrontShadowTop = [
+    BoxShadow(
+      color: Colors.black.withValues(alpha: 0.07),
+      blurRadius: 14,
+      offset: const Offset(0, 4),
+    ),
+    BoxShadow(
+      color: Colors.black.withValues(alpha: 0.04),
+      blurRadius: 6,
+      offset: const Offset(0, -2),
+    ),
+  ];
+
+  Widget _buildCardContainer({bool isTopStacked = false}) {
+    List<BoxShadow>? effectiveShadow = boxShadow;
+    if (effectiveShadow == null && _isStacked) {
+      effectiveShadow =
+          isTopStacked ? _stackedFrontShadowTop : _stackedFrontShadow;
+    }
+
     Widget card = Container(
       padding: padding,
       decoration: BoxDecoration(
@@ -202,7 +232,7 @@ class AppCard extends StatelessWidget {
         border: borderWidth > 0
             ? Border.all(color: borderColor, width: borderWidth)
             : null,
-        boxShadow: boxShadow ?? (_isStacked ? _stackedFrontShadow : null),
+        boxShadow: effectiveShadow,
       ),
       child: child,
     );
@@ -222,6 +252,53 @@ class AppCard extends StatelessWidget {
     return card;
   }
 
+  Widget _buildDeckLayer({
+    required double borderRadius,
+    required Color fallbackColor,
+    required double blurSigma,
+    required double bgOpacity,
+    required double borderOpacity,
+    required List<BoxShadow> shadow,
+  }) {
+    if (!isGlass) {
+      return Container(
+        decoration: BoxDecoration(
+          color: fallbackColor,
+          borderRadius: BorderRadius.circular(borderRadius),
+          border: borderWidth > 0
+              ? Border.all(color: borderColor, width: borderWidth)
+              : null,
+          boxShadow: shadow,
+        ),
+      );
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(borderRadius),
+        boxShadow: shadow,
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(borderRadius),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: bgOpacity),
+              borderRadius: BorderRadius.circular(borderRadius),
+              border: borderWidth > 0
+                  ? Border.all(
+                      color: Colors.white.withValues(alpha: borderOpacity),
+                      width: borderWidth,
+                    )
+                  : null,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!_isStacked) {
@@ -232,7 +309,68 @@ class AppCard extends StatelessWidget {
     }
 
     // Tampilan Stack 3-Card Deck Effect
-    final bottomPeak = _stackOffsetVertical * 2;
+    final peak = _stackOffsetVertical * 2;
+
+    if (stackAtTop) {
+      return Container(
+        margin: margin,
+        child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.bottomCenter,
+          children: [
+            // Layer 3: Card Paling Belakang / Teratas (posisi paling atas)
+            Positioned(
+              top: 0,
+              bottom: _stackOffsetVertical * 2,
+              left: _stackInsetHorizontal * 2,
+              right: _stackInsetHorizontal * 2,
+              child: _buildDeckLayer(
+                borderRadius: borderRadius,
+                fallbackColor: AppColors.brandSoftCreamLight,
+                blurSigma: 12.0,
+                bgOpacity: 0.35,
+                borderOpacity: 0.60,
+                shadow: boxShadow ?? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 10,
+                    offset: const Offset(0, -2),
+                  ),
+                ],
+              ),
+            ),
+
+            // Layer 2: Card Tengah
+            Positioned(
+              top: _stackOffsetVertical,
+              bottom: _stackOffsetVertical,
+              left: _stackInsetHorizontal,
+              right: _stackInsetHorizontal,
+              child: _buildDeckLayer(
+                borderRadius: borderRadius,
+                fallbackColor: Colors.white,
+                blurSigma: 14.0,
+                bgOpacity: 0.50,
+                borderOpacity: 0.75,
+                shadow: boxShadow ?? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.07),
+                    blurRadius: 12,
+                    offset: const Offset(0, -2),
+                  ),
+                ],
+              ),
+            ),
+
+            // Layer 1: Card Terdepan (Membungkus Konten Asli)
+            Padding(
+              padding: EdgeInsets.only(top: peak),
+              child: _buildCardContainer(isTopStacked: true),
+            ),
+          ],
+        ),
+      );
+    }
 
     return Container(
       margin: margin,
@@ -246,21 +384,19 @@ class AppCard extends StatelessWidget {
             bottom: 0,
             left: _stackInsetHorizontal * 2,
             right: _stackInsetHorizontal * 2,
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppColors.brandSoftCreamLight,
-                borderRadius: BorderRadius.circular(borderRadius),
-                border: borderWidth > 0
-                    ? Border.all(color: borderColor, width: borderWidth)
-                    : null,
-                boxShadow: boxShadow ?? [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
+            child: _buildDeckLayer(
+              borderRadius: borderRadius,
+              fallbackColor: AppColors.brandSoftCreamLight,
+              blurSigma: 12.0,
+              bgOpacity: 0.35,
+              borderOpacity: 0.60,
+              shadow: boxShadow ?? [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
             ),
           ),
 
@@ -270,27 +406,25 @@ class AppCard extends StatelessWidget {
             bottom: _stackOffsetVertical,
             left: _stackInsetHorizontal,
             right: _stackInsetHorizontal,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(borderRadius),
-                border: borderWidth > 0
-                    ? Border.all(color: borderColor, width: borderWidth)
-                    : null,
-                boxShadow: boxShadow ?? [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
+            child: _buildDeckLayer(
+              borderRadius: borderRadius,
+              fallbackColor: Colors.white,
+              blurSigma: 14.0,
+              bgOpacity: 0.50,
+              borderOpacity: 0.75,
+              shadow: boxShadow ?? [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
           ),
 
           // Layer 1: Card Terdepan (Membungkus Konten Asli)
           Padding(
-            padding: EdgeInsets.only(bottom: bottomPeak),
+            padding: EdgeInsets.only(bottom: peak),
             child: _buildCardContainer(),
           ),
         ],
