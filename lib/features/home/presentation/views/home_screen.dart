@@ -270,6 +270,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                                     // Tombol Dropdown Menu Akun (Frosted circular button)
                                     AppDropdownMenu<String>(
                                       tooltip: 'Menu Akun',
+                                      padding: EdgeInsets.zero,
                                       triggerWidget: Container(
                                         width: 40,
                                         height: 40,
