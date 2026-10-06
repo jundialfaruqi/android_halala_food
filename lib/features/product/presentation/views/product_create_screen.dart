@@ -394,15 +394,16 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
     }
 
     final consignmentPrice =
-        double.tryParse(_consignmentPriceController.text.trim());
-    if (consignmentPrice == null || consignmentPrice < 0) {
+        ThousandsSeparatorInputFormatter.parseToDouble(_consignmentPriceController.text);
+    if (consignmentPrice < 0) {
       _showSnackbar('Harga setor konsinyasi harus berupa angka valid.',
           isError: true);
       return;
     }
 
-    final retailPrice = double.tryParse(_retailPriceController.text.trim());
-    if (retailPrice == null || retailPrice < 0) {
+    final retailPrice =
+        ThousandsSeparatorInputFormatter.parseToDouble(_retailPriceController.text);
+    if (retailPrice < 0) {
       _showSnackbar('Harga eceran toko rekomendasi harus berupa angka valid.',
           isError: true);
       return;
@@ -637,9 +638,9 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
               AppTextField(
                 controller: _consignmentPriceController,
                 labelText: 'Harga Setor Konsinyasi (Rp) *',
-                hintText: '12000',
+                hintText: '12.000',
                 keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                inputFormatters: const [ThousandsSeparatorInputFormatter()],
                 textInputAction: TextInputAction.next,
                 prefixIcon: const Padding(
                   padding: EdgeInsets.only(left: 14, right: 8),
@@ -660,8 +661,9 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
                   if (val == null || val.trim().isEmpty) {
                     return 'Harga setor konsinyasi wajib diisi.';
                   }
-                  final numVal = double.tryParse(val.trim());
-                  if (numVal == null || numVal < 0) {
+                  final numVal =
+                      ThousandsSeparatorInputFormatter.parseToDouble(val);
+                  if (numVal < 0) {
                     return 'Harga setor harus berupa angka valid.';
                   }
                   return null;
@@ -673,9 +675,9 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
               AppTextField(
                 controller: _retailPriceController,
                 labelText: 'Harga Jual Eceran Toko (Rp) *',
-                hintText: '15000',
+                hintText: '15.000',
                 keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                inputFormatters: const [ThousandsSeparatorInputFormatter()],
                 textInputAction: TextInputAction.next,
                 prefixIcon: const Padding(
                   padding: EdgeInsets.only(left: 14, right: 8),
@@ -696,8 +698,9 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
                   if (val == null || val.trim().isEmpty) {
                     return 'Harga eceran toko rekomendasi wajib diisi.';
                   }
-                  final numVal = double.tryParse(val.trim());
-                  if (numVal == null || numVal < 0) {
+                  final numVal =
+                      ThousandsSeparatorInputFormatter.parseToDouble(val);
+                  if (numVal < 0) {
                     return 'Harga eceran harus berupa angka valid.';
                   }
                   return null;

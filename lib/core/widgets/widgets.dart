@@ -19,3 +19,4 @@ export 'app_status_bar.dart';
 export 'app_text_field.dart';
 export 'shimmer_loading.dart';
 export '../utils/phone_input_formatter.dart';
+export '../utils/thousands_separator_input_formatter.dart';
