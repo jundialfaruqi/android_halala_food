@@ -24,8 +24,10 @@ class AppDropdownMenu<T> extends StatelessWidget {
   final ValueChanged<T> onSelected;
   final Widget? triggerWidget;
   final String? tooltip;
-  final Offset offset;
+  final Offset? offset;
   final EdgeInsetsGeometry padding;
+  final double menuWidth;
+  final bool alignRight;
 
   const AppDropdownMenu({
     super.key,
@@ -33,20 +35,28 @@ class AppDropdownMenu<T> extends StatelessWidget {
     required this.onSelected,
     this.triggerWidget,
     this.tooltip = 'Menu Opsi',
-    this.offset = const Offset(0, 8),
+    this.offset,
     this.padding = EdgeInsets.zero,
+    this.menuWidth = 180,
+    this.alignRight = true,
   });
 
   @override
   Widget build(BuildContext context) {
+    // Jika alignRight aktif, geser menu ke kiri sejajar tepi kanan trigger (biasanya 40dp)
+    // agar sisi kanan popup menu tidak menempel ke tepi layar dan tetap memiliki space 16dp.
+    final effectiveOffset = offset ??
+        (alignRight ? Offset(-(menuWidth - 40), 8) : const Offset(0, 8));
+
     return MenuAnchor(
-      alignmentOffset: offset,
+      alignmentOffset: effectiveOffset,
       style: MenuStyle(
         backgroundColor: const WidgetStatePropertyAll<Color>(Colors.white),
         elevation: const WidgetStatePropertyAll<double>(6),
         padding: const WidgetStatePropertyAll<EdgeInsetsGeometry>(
           EdgeInsets.symmetric(vertical: 4),
         ),
+        fixedSize: WidgetStatePropertyAll<Size>(Size.fromWidth(menuWidth)),
         shape: WidgetStatePropertyAll<OutlinedBorder>(
           RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),

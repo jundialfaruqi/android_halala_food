@@ -113,7 +113,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                           SafeArea(
                             bottom: false,
                             child: Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
+                              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                               child: Align(
                                 alignment: Alignment.topLeft,
                                 child: Row(
