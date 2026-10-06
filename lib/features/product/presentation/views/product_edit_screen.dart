@@ -578,16 +578,8 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final hasExistingPhoto = !_isPhotoRemoved &&
-        _existingPhotoUrl != null &&
-        _existingPhotoUrl!.isNotEmpty;
-
     return AppStatusBar(
       child: AppScaffold(
-        isLoading: _isSubmitting || _isProcessingPhoto,
-        loadingMessage: _isProcessingPhoto
-            ? 'Memproses & mengompresi foto produk...'
-            : 'Menyimpan perubahan data produk...',
         appBar: const AppAppBar(
           title: 'Edit Produk Jadi',
         ),
@@ -901,280 +893,24 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
                 const SizedBox(height: 20),
 
                 // 8. Foto Kemasan Produk (Opsional)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Foto Produk Kemasan (Opsional)',
-                      style: TextStyle(
-                        fontFamily: 'PlusJakartaSans',
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.brandEspresso,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
+                AppImageUploadCanvas(
+                  label: 'Foto Produk Kemasan (Opsional)',
+                  helperText:
                       'Foto kemasan produk jadi untuk memudahkan visual di katalog dan surat jalan.',
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        color: AppColors.brandWarmGray,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Area Preview Foto: Baru, Existing, atau Status Dihapus
-                    if (_photoBytes != null)
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: AppColors.brandBorder),
-                        ),
-                        child: Row(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
-                              child: Image.memory(
-                                _photoBytes!,
-                                width: 72,
-                                height: 72,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Foto Baru Siap Diunggah',
-                                    style: TextStyle(
-                                      fontFamily: 'PlusJakartaSans',
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.brandEspresso,
-                                    ),
-                                  ),
-                                  if (_photoCompressionInfo != null) ...[
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      _photoCompressionInfo!,
-                                      style: const TextStyle(
-                                        fontFamily: 'PlusJakartaSans',
-                                        fontSize: 11.5,
-                                        fontWeight: FontWeight.w500,
-                                        color: AppColors.brandNaturalGreen,
-                                      ),
-                                    ),
-                                  ],
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      InkWell(
-                                        onTap: _showPhotoSourceBottomSheet,
-                                        child: const Text(
-                                          'Ganti Foto',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w600,
-                                            color: AppColors.brandPrimary,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 16),
-                                      InkWell(
-                                        onTap: _removePhoto,
-                                        child: const Text(
-                                          'Hapus Foto',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w600,
-                                            color: AppColors.error,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    else if (hasExistingPhoto)
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: AppColors.brandBorder),
-                        ),
-                        child: Row(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
-                              child: AppCachedImage(
-                                imageUrl: _existingPhotoUrl!,
-                                width: 72,
-                                height: 72,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Foto Produk Saat Ini',
-                                    style: TextStyle(
-                                      fontFamily: 'PlusJakartaSans',
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.brandEspresso,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  const Text(
-                                    'Tersimpan di server',
-                                    style: TextStyle(
-                                      fontSize: 11.5,
-                                      color: AppColors.brandWarmGray,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      InkWell(
-                                        onTap: _showPhotoSourceBottomSheet,
-                                        child: const Text(
-                                          'Ubah Foto',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w600,
-                                            color: AppColors.brandPrimary,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 16),
-                                      InkWell(
-                                        onTap: _removePhoto,
-                                        child: const Text(
-                                          'Hapus Foto',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w600,
-                                            color: AppColors.error,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    else if (_isPhotoRemoved)
-                      Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: Colors.red.shade50,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: Colors.red.shade200),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              TablerIcons.trash_x,
-                              color: AppColors.error,
-                              size: 24,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: const [
-                                  Text(
-                                    'Foto Produk Akan Dihapus',
-                                    style: TextStyle(
-                                      fontFamily: 'PlusJakartaSans',
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.error,
-                                    ),
-                                  ),
-                                  SizedBox(height: 2),
-                                  Text(
-                                    'Foto produk akan dibersihkan dari server saat Anda menyimpan.',
-                                    style: TextStyle(
-                                      fontSize: 11.5,
-                                      color: AppColors.brandEspresso,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            TextButton(
-                              onPressed: _restoreOriginalPhoto,
-                              child: const Text('Batal Hapus'),
-                            ),
-                          ],
-                        ),
-                      )
-                    else
-                      InkWell(
-                        onTap: _showPhotoSourceBottomSheet,
-                        borderRadius: BorderRadius.circular(14),
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 22,
-                            horizontal: 16,
-                          ),
-                          decoration: BoxDecoration(
-                            color:
-                                AppColors.brandSoftCream.withValues(alpha: 0.5),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color:
-                                  AppColors.brandPrimary.withValues(alpha: 0.3),
-                              style: BorderStyle.solid,
-                            ),
-                          ),
-                          child: Column(
-                            children: const [
-                              Icon(
-                                TablerIcons.camera_plus,
-                                size: 32,
-                                color: AppColors.brandPrimary,
-                              ),
-                              SizedBox(height: 8),
-                              Text(
-                                'Pilih atau Ambil Foto Produk',
-                                style: TextStyle(
-                                  fontFamily: 'PlusJakartaSans',
-                                  fontSize: 13.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.brandPrimary,
-                                ),
-                              ),
-                              SizedBox(height: 2),
-                              Text(
-                                'Format JPG, PNG, atau WEBP (Maksimal 10MB)',
-                                style: TextStyle(
-                                  fontSize: 11.5,
-                                  color: AppColors.brandWarmGray,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                  ],
+                  imageBytes: _photoBytes,
+                  imageUrl: _existingPhotoUrl,
+                  isProcessing: _isProcessingPhoto,
+                  processingMessage: 'Memproses & mengompresi foto produk...',
+                  compressionInfo: _photoCompressionInfo,
+                  isMarkedForDeletion: _isPhotoRemoved,
+                  uploadedTitle: 'Foto Baru Siap Diunggah',
+                  existingTitle: 'Foto Produk Saat Ini',
+                  placeholderTitle: 'Pilih atau Ambil Foto Produk',
+                  placeholderSubtitle:
+                      'Format JPG, PNG, atau WEBP (Maksimal 10MB)',
+                  onPickPhoto: _showPhotoSourceBottomSheet,
+                  onRemovePhoto: _removePhoto,
+                  onCancelDeletion: _restoreOriginalPhoto,
                 ),
                 const SizedBox(height: 32),
               ],

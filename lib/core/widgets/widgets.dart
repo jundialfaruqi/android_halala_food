@@ -9,6 +9,7 @@ export 'app_dropdown_menu.dart';
 export 'app_dynamic_validation_form.dart';
 export 'app_empty_card.dart';
 export 'app_floating_action_button.dart';
+export 'app_image_upload_canvas.dart';
 export 'app_list_tile.dart';
 export 'app_menu_select.dart';
 export 'app_scaffold.dart';

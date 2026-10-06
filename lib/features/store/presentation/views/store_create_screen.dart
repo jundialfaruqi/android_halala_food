@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:convert';
+import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -61,6 +61,7 @@ class _StoreCreateScreenState extends ConsumerState<StoreCreateScreen> {
   final FocusNode _mapSearchFocus = FocusNode();
 
   String? _photoDataUrl; // Base64 dataURL baru
+  Uint8List? _photoBytes; // Raw compressed bytes untuk preview instan
   String? _photoCompressionInfo; // Ukuran kompresi (misal: "1.4 MB ➔ 52 KB")
 
   @override
@@ -243,6 +244,7 @@ class _StoreCreateScreenState extends ConsumerState<StoreCreateScreen> {
 
       setState(() {
         _photoDataUrl = result.dataUrl;
+        _photoBytes = result.bytes;
         _photoCompressionInfo =
             '${result.originalSizeFormatted} ➔ ${result.compressedSizeFormatted}';
       });
@@ -267,6 +269,7 @@ class _StoreCreateScreenState extends ConsumerState<StoreCreateScreen> {
   void _removePhoto() {
     setState(() {
       _photoDataUrl = null;
+      _photoBytes = null;
       _photoCompressionInfo = null;
     });
     _showSnackbar('Foto toko dihapus.');
@@ -537,10 +540,6 @@ class _StoreCreateScreenState extends ConsumerState<StoreCreateScreen> {
     );
 
     return AppScaffold(
-      isLoading: _isSubmitting || _isProcessingPhoto,
-      loadingMessage: _isProcessingPhoto
-          ? 'Memproses & mengompresi foto toko...'
-          : 'Menyimpan data toko mitra...',
       appBar: const AppAppBar(
         title: 'Tambah Mitra Toko',
       ),
@@ -988,234 +987,19 @@ class _StoreCreateScreenState extends ConsumerState<StoreCreateScreen> {
 
   /// Widget Section Upload & Preview Foto Toko
   Widget _buildPhotoUploadSection() {
-    final hasNewPhoto = _photoDataUrl != null;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Foto Toko Mitra',
-          style: TextStyle(
-            fontFamily: 'PlusJakartaSans',
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: AppColors.brandEspresso,
-          ),
-        ),
-        const SizedBox(height: 8),
-
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Preview Container
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: AppColors.brandSoftCream,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.brandBorder),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(11),
-                child: _isProcessingPhoto
-                    ? const Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.2,
-                                color: AppColors.brandPrimary,
-                              ),
-                            ),
-                            SizedBox(height: 5),
-                            Text(
-                              'Proses...',
-                              style: TextStyle(
-                                fontFamily: 'PlusJakartaSans',
-                                fontSize: 9.5,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.brandPrimary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    : hasNewPhoto
-                        ? Image.memory(
-                            base64Decode(
-                              _photoDataUrl!.substring(
-                                _photoDataUrl!.indexOf(',') + 1,
-                              ),
-                            ),
-                            fit: BoxFit.cover,
-                          )
-                        : const Center(
-                            child: Icon(
-                              TablerIcons.building_store,
-                              size: 32,
-                              color: AppColors.brandWarmGray,
-                            ),
-                          ),
-              ),
-            ),
-
-            const SizedBox(width: 14),
-
-            // Kontrol Tombol Upload & Hapus
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 6,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      InkWell(
-                        onTap: _isProcessingPhoto ? null : _showPhotoSourceDialog,
-                        borderRadius: BorderRadius.circular(8),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _isProcessingPhoto
-                                ? AppColors.brandWarmGray
-                                : AppColors.brandPrimary,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (_isProcessingPhoto) ...[
-                                const SizedBox(
-                                  width: 14,
-                                  height: 14,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                                const Text(
-                                  'Memproses...',
-                                  style: TextStyle(
-                                    fontFamily: 'PlusJakartaSans',
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ] else ...[
-                                const Icon(
-                                  TablerIcons.upload,
-                                  size: 15,
-                                  color: Colors.white,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  hasNewPhoto ? 'Ganti Foto' : 'Unggah Foto',
-                                  style: const TextStyle(
-                                    fontFamily: 'PlusJakartaSans',
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ),
-                      if (hasNewPhoto)
-                        InkWell(
-                          onTap: _removePhoto,
-                          borderRadius: BorderRadius.circular(8),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.error.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: AppColors.error.withValues(alpha: 0.2),
-                              ),
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  TablerIcons.trash,
-                                  size: 14,
-                                  color: AppColors.error,
-                                ),
-                                SizedBox(width: 4),
-                                Text(
-                                  'Hapus',
-                                  style: TextStyle(
-                                    fontFamily: 'PlusJakartaSans',
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.error,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  if (hasNewPhoto) ...[
-                    Row(
-                      children: [
-                        const Icon(
-                          TablerIcons.circle_check_filled,
-                          size: 14,
-                          color: AppColors.brandNaturalGreen,
-                        ),
-                        const SizedBox(width: 4),
-                        const Text(
-                          'Foto berhasil dipilih',
-                          style: TextStyle(
-                            fontFamily: 'PlusJakartaSans',
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.brandNaturalGreen,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                  ],
-                  Text(
-                    _photoCompressionInfo != null
-                        ? 'Ukuran: $_photoCompressionInfo'
-                        : 'Format JPG, PNG, WEBP (maks. 10 MB)',
-                    style: TextStyle(
-                      fontFamily: 'PlusJakartaSans',
-                      fontSize: 11,
-                      fontWeight: _photoCompressionInfo != null
-                          ? FontWeight.w600
-                          : FontWeight.w400,
-                      color: _photoCompressionInfo != null
-                          ? AppColors.brandNaturalGreen
-                          : AppColors.brandWarmGray,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ],
+    return AppImageUploadCanvas(
+      label: 'Foto Toko Mitra',
+      helperText:
+          'Unggah foto tampak depan toko mitra untuk memudahkan kurir mengenali lokasi.',
+      imageBytes: _photoBytes,
+      isProcessing: _isProcessingPhoto,
+      processingMessage: 'Memproses & mengompresi foto toko...',
+      compressionInfo: _photoCompressionInfo,
+      placeholderIcon: TablerIcons.building_store,
+      placeholderTitle: 'Pilih atau Ambil Foto Toko Mitra',
+      placeholderSubtitle: 'Format JPG, PNG, atau WEBP (Maksimal 10MB)',
+      onPickPhoto: _showPhotoSourceDialog,
+      onRemovePhoto: _removePhoto,
     );
   }
 
