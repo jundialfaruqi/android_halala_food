@@ -55,10 +55,6 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
     _stockReadyController = TextEditingController(text: '0');
     _descriptionController = TextEditingController();
 
-    // Listener untuk kalkulasi margin dinamis
-    _consignmentPriceController.addListener(_onPriceChanged);
-    _retailPriceController.addListener(_onPriceChanged);
-
     // Pastikan daftar satuan tersedia
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final units = ref.read(productViewModelProvider).availableUnits;
@@ -82,14 +78,8 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
     });
   }
 
-  void _onPriceChanged() {
-    setState(() {});
-  }
-
   @override
   void dispose() {
-    _consignmentPriceController.removeListener(_onPriceChanged);
-    _retailPriceController.removeListener(_onPriceChanged);
     _nameController.dispose();
     _consignmentPriceController.dispose();
     _retailPriceController.dispose();
@@ -482,13 +472,6 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Perhitungan live keuntungan dan gross margin toko mitra
-    final consignment =
-        double.tryParse(_consignmentPriceController.text.trim()) ?? 0;
-    final retail = double.tryParse(_retailPriceController.text.trim()) ?? 0;
-    final profit = retail - consignment;
-    final marginPct = retail > 0 ? ((profit / retail) * 100) : 0.0;
-
     return AppScaffold(
       isLoading: _isSubmitting || _isProcessingPhoto,
       loadingMessage: _isProcessingPhoto
@@ -752,70 +735,6 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
                   return null;
                 },
               ),
-              const SizedBox(height: 12),
-
-              // Live Margin & Profit Summary Card (Identik dengan Web)
-              if (consignment > 0 || retail > 0)
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: profit >= 0
-                        ? const Color(0xFFF0FDF4)
-                        : const Color(0xFFFFFBEB),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: profit >= 0
-                          ? const Color(0xFFA7F3D0)
-                          : const Color(0xFFFDE68A),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        profit >= 0
-                            ? TablerIcons.chart_pie
-                            : TablerIcons.alert_triangle,
-                        size: 22,
-                        color: profit >= 0
-                            ? AppColors.brandNaturalGreen
-                            : AppColors.warning,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              profit >= 0
-                                  ? 'Margin Keuntungan Toko Mitra: ${marginPct.toStringAsFixed(1)}%'
-                                  : 'Harga Eceran Lebih Rendah dari Harga Setor!',
-                              style: TextStyle(
-                                fontFamily: 'PlusJakartaSans',
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                color: profit >= 0
-                                    ? const Color(0xFF064E3B)
-                                    : const Color(0xFF78350F),
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              profit >= 0
-                                  ? 'Toko mitra untung Rp ${profit.toStringAsFixed(0)} per kemasan terjual.'
-                                  : 'Pastikan harga jual rekomendasi toko lebih tinggi dari harga setor.',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: profit >= 0
-                                    ? AppColors.brandNaturalGreen
-                                    : const Color(0xFF92400E),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               const SizedBox(height: 16),
 
               // 5. Stok Awal Siap Kirim (Kemasan)
