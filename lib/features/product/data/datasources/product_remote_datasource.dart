@@ -21,6 +21,8 @@ abstract class ProductRemoteDataSource {
   Future<List<ProductUnitModel>> getUnits();
 
   Future<ProductModel> getProductDetail(int id);
+
+  Future<ProductModel> createProduct(Map<String, dynamic> data);
 }
 
 class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
@@ -117,5 +119,20 @@ class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
     }
 
     throw Exception('Format respons detail produk tidak valid.');
+  }
+
+  @override
+  Future<ProductModel> createProduct(Map<String, dynamic> data) async {
+    final response = await _dioClient.post(
+      ApiEndpoints.products,
+      data: data,
+    );
+
+    final responseData =
+        (response is Map<String, dynamic> && response.containsKey('data'))
+            ? response['data']
+            : response;
+
+    return ProductModel.fromJson(responseData as Map<String, dynamic>);
   }
 }

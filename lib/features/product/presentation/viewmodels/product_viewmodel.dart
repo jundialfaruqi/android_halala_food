@@ -175,4 +175,11 @@ class ProductViewModel extends Notifier<ProductState> {
     );
     fetchProducts(refresh: true);
   }
+
+  /// Tambah data produk baru dan refresh katalog produk
+  Future<ProductModel> createProduct(Map<String, dynamic> data) async {
+    final newProduct = await _repository.createProduct(data);
+    await fetchProducts(refresh: true);
+    return newProduct;
+  }
 }

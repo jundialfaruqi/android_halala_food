@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:android_halala_food/features/auth/data/models/user_model.dart';
+import 'package:android_halala_food/features/auth/presentation/viewmodels/auth_state.dart';
+import 'package:android_halala_food/features/auth/presentation/viewmodels/auth_viewmodel.dart';
 import 'package:android_halala_food/features/product/data/models/product_model.dart';
 import 'package:android_halala_food/features/product/data/repositories/product_repository_impl.dart';
 import 'package:android_halala_food/features/product/domain/repositories/product_repository.dart';
@@ -75,6 +78,25 @@ class MockProductRepository implements ProductRepository {
 
   @override
   Future<ProductModel> getProductDetail(int id) async => dummyProducts.first;
+
+  @override
+  Future<ProductModel> createProduct(Map<String, dynamic> data) async =>
+      dummyProducts.first;
+}
+
+class FakeAuthViewModel extends AuthViewModel {
+  @override
+  AuthState build() {
+    return AuthState(
+      status: AuthStatus.authenticated,
+      user: UserModel(
+        id: 1,
+        name: 'Admin Tester',
+        email: 'admin@halala-food.id',
+        roles: ['dev'],
+      ),
+    );
+  }
 }
 
 void main() {
@@ -87,6 +109,7 @@ void main() {
       ProviderScope(
         overrides: [
           productRepositoryProvider.overrideWithValue(mockRepo),
+          authViewModelProvider.overrideWith(() => FakeAuthViewModel()),
         ],
         child: const MaterialApp(
           home: ProductScreen(),

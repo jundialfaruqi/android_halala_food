@@ -4,11 +4,13 @@ import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/widgets.dart';
+import '../../../auth/presentation/viewmodels/auth_viewmodel.dart';
 import '../../data/models/product_model.dart';
 import '../viewmodels/product_viewmodel.dart';
+import 'product_create_screen.dart';
 
 /// Halaman Master Produk Jadi & Harga Halala Food
-/// Dibangun menggunakan seluruh Core Widget: AppScaffold (bg white), AppAppBar, AppStatusBar, AppCard, AppCachedImage, AppEmptyCard.
+/// Dibangun menggunakan seluruh Core Widget: AppScaffold (bg white), AppAppBar, AppStatusBar, AppCard, AppCachedImage, AppEmptyCard, AppFloatingActionButton.
 /// Desain UI clean: tidak ada dot, tidak ada badge, tidak ada icon bg, tidak banyak warna.
 /// Alur proses bisnis sama dengan versi web: pencarian nama/deskripsi, filter status, filter satuan kemasan.
 class ProductScreen extends ConsumerStatefulWidget {
@@ -50,11 +52,22 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(productViewModelProvider);
     final notifier = ref.read(productViewModelProvider.notifier);
+    final authState = ref.watch(authViewModelProvider);
+    final canCreateProduct =
+        authState.user?.hasPermission('produk-create') ?? false;
 
     return AppScaffold(
       appBar: const AppAppBar(
         title: 'Produk',
       ),
+      floatingActionButton: canCreateProduct
+          ? AppFloatingActionButton.extended(
+              onPressed: () => _onCreateProduct(),
+              icon: const Icon(TablerIcons.plus, size: 20),
+              label: 'Tambah Produk',
+              tooltip: 'Tambah Produk Jadi Baru',
+            )
+          : null,
       body: Column(
         children: [
           // Filter & Search Bar Atas
@@ -111,7 +124,7 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
 
           // Konten Daftar Produk
           Expanded(
-            child: _buildProductContent(state, notifier),
+            child: _buildProductContent(state, notifier, canCreateProduct),
           ),
         ],
       ),
@@ -335,18 +348,13 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
   }
 
   /// Bagian Konten Produk: Loading, Error, Empty, atau List Produk
-  Widget _buildProductContent(ProductState state, ProductViewModel notifier) {
+  Widget _buildProductContent(
+    ProductState state,
+    ProductViewModel notifier,
+    bool canCreateProduct,
+  ) {
     if (state.isLoading) {
-      return const Center(
-        child: SizedBox(
-          width: 32,
-          height: 32,
-          child: CircularProgressIndicator(
-            strokeWidth: 2.5,
-            color: AppColors.brandPrimary,
-          ),
-        ),
-      );
+      return _buildShimmerLoadingList();
     }
 
     if (state.errorMessage != null && state.products.isEmpty) {
@@ -372,13 +380,18 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
             message: state.hasFilter
                 ? 'Tidak ada produk yang cocok dengan pencarian atau filter yang dipilih.'
                 : 'Belum ada data master produk jadi yang tersedia.',
-            actionText: state.hasFilter ? 'Hapus Filter' : null,
+            actionText: state.hasFilter
+                ? 'Hapus Filter'
+                : (canCreateProduct ? 'Tambah Produk' : null),
+            actionIcon: state.hasFilter
+                ? null
+                : (canCreateProduct ? TablerIcons.plus : null),
             onAction: state.hasFilter
                 ? () {
                     _searchController.clear();
                     notifier.resetFilters();
                   }
-                : null,
+                : (canCreateProduct ? () => _onCreateProduct() : null),
           ),
         ),
       );
@@ -413,6 +426,120 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
           final product = state.products[index];
           return _buildProductCardItem(product);
         },
+      ),
+    );
+  }
+
+  /// Shimmer loading list skeleton untuk item card data produk
+  Widget _buildShimmerLoadingList() {
+    return ListView.builder(
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      itemCount: 6,
+      itemBuilder: (context, index) {
+        return _buildShimmerProductCard();
+      },
+    );
+  }
+
+  /// Shimmer skeleton untuk satu item card data produk
+  Widget _buildShimmerProductCard() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: AppCard(
+        backgroundColor: Colors.white,
+        borderRadius: 16,
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Baris Header: Foto Thumbnail Shimmer & Shimmer Nama + Deskripsi
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const ShimmerLoading(
+                  width: 48,
+                  height: 48,
+                  borderRadius: 10,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      ShimmerLoading(
+                        width: double.infinity,
+                        height: 16,
+                        borderRadius: 4,
+                      ),
+                      SizedBox(height: 6),
+                      ShimmerLoading(
+                        width: 140,
+                        height: 12,
+                        borderRadius: 4,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            const Divider(height: 1, color: AppColors.brandBorder),
+            const SizedBox(height: 10),
+            // 2x2 Grid Informasi: Harga Konsinyasi, Harga Eceran Toko, Stok Siap Kirim, Status
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      ShimmerLoading(width: 85, height: 11, borderRadius: 3),
+                      SizedBox(height: 5),
+                      ShimmerLoading(width: 95, height: 14, borderRadius: 4),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      ShimmerLoading(width: 95, height: 11, borderRadius: 3),
+                      SizedBox(height: 5),
+                      ShimmerLoading(width: 95, height: 14, borderRadius: 4),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      ShimmerLoading(width: 80, height: 11, borderRadius: 3),
+                      SizedBox(height: 5),
+                      ShimmerLoading(width: 70, height: 14, borderRadius: 4),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      ShimmerLoading(width: 45, height: 11, borderRadius: 3),
+                      SizedBox(height: 5),
+                      ShimmerLoading(width: 50, height: 14, borderRadius: 4),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -585,5 +712,25 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
         ),
       ],
     );
+  }
+
+  /// Action Buka Halaman Formulir Tambah Produk Jadi Baru
+  Future<void> _onCreateProduct() async {
+    final result = await Navigator.of(context).push<dynamic>(
+      MaterialPageRoute(
+        builder: (routeContext) => const ProductCreateScreen(),
+      ),
+    );
+
+    if (result != null && mounted) {
+      final productName = (result is ProductModel) ? result.name : '';
+      AppSnackBar.showSuccess(
+        context,
+        message: productName.isNotEmpty
+            ? 'Produk kemasan "$productName" berhasil ditambahkan ke katalog.'
+            : 'Produk kemasan baru berhasil ditambahkan ke katalog.',
+      );
+      ref.read(productViewModelProvider.notifier).fetchProducts(refresh: true);
+    }
   }
 }

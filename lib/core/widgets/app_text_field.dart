@@ -22,6 +22,9 @@ class AppTextField extends StatefulWidget {
 
   final String? errorText;
   final EdgeInsets scrollPadding;
+  final AutovalidateMode? autovalidateMode;
+  final bool dynamicValidationClearing;
+  final GlobalKey<FormFieldState<String>>? formFieldKey;
 
   const AppTextField({
     super.key,
@@ -42,6 +45,9 @@ class AppTextField extends StatefulWidget {
     this.inputFormatters,
     this.errorText,
     this.scrollPadding = const EdgeInsets.all(20.0),
+    this.autovalidateMode,
+    this.dynamicValidationClearing = true,
+    this.formFieldKey,
   });
 
   @override
@@ -50,11 +56,61 @@ class AppTextField extends StatefulWidget {
 
 class _AppTextFieldState extends State<AppTextField> {
   late bool _obscureText;
+  late final GlobalKey<FormFieldState<String>> _internalFieldKey;
+  String? _currentErrorText;
+
+  GlobalKey<FormFieldState<String>> get _fieldKey =>
+      widget.formFieldKey ?? _internalFieldKey;
 
   @override
   void initState() {
     super.initState();
     _obscureText = widget.isPassword;
+    _internalFieldKey = GlobalKey<FormFieldState<String>>();
+    _currentErrorText = widget.errorText;
+    widget.controller?.addListener(_handleControllerChange);
+  }
+
+  @override
+  void didUpdateWidget(covariant AppTextField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.errorText != oldWidget.errorText) {
+      _currentErrorText = widget.errorText;
+    }
+    if (widget.controller != oldWidget.controller) {
+      oldWidget.controller?.removeListener(_handleControllerChange);
+      widget.controller?.addListener(_handleControllerChange);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller?.removeListener(_handleControllerChange);
+    super.dispose();
+  }
+
+  void _handleControllerChange() {
+    if (!widget.dynamicValidationClearing) return;
+    _clearOrRevalidate();
+  }
+
+  void _clearOrRevalidate([String? value]) {
+    if (!widget.dynamicValidationClearing) return;
+
+    bool needsSetState = false;
+    if (_currentErrorText != null) {
+      _currentErrorText = null;
+      needsSetState = true;
+    }
+
+    final fieldState = _fieldKey.currentState;
+    if (fieldState != null && fieldState.hasError) {
+      fieldState.validate();
+    }
+
+    if (needsSetState && mounted) {
+      setState(() {});
+    }
   }
 
   @override
@@ -92,6 +148,7 @@ class _AppTextFieldState extends State<AppTextField> {
           const SizedBox(height: 6),
         ],
         TextFormField(
+          key: _fieldKey,
           controller: widget.controller,
           focusNode: widget.focusNode,
           scrollPadding: widget.scrollPadding,
@@ -99,7 +156,13 @@ class _AppTextFieldState extends State<AppTextField> {
           keyboardType: widget.keyboardType,
           inputFormatters: widget.inputFormatters,
           validator: widget.validator,
-          onChanged: widget.onChanged,
+          autovalidateMode: widget.autovalidateMode,
+          onChanged: (val) {
+            if (widget.controller == null && widget.dynamicValidationClearing) {
+              _clearOrRevalidate(val);
+            }
+            widget.onChanged?.call(val);
+          },
           enabled: widget.enabled,
           maxLines: widget.maxLines,
           textInputAction: widget.textInputAction,
@@ -113,7 +176,7 @@ class _AppTextFieldState extends State<AppTextField> {
             hintText: widget.hintText,
             prefixIcon: widget.prefixIcon,
             suffixIcon: computedSuffixIcon,
-            errorText: widget.errorText,
+            errorText: _currentErrorText,
             errorMaxLines: 3,
             errorStyle: const TextStyle(
               fontFamily: 'PlusJakartaSans',
