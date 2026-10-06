@@ -583,6 +583,38 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
     }
   }
 
+  String _getFormattedTodayDate() {
+    final now = DateTime.now();
+    const days = [
+      'Senin',
+      'Selasa',
+      'Rabu',
+      'Kamis',
+      'Jumat',
+      'Sabtu',
+      'Minggu',
+    ];
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'Mei',
+      'Jun',
+      'Jul',
+      'Agu',
+      'Sep',
+      'Okt',
+      'Nov',
+      'Des',
+    ];
+
+    final dayName = days[now.weekday - 1];
+    final monthName = months[now.month - 1];
+
+    return '$dayName, ${now.day} $monthName ${now.year}';
+  }
+
   /// Card statistik ringkasan operasional Halala Food dengan widget core AppCard.stacked
   Widget _buildStatsCard() {
     return AppCard.stacked(
@@ -598,20 +630,36 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
         children: [
           // Header ringkasan
           Row(
-            children: const [
-              Icon(
-                TablerIcons.chart_pie,
-                size: 16,
-                color: AppColors.brandPrimary,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Icon(
+                    TablerIcons.chart_pie,
+                    size: 16,
+                    color: AppColors.brandPrimary,
+                  ),
+                  SizedBox(width: 7),
+                  Text(
+                    'Ringkasan Hari Ini',
+                    style: TextStyle(
+                      fontFamily: 'PlusJakartaSans',
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.brandEspresso,
+                    ),
+                  ),
+                ],
               ),
-              SizedBox(width: 7),
               Text(
-                'Ringkasan Hari Ini',
-                style: TextStyle(
+                _getFormattedTodayDate(),
+                style: const TextStyle(
                   fontFamily: 'PlusJakartaSans',
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.brandEspresso,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.brandWarmGray,
                 ),
               ),
             ],
