@@ -698,29 +698,32 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
               ],
             ),
 
-            // Card Footer: Tombol Hapus & Edit (Ghost Button Border Abu)
+            // Card Footer: Tombol Aksi Edit & Hapus (Full Width 2 Kolom, seragam dengan Mitra Toko)
             if (canEditProduct || canDeleteProduct) ...[
               const SizedBox(height: 12),
               const Divider(height: 1, color: AppColors.brandBorder),
               const SizedBox(height: 10),
               Row(
-                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  if (canDeleteProduct)
-                    _buildGhostButton(
-                      label: 'Hapus',
-                      icon: TablerIcons.trash,
-                      isDanger: true,
-                      onTap: () => _confirmDeleteProduct(product),
-                    ),
-                  if (canDeleteProduct && canEditProduct)
-                    const SizedBox(width: 8),
                   if (canEditProduct)
-                    _buildGhostButton(
-                      label: 'Edit',
-                      icon: TablerIcons.pencil,
-                      isDanger: false,
-                      onTap: () => _onEditProduct(product),
+                    Expanded(
+                      child: _buildActionButton(
+                        label: 'Edit',
+                        icon: TablerIcons.edit,
+                        isDanger: false,
+                        onTap: () => _onEditProduct(product),
+                      ),
+                    ),
+                  if (canEditProduct && canDeleteProduct)
+                    const SizedBox(width: 8),
+                  if (canDeleteProduct)
+                    Expanded(
+                      child: _buildActionButton(
+                        label: 'Hapus',
+                        icon: TablerIcons.trash,
+                        isDanger: true,
+                        onTap: () => _confirmDeleteProduct(product),
+                      ),
                     ),
                 ],
               ),
@@ -800,45 +803,45 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
     }
   }
 
-  /// Tombol Ghost dengan Border Abu untuk Card Footer Item Produk
-  Widget _buildGhostButton({
+  /// Tombol Aksi Footer Item Produk (Seragam dengan Mitra Toko: Background Putih + Border Halus)
+  Widget _buildActionButton({
     required String label,
     required IconData icon,
     required bool isDanger,
     required VoidCallback onTap,
   }) {
-    final color = isDanger ? AppColors.error : AppColors.brandEspresso;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: AppColors.brandBorder,
-              width: 1,
+    final iconColor = isDanger ? AppColors.error : AppColors.brandWarmGray;
+    final textColor = isDanger ? AppColors.error : AppColors.brandEspresso;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppColors.brandBorder),
+        ),
+        alignment: Alignment.center,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 15,
+              color: iconColor,
             ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 15, color: color),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  fontFamily: 'PlusJakartaSans',
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: color,
-                ),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: TextStyle(
+                fontFamily: 'PlusJakartaSans',
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: textColor,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
