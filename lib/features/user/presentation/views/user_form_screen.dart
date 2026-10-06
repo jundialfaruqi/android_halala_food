@@ -305,42 +305,10 @@ class _UserFormScreenState extends ConsumerState<UserFormScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -4),
-            ),
-          ],
-        ),
-        child: SafeArea(
-          top: false,
-          child: Row(
-            children: [
-              Expanded(
-                flex: 1,
-                child: AppButton.outline(
-                  text: 'Batal',
-                  borderColor: const Color(0xFFD1D5DB),
-                  onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 2,
-                child: AppButton(
-                  text: widget.isEdit ? 'Simpan Perubahan' : 'Tambah Pengguna',
-                  isLoading: _isSubmitting,
-                  onPressed: _isSubmitting ? null : _submitForm,
-                ),
-              ),
-            ],
-          ),
-        ),
+      bottomNavigationBar: AppBottomActionBar(
+        confirmText: widget.isEdit ? 'Simpan Perubahan' : 'Tambah Pengguna',
+        isLoading: _isSubmitting,
+        onConfirm: _submitForm,
       ),
     );
   }

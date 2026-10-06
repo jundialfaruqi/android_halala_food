@@ -480,38 +480,10 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
       appBar: const AppAppBar(
         title: 'Tambah Produk Baru',
       ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(
-            top: BorderSide(color: AppColors.brandBorder, width: 1),
-          ),
-        ),
-        child: SafeArea(
-          top: false,
-          child: Row(
-            children: [
-              Expanded(
-                flex: 1,
-                child: AppButton.outline(
-                  text: 'Batal',
-                  onPressed:
-                      _isSubmitting ? null : () => Navigator.of(context).pop(),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 2,
-                child: AppButton(
-                  text: 'Simpan Produk',
-                  isLoading: _isSubmitting,
-                  onPressed: _isSubmitting ? null : _submitForm,
-                ),
-              ),
-            ],
-          ),
-        ),
+      bottomNavigationBar: AppBottomActionBar(
+        confirmText: 'Simpan Produk',
+        isLoading: _isSubmitting,
+        onConfirm: _submitForm,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
