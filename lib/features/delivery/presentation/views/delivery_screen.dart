@@ -480,13 +480,7 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
             ],
           ),
           SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              ShimmerLoading(width: 55, height: 13, borderRadius: 4),
-              ShimmerLoading(width: 90, height: 13, borderRadius: 4),
-            ],
-          ),
+          ShimmerLoading(width: 55, height: 13, borderRadius: 4),
           SizedBox(height: 6),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -501,6 +495,14 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
             children: [
               ShimmerLoading(width: 110, height: 13, borderRadius: 4),
               ShimmerLoading(width: 50, height: 13, borderRadius: 4),
+            ],
+          ),
+          SizedBox(height: 6),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              ShimmerLoading(width: 80, height: 13, borderRadius: 4),
+              ShimmerLoading(width: 70, height: 13, borderRadius: 4),
             ],
           ),
         ],
@@ -750,29 +752,14 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Muatan',
-                    style: TextStyle(
-                      fontFamily: 'PlusJakartaSans',
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.brandWarmGray,
-                    ),
-                  ),
-                  if (item.totalItems > 0)
-                    Text(
-                      'Total: ${item.totalItems} kemasan',
-                      style: const TextStyle(
-                        fontFamily: 'PlusJakartaSans',
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.brandWarmGray,
-                      ),
-                    ),
-                ],
+              const Text(
+                'Muatan',
+                style: TextStyle(
+                  fontFamily: 'PlusJakartaSans',
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.brandWarmGray,
+                ),
               ),
               const SizedBox(height: 6),
               if (item.items.isNotEmpty)
@@ -840,6 +827,32 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
                     ),
                   ),
                 ),
+              if (item.totalItems > 0) ...[
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Total Muatan',
+                      style: TextStyle(
+                        fontFamily: 'PlusJakartaSans',
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.brandWarmGray,
+                      ),
+                    ),
+                    Text(
+                      '${item.totalItems} kemasan',
+                      style: const TextStyle(
+                        fontFamily: 'PlusJakartaSans',
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.brandEspresso,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
           const SizedBox(height: 12),
