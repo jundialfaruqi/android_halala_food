@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -61,6 +62,10 @@ class _StoreCoordinatesScreenState extends ConsumerState<StoreCoordinatesScreen>
   // State untuk pencarian nama toko
   bool _showSearchResults = false;
   List<StoreModel> _searchResults = [];
+
+  // State animasi detak (bounce 3x) untuk toko mitra yang dipilih dari hasil pencarian
+  int? _bouncingStoreId;
+  int _bounceTrigger = 0;
 
   // Titik default (Malang, Jawa Timur) jika belum ada kordinat
   static const LatLng _defaultLocation = LatLng(-7.983908, 112.630852);
@@ -194,6 +199,8 @@ class _StoreCoordinatesScreenState extends ConsumerState<StoreCoordinatesScreen>
 
     setState(() {
       _showSearchResults = false;
+      _bouncingStoreId = store.id;
+      _bounceTrigger++;
       // Jika rute toko berbeda dengan rute yang sedang difilter,
       // sesuaikan agar titik kordinat toko tampil di peta
       if (_selectedRoute != null && store.route != null) {
@@ -1513,13 +1520,26 @@ class _StoreCoordinatesScreenState extends ConsumerState<StoreCoordinatesScreen>
               MarkerLayer(
                 markers: [
                   ...displayStores.map((store) {
+                    final isBouncing = _bouncingStoreId == store.id;
                     return Marker(
+                      key: ValueKey('store_marker_${store.id}'),
                       point: LatLng(store.latitude!, store.longitude!),
                       width: 48,
                       height: 56,
                       alignment: Alignment.topCenter,
                       child: _StoreMapPinMarker(
+                        key: ValueKey(
+                          'pin_${store.id}_${isBouncing ? _bounceTrigger : 0}',
+                        ),
                         store: store,
+                        isBouncing: isBouncing,
+                        onBounceCompleted: () {
+                          if (mounted && _bouncingStoreId == store.id) {
+                            setState(() {
+                              _bouncingStoreId = null;
+                            });
+                          }
+                        },
                         onTap: () => _onStoreMarkerTapped(store),
                       ),
                     );
@@ -1770,83 +1790,188 @@ class _StoreCoordinatesScreenState extends ConsumerState<StoreCoordinatesScreen>
   }
 }
 
-/// Widget pin kordinat dengan foto toko
-class _StoreMapPinMarker extends StatelessWidget {
+/// Widget pin kordinat dengan foto toko dan animasi detak (3 kali loncat cepat, balik slow)
+class _StoreMapPinMarker extends StatefulWidget {
   final StoreModel store;
+  final bool isBouncing;
+  final VoidCallback? onBounceCompleted;
   final VoidCallback onTap;
 
-  const _StoreMapPinMarker({required this.store, required this.onTap});
+  const _StoreMapPinMarker({
+    super.key,
+    required this.store,
+    this.isBouncing = false,
+    this.onBounceCompleted,
+    required this.onTap,
+  });
+
+  @override
+  State<_StoreMapPinMarker> createState() => _StoreMapPinMarkerState();
+}
+
+class _StoreMapPinMarkerState extends State<_StoreMapPinMarker>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _animController;
+  late final Animation<double> _animation;
+  int _bounceCyclesCompleted = 0;
+  static const int _maxCycles = 1;
+
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+
+    _animation = CurvedAnimation(
+      parent: _animController,
+      curve: const _JumpUpSlowFallCurve(),
+    );
+
+    _animController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        _bounceCyclesCompleted++;
+        if (_bounceCyclesCompleted < _maxCycles && mounted) {
+          _animController.forward(from: 0.0);
+        } else {
+          // Berhenti setelah 1 siklus detak dan beri tahu parent
+          widget.onBounceCompleted?.call();
+        }
+      }
+    });
+
+    if (widget.isBouncing) {
+      _startBounce();
+    }
+  }
+
+  void _startBounce() {
+    _bounceCyclesCompleted = 0;
+    _animController.forward(from: 0.0);
+  }
+
+  @override
+  void didUpdateWidget(covariant _StoreMapPinMarker oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isBouncing && !oldWidget.isBouncing) {
+      _startBounce();
+    }
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final photoUrl = store.photoUrl;
+    final photoUrl = widget.store.photoUrl;
     final hasPhoto = photoUrl != null && photoUrl.trim().isNotEmpty;
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Frame lingkaran foto toko
-          Container(
-            width: 44,
-            height: 44,
-            padding: const EdgeInsets.all(2.5),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 2),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.18),
-                  blurRadius: 6,
-                  offset: const Offset(0, 3),
+      onTap: widget.onTap,
+      child: AnimatedBuilder(
+        animation: _animation,
+        builder: (context, child) {
+          final bounceVal = _animation.value;
+          final bounceY = bounceVal * 18.0;
+
+          return Transform.translate(
+            offset: Offset(0, -bounceY),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Frame lingkaran foto toko
+                Container(
+                  width: 44,
+                  height: 44,
+                  padding: const EdgeInsets.all(2.5),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(
+                          alpha: 0.18 + (0.10 * bounceVal),
+                        ),
+                        blurRadius: 6 + (5 * bounceVal),
+                        offset: Offset(0, 3 + (6 * bounceVal)),
+                      ),
+                    ],
+                  ),
+                  child: ClipOval(
+                    child: hasPhoto
+                        ? AppCachedImage(
+                            imageUrl: photoUrl,
+                            width: 39,
+                            height: 39,
+                            fit: BoxFit.cover,
+                          )
+                        : Container(
+                            color: AppColors.brandSoftCream,
+                            alignment: Alignment.center,
+                            child: Text(
+                              widget.store.name.isNotEmpty
+                                  ? widget.store.name[0].toUpperCase()
+                                  : 'T',
+                              style: const TextStyle(
+                                fontFamily: 'PlusJakartaSans',
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.brandEspresso,
+                              ),
+                            ),
+                          ),
+                  ),
+                ),
+                // Jarum penunjuk bawah (downward pointer tip)
+                CustomPaint(
+                  size: const Size(10, 6),
+                  painter: const _PinTipPainter(color: Colors.white),
+                ),
+                // Titik pusat koordinat (anchor dot)
+                Container(
+                  width: 4,
+                  height: 4,
+                  decoration: const BoxDecoration(
+                    color: AppColors.brandEspresso,
+                    shape: BoxShape.circle,
+                  ),
                 ),
               ],
             ),
-            child: ClipOval(
-              child: hasPhoto
-                  ? AppCachedImage(
-                      imageUrl: photoUrl,
-                      width: 39,
-                      height: 39,
-                      fit: BoxFit.cover,
-                    )
-                  : Container(
-                      color: AppColors.brandSoftCream,
-                      alignment: Alignment.center,
-                      child: Text(
-                        store.name.isNotEmpty
-                            ? store.name[0].toUpperCase()
-                            : 'T',
-                        style: const TextStyle(
-                          fontFamily: 'PlusJakartaSans',
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.brandEspresso,
-                        ),
-                      ),
-                    ),
-            ),
-          ),
-          // Jarum penunjuk bawah (downward pointer tip)
-          CustomPaint(
-            size: const Size(10, 6),
-            painter: _PinTipPainter(color: Colors.white),
-          ),
-          // Titik pusat koordinat (anchor dot)
-          Container(
-            width: 4,
-            height: 4,
-            decoration: const BoxDecoration(
-              color: AppColors.brandEspresso,
-              shape: BoxShape.circle,
-            ),
-          ),
-        ],
+          );
+        },
       ),
     );
+  }
+}
+
+/// Kurva animasi detak halus (1 siklus):
+/// 1. Cepat loncat ke atas (0.0 -> 0.25)
+/// 2. Diam/melayang di atas sebentar (0.25 -> 0.45) - hang time di puncak
+/// 3. Turun kembali ke bawah secara melambat dan halus (0.45 -> 1.0) dengan cosine ease
+class _JumpUpSlowFallCurve extends Curve {
+  const _JumpUpSlowFallCurve();
+
+  @override
+  double transformInternal(double t) {
+    if (t < 0.25) {
+      // 1. Cepat loncat ke atas (ease-out sin)
+      final p = t / 0.25;
+      return math.sin(p * math.pi / 2);
+    } else if (t < 0.45) {
+      // 2. Diam di atas sebentar (hang time)
+      return 1.0;
+    } else {
+      // 3. Turun kembali ke bawah secara melambat dan halus (cosine ease)
+      final p = (t - 0.45) / (1.0 - 0.45);
+      return (1.0 + math.cos(p * math.pi)) / 2;
+    }
   }
 }
 

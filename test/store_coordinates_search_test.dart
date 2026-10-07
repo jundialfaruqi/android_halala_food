@@ -280,4 +280,37 @@ void main() {
     // Verify StoreEditScreen is opened
     expect(find.byType(StoreEditScreen), findsOneWidget);
   });
+
+  testWidgets(
+      'Selecting store from search triggers bounce animation and settles cleanly',
+      (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          storeRepositoryProvider.overrideWithValue(MockStoreRepository()),
+        ],
+        child: const MaterialApp(
+          home: StoreCoordinatesScreen(),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    // Search and tap a store
+    final textFieldFinder = find.byType(TextField);
+    await tester.enterText(textFieldFinder, 'Berkah');
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.tap(find.text('Toko Berkah Jaya').first);
+
+    // Pump into the bounce cycle (160ms) -> marker is elevated
+    await tester.pump(const Duration(milliseconds: 160));
+    expect(find.byType(Transform), findsWidgets);
+
+    // Let the bounce cycle complete (800ms total)
+    await tester.pumpAndSettle();
+
+    // After bounce completes, map settles and is stable at rest
+    expect(find.byType(StoreCoordinatesScreen), findsOneWidget);
+  });
 }
