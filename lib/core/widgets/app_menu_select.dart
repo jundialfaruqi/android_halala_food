@@ -47,6 +47,7 @@ class AppMenuSelect<T> extends FormField<T> {
 
             void handleSelected(T? value) {
               field.didChange(value);
+              field.validate();
               onSelected?.call(value);
             }
 

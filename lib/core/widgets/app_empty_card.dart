@@ -55,6 +55,9 @@ class AppEmptyCard extends StatelessWidget {
   /// Tampilkan border
   final bool hasBorder;
 
+  /// Warna border (opsional, default: AppColors.brandBorder jika hasBorder true)
+  final Color? borderColor;
+
   /// Tampilkan shadow lembut
   final bool hasShadow;
 
@@ -76,6 +79,7 @@ class AppEmptyCard extends StatelessWidget {
     this.margin,
     this.backgroundColor = Colors.transparent,
     this.hasBorder = false,
+    this.borderColor,
     this.hasShadow = false,
   });
 
@@ -88,6 +92,7 @@ class AppEmptyCard extends StatelessWidget {
     String? message,
     Color backgroundColor = Colors.transparent,
     bool hasBorder = false,
+    Color? borderColor,
     bool hasShadow = false,
     double iconSize = 54.0,
     Color? iconColor,
@@ -109,6 +114,7 @@ class AppEmptyCard extends StatelessWidget {
       onAction: onReset,
       backgroundColor: backgroundColor,
       hasBorder: hasBorder,
+      borderColor: borderColor,
       hasShadow: hasShadow,
     );
   }
@@ -119,7 +125,8 @@ class AppEmptyCard extends StatelessWidget {
       margin: margin,
       padding: padding,
       backgroundColor: backgroundColor,
-      borderWidth: hasBorder ? 1.0 : 0.0,
+      borderColor: borderColor ?? (hasBorder ? AppColors.brandBorder : Colors.transparent),
+      borderWidth: (hasBorder || borderColor != null) ? 1.0 : 0.0,
       boxShadow: hasShadow ? null : const [],
       child: Center(
         child: Column(

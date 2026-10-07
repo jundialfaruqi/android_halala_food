@@ -42,6 +42,7 @@ class _DeliveryEditScreenState extends ConsumerState<DeliveryEditScreen> {
   DeliveryModel? _delivery;
   DeliveryOptionsModel? _options;
   final List<DeliveryItemFormEntry> _items = [];
+  String? _itemsErrorMessage;
 
   final NumberFormat _currencyFormat = NumberFormat.currency(
     locale: 'id_ID',
@@ -149,6 +150,7 @@ class _DeliveryEditScreenState extends ConsumerState<DeliveryEditScreen> {
     if (newItems != null && newItems.isNotEmpty) {
       setState(() {
         _items.addAll(newItems);
+        _itemsErrorMessage = null;
       });
     }
   }
@@ -210,26 +212,30 @@ class _DeliveryEditScreenState extends ConsumerState<DeliveryEditScreen> {
 
   Future<void> _updateDelivery() async {
     final formState = _formKey.currentState;
-    if (formState == null || !formState.validate()) {
-      AppSnackBar.showError(
-        context,
-        message: 'Mohon periksa kembali isian form yang belum lengkap.',
-      );
-      return;
-    }
+    bool hasInlineErrors = false;
 
-    if (_selectedStoreId == null) {
-      AppSnackBar.showError(
-        context,
-        message: 'Pilih toko mitra tujuan pengantaran.',
-      );
-      return;
+    if (formState == null || !formState.validate()) {
+      hasInlineErrors = true;
     }
 
     if (_items.isEmpty) {
+      setState(() {
+        _itemsErrorMessage =
+            'Muatan barang jadi wajib diisi minimal 1 jenis produk.';
+      });
+      hasInlineErrors = true;
+    } else {
+      if (_itemsErrorMessage != null) {
+        setState(() {
+          _itemsErrorMessage = null;
+        });
+      }
+    }
+
+    if (hasInlineErrors) {
       AppSnackBar.showError(
         context,
-        message: 'Muatan barang wajib diisi minimal 1 jenis produk.',
+        message: 'Mohon periksa kembali isian form yang belum lengkap.',
       );
       return;
     }
@@ -409,26 +415,26 @@ class _DeliveryEditScreenState extends ConsumerState<DeliveryEditScreen> {
           ),
           const SizedBox(height: 14),
 
-          // Kurir Bertugas
+          // Kurir Bertugas (Wajib diisi dengan error inline)
           AppMenuSelect<int>(
             labelText: 'Kurir Bertugas',
             hintText: 'Pilih Kurir Bertugas...',
             initialSelection: _selectedCourierId,
-            entries: [
-              const AppMenuSelectEntry<int>(
-                value: 0,
-                label: 'Belum Ditugaskan',
-              ),
-              ...opts.couriers.map((c) {
-                return AppMenuSelectEntry<int>(
-                  value: c.id,
-                  label: c.name,
-                );
-              }),
-            ],
+            entries: opts.couriers.map((c) {
+              return AppMenuSelectEntry<int>(
+                value: c.id,
+                label: c.name,
+              );
+            }).toList(),
+            validator: (val) {
+              if (val == null || val == 0) {
+                return 'Kurir yang bertugas wajib dipilih.';
+              }
+              return null;
+            },
             onSelected: (val) {
               setState(() {
-                _selectedCourierId = (val == 0) ? null : val;
+                _selectedCourierId = val;
               });
             },
           ),
@@ -488,9 +494,47 @@ class _DeliveryEditScreenState extends ConsumerState<DeliveryEditScreen> {
               actionText: 'Tambahkan Produk Jadi',
               actionIcon: TablerIcons.plus,
               hasBorder: true,
+              borderColor: _itemsErrorMessage != null
+                  ? AppColors.error
+                  : AppColors.brandBorder,
               backgroundColor: Colors.white,
               onAction: _openAddProductsDialog,
             ),
+            if (_itemsErrorMessage != null) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.error.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: AppColors.error.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      TablerIcons.alert_circle,
+                      size: 16,
+                      color: AppColors.error,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _itemsErrorMessage!,
+                        style: const TextStyle(
+                          fontFamily: 'PlusJakartaSans',
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.error,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ] else ...[
             // List Card Produk (Point 5)
             ..._items.asMap().entries.map((entry) {
