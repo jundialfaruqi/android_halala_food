@@ -70,6 +70,7 @@ class DeliveryItemModel {
   final double unitPrice;
   final double subtotal;
   final String? notes;
+  final String? productPhotoUrl;
 
   const DeliveryItemModel({
     required this.id,
@@ -81,6 +82,7 @@ class DeliveryItemModel {
     required this.unitPrice,
     required this.subtotal,
     this.notes,
+    this.productPhotoUrl,
   });
 
   factory DeliveryItemModel.fromJson(Map<String, dynamic> json) {
@@ -104,6 +106,8 @@ class DeliveryItemModel {
           ? double.tryParse(json['subtotal'].toString()) ?? 0.0
           : 0.0,
       notes: json['notes'] as String?,
+      productPhotoUrl: productJson?['photo_url'] as String? ??
+          productJson?['photo'] as String?,
     );
   }
 
@@ -371,6 +375,7 @@ class ProductOptionModel {
   final double consignmentPrice;
   final double depositPrice;
   final String? image;
+  final String? photoUrl;
 
   const ProductOptionModel({
     required this.id,
@@ -380,6 +385,7 @@ class ProductOptionModel {
     required this.consignmentPrice,
     required this.depositPrice,
     this.image,
+    this.photoUrl,
   });
 
   factory ProductOptionModel.fromJson(Map<String, dynamic> json) {
@@ -387,6 +393,9 @@ class ProductOptionModel {
     final unitStr = unitModel?['short_name'] as String? ??
         json['unit'] as String? ??
         'Pcs';
+
+    final rawPhoto = (json['photo'] ?? json['image']) as String?;
+    final rawPhotoUrl = json['photo_url'] as String?;
 
     return ProductOptionModel(
       id: json['id'] as int? ?? 0,
@@ -401,7 +410,8 @@ class ProductOptionModel {
           : (json['deposit_price'] != null
               ? double.tryParse(json['deposit_price'].toString()) ?? 0.0
               : 0.0),
-      image: (json['photo'] ?? json['image']) as String?,
+      image: rawPhoto,
+      photoUrl: rawPhotoUrl ?? rawPhoto,
     );
   }
 }
