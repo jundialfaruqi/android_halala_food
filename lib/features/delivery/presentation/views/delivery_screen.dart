@@ -173,19 +173,8 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
 
     return AppStatusBar(
       child: AppScaffold(
-        appBar: AppAppBar(
+        appBar: const AppAppBar(
           title: 'Surat Jalan & Pengantaran',
-          actions: [
-            IconButton(
-              icon: const Icon(TablerIcons.refresh, size: 20),
-              tooltip: 'Muat Ulang',
-              onPressed: () {
-                ref
-                    .read(deliveryViewModelProvider.notifier)
-                    .loadDeliveries(refresh: true);
-              },
-            ),
-          ],
         ),
         floatingActionButton: canCreate
             ? AppFloatingActionButton.extended(
@@ -378,26 +367,34 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
 
     if (state.deliveries.isEmpty) {
       if (state.hasFilter) {
-        return Center(
-          child: AppEmptyCard.search(
-            query: state.searchQuery,
-            onReset: () {
-              _searchController.clear();
-              final notifier =
-                  ref.read(deliveryViewModelProvider.notifier);
-              notifier.setSearchQuery('');
-              notifier.setStatusFilter('all');
-              notifier.setRouteFilter(null);
-            },
+        return SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(vertical: 40),
+          child: Center(
+            child: AppEmptyCard.search(
+              query: state.searchQuery,
+              onReset: () {
+                _searchController.clear();
+                final notifier =
+                    ref.read(deliveryViewModelProvider.notifier);
+                notifier.setSearchQuery('');
+                notifier.setStatusFilter('all');
+                notifier.setRouteFilter(null);
+              },
+            ),
           ),
         );
       }
 
-      return const Center(
-        child: AppEmptyCard(
-          title: 'Belum Ada Surat Jalan',
-          message:
-              'Daftar surat jalan pengantaran barang ke mitra toko akan ditampilkan di sini.',
+      return const SingleChildScrollView(
+        physics: AlwaysScrollableScrollPhysics(),
+        padding: EdgeInsets.symmetric(vertical: 40),
+        child: Center(
+          child: AppEmptyCard(
+            title: 'Belum Ada Surat Jalan',
+            message:
+                'Daftar surat jalan pengantaran barang ke mitra toko akan ditampilkan di sini.',
+          ),
         ),
       );
     }
@@ -409,6 +406,7 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
 
     return ListView.builder(
       controller: _scrollController,
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
       itemCount: state.deliveries.length + (state.isLoadingMore ? 1 : 0),
       itemBuilder: (context, index) {
@@ -500,44 +498,6 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
     bool canEditPermission,
     bool canDeletePermission,
   ) {
-    // Menu items for action dropdown
-    final List<AppDropdownItem<String>> menuItems = [
-      const AppDropdownItem(
-        value: 'detail',
-        label: 'Lihat Detail',
-      ),
-    ];
-
-    if (item.isDiproses && canEditPermission) {
-      menuItems.add(const AppDropdownItem(
-        value: 'dispatch',
-        label: 'Berangkatkan',
-      ));
-    }
-
-    if (item.canEdit && canEditPermission) {
-      menuItems.add(const AppDropdownItem(
-        value: 'edit',
-        label: 'Edit Surat Jalan',
-      ));
-    }
-
-    if ((item.isDiproses || item.isDikirim) && canEditPermission) {
-      menuItems.add(const AppDropdownItem(
-        value: 'cancel',
-        label: 'Batalkan Pengantaran',
-        isDestructive: true,
-      ));
-    }
-
-    if (!item.isSelesai && canDeletePermission) {
-      menuItems.add(const AppDropdownItem(
-        value: 'delete',
-        label: 'Hapus Surat Jalan',
-        isDestructive: true,
-      ));
-    }
-
     return AppCard(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -576,9 +536,135 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
                   ],
                 ),
               ),
-              AppDropdownMenu<String>(
-                items: menuItems,
+              PopupMenuButton<String>(
+                icon: const Icon(
+                  TablerIcons.dots_vertical,
+                  size: 20,
+                  color: AppColors.brandWarmGray,
+                ),
+                color: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 onSelected: (val) => _handleAction(item, val),
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'detail',
+                    height: 40,
+                    child: Row(
+                      children: [
+                        Icon(
+                          TablerIcons.eye,
+                          size: 18,
+                          color: AppColors.brandEspresso,
+                        ),
+                        SizedBox(width: 10),
+                        Text(
+                          'Lihat Detail',
+                          style: TextStyle(
+                            fontFamily: 'PlusJakartaSans',
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (item.isDiproses && canEditPermission)
+                    const PopupMenuItem(
+                      value: 'dispatch',
+                      height: 40,
+                      child: Row(
+                        children: [
+                          Icon(
+                            TablerIcons.truck_delivery,
+                            size: 18,
+                            color: AppColors.brandEspresso,
+                          ),
+                          SizedBox(width: 10),
+                          Text(
+                            'Berangkatkan',
+                            style: TextStyle(
+                              fontFamily: 'PlusJakartaSans',
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  if (item.canEdit && canEditPermission)
+                    const PopupMenuItem(
+                      value: 'edit',
+                      height: 40,
+                      child: Row(
+                        children: [
+                          Icon(
+                            TablerIcons.edit,
+                            size: 18,
+                            color: AppColors.brandEspresso,
+                          ),
+                          SizedBox(width: 10),
+                          Text(
+                            'Edit Surat Jalan',
+                            style: TextStyle(
+                              fontFamily: 'PlusJakartaSans',
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  if ((item.isDiproses || item.isDikirim) && canEditPermission)
+                    const PopupMenuItem(
+                      value: 'cancel',
+                      height: 40,
+                      child: Row(
+                        children: [
+                          Icon(
+                            TablerIcons.x,
+                            size: 18,
+                            color: AppColors.error,
+                          ),
+                          SizedBox(width: 10),
+                          Text(
+                            'Batalkan Pengantaran',
+                            style: TextStyle(
+                              fontFamily: 'PlusJakartaSans',
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.error,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  if (!item.isSelesai && canDeletePermission)
+                    const PopupMenuItem(
+                      value: 'delete',
+                      height: 40,
+                      child: Row(
+                        children: [
+                          Icon(
+                            TablerIcons.trash,
+                            size: 18,
+                            color: AppColors.error,
+                          ),
+                          SizedBox(width: 10),
+                          Text(
+                            'Hapus Surat Jalan',
+                            style: TextStyle(
+                              fontFamily: 'PlusJakartaSans',
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.error,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
               ),
             ],
           ),
