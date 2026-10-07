@@ -134,9 +134,9 @@ void main() {
     await tester.tap(find.text('Toko Berkah Jaya').first);
     await tester.pumpAndSettle();
 
-    // Verify store detail modal card is opened
-    expect(find.text('Buka di Google Maps'), findsOneWidget);
-    expect(find.text('+628123456789'), findsOneWidget);
+    // Verify search dropdown is closed and modal is NOT auto-opened
+    expect(find.byType(ListView), findsNothing);
+    expect(find.text('Buka di Google Maps'), findsNothing);
   });
 
   testWidgets(
@@ -233,11 +233,22 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    // Search and tap a store to open the detail modal card
+    // Search and tap a store -> focuses map without auto opening modal
     final textFieldFinder = find.byType(TextField);
     await tester.enterText(textFieldFinder, 'Berkah');
     await tester.pump(const Duration(milliseconds: 350));
     await tester.tap(find.text('Toko Berkah Jaya').first);
+    await tester.pumpAndSettle();
+
+    // Verify detail modal card is NOT auto-opened
+    expect(find.byTooltip('Ubah Data Toko'), findsNothing);
+
+    // Tap the store marker pin on the map to open the detail modal card
+    final storeMarkerFinder = find.byWidgetPredicate(
+      (widget) => widget.runtimeType.toString() == '_StoreMapPinMarker',
+    );
+    expect(storeMarkerFinder, findsWidgets);
+    await tester.tap(storeMarkerFinder.first);
     await tester.pumpAndSettle();
 
     // Verify detail modal card is open

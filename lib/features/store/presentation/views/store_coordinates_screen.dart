@@ -204,13 +204,10 @@ class _StoreCoordinatesScreenState extends ConsumerState<StoreCoordinatesScreen>
       }
     });
 
-    // Peta langsung menampilkan kordinat toko yang diklik tersebut
+    // Peta langsung menampilkan kordinat toko yang diklik tersebut (zoom in fokus ke titik mark)
     if (store.latitude != null && store.longitude != null) {
       _mapController.move(LatLng(store.latitude!, store.longitude!), 16.5);
     }
-
-    // Tampilkan modal core card detail toko
-    _showStoreDetailModalCard(store);
   }
 
   /// Memeriksa status GPS dan opsional memusatkan peta ke lokasi saya (hanya jika focusCamera == true)
