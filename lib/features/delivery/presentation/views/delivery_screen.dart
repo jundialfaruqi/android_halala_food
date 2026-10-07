@@ -460,6 +460,8 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
                   ShimmerLoading(width: 150, height: 16, borderRadius: 4),
                   SizedBox(height: 6),
                   ShimmerLoading(width: 100, height: 13, borderRadius: 4),
+                  SizedBox(height: 5),
+                  ShimmerLoading(width: 120, height: 13, borderRadius: 4),
                 ],
               ),
               ShimmerLoading(width: 32, height: 32, borderRadius: 16),
@@ -548,6 +550,16 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
                         fontSize: 13.5,
                         fontWeight: FontWeight.w500,
                         color: AppColors.brandWarmGray,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Status: ${item.statusLabel}',
+                      style: const TextStyle(
+                        fontFamily: 'PlusJakartaSans',
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.brandEspresso,
                       ),
                     ),
                   ],
@@ -828,7 +840,9 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
                   ),
                 ),
               if (item.totalItems > 0) ...[
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
+                const _DottedLine(),
+                const SizedBox(height: 6),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -855,41 +869,81 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
               ],
             ],
           ),
-          const SizedBox(height: 12),
-          const Divider(height: 1, color: AppColors.brandBorder),
-          const SizedBox(height: 10),
-
-          // Footer: Status Teks Bersih (NO BADGE, NO DOT) & Penerima
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  'Status: ${item.statusLabel}',
-                  style: const TextStyle(
-                    fontFamily: 'PlusJakartaSans',
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.brandEspresso,
-                  ),
-                ),
-              ),
-              if (item.isSelesai &&
-                  item.recipientName != null &&
-                  item.recipientName!.isNotEmpty)
-                Text(
-                  'Diterima: ${item.recipientName}',
-                  style: const TextStyle(
+          if (item.isSelesai &&
+              item.recipientName != null &&
+              item.recipientName!.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            const Divider(height: 1, color: AppColors.brandBorder),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Penerima',
+                  style: TextStyle(
                     fontFamily: 'PlusJakartaSans',
                     fontSize: 13.5,
                     fontWeight: FontWeight.w500,
                     color: AppColors.brandWarmGray,
                   ),
                 ),
-            ],
-          ),
+                Text(
+                  item.recipientName!,
+                  style: const TextStyle(
+                    fontFamily: 'PlusJakartaSans',
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.brandEspresso,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
   }
+}
+
+/// Widget garis pemisah berbentuk titik-titik (dotted border)
+class _DottedLine extends StatelessWidget {
+  const _DottedLine();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(
+      height: 4.4,
+      width: double.infinity,
+      child: CustomPaint(
+        painter: _DottedLinePainter(),
+      ),
+    );
+  }
+}
+
+class _DottedLinePainter extends CustomPainter {
+  const _DottedLinePainter();
+
+  static const Color color = Color(0xFFD4CCC5);
+  static const double dotRadius = 1.2;
+  static const double spacing = 3.5;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+
+    const step = dotRadius * 2 + spacing;
+    double startX = dotRadius;
+    final y = size.height / 2;
+
+    while (startX < size.width) {
+      canvas.drawCircle(Offset(startX, y), dotRadius, paint);
+      startX += step;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DottedLinePainter oldDelegate) => false;
 }
