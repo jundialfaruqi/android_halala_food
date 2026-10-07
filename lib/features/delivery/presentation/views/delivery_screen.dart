@@ -372,6 +372,7 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
           padding: const EdgeInsets.symmetric(vertical: 40),
           child: Center(
             child: AppEmptyCard.search(
+              icon: TablerIcons.file_search,
               query: state.searchQuery,
               onReset: () {
                 _searchController.clear();

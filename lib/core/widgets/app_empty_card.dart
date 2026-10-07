@@ -82,6 +82,7 @@ class AppEmptyCard extends StatelessWidget {
   /// Factory untuk kondisi pencarian tidak menemukan hasil
   factory AppEmptyCard.search({
     Key? key,
+    IconData icon = TablerIcons.search_off,
     String? query,
     VoidCallback? onReset,
     String? message,
@@ -94,7 +95,7 @@ class AppEmptyCard extends StatelessWidget {
   }) {
     return AppEmptyCard(
       key: key,
-      icon: TablerIcons.search_off,
+      icon: icon,
       iconSize: iconSize,
       iconColor: iconColor,
       title: 'Tidak Ada Hasil Ditemukan',
