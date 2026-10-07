@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
@@ -2412,7 +2413,11 @@ class _MyLocationMarker extends StatelessWidget {
   }
 }
 
-/// Widget marker titik kordinat baru yang dipilih oleh pengguna di peta (dapat digeser / draggable)
+/// Widget marker titik kordinat baru yang dipilih oleh pengguna di peta.
+/// Fitur interaksi:
+/// - Jika hanya disentuh (tap) sekali: titik tidak bergeser dan langsung memunculkan dialog detail modal.
+/// - Jika ditekan dan ditahan selama 2 detik: mode drag aktif (haptic feedback & marker terangkat),
+///   sehingga pengguna dapat menggeser titik kordinat baru ke lokasi yang diinginkan.
 class _PickedLocationMarker extends StatefulWidget {
   final VoidCallback? onTap;
   final VoidCallback? onDragStart;
@@ -2431,58 +2436,121 @@ class _PickedLocationMarker extends StatefulWidget {
 }
 
 class _PickedLocationMarkerState extends State<_PickedLocationMarker> {
-  bool _isDragging = false;
+  static const Duration _dragDelay = Duration(seconds: 2);
+  Timer? _holdTimer;
+  bool _isHolding = false;
+  bool _isDragReady = false;
+  bool _didDragMove = false;
   Offset? _startPosition;
 
   @override
+  void dispose() {
+    _holdTimer?.cancel();
+    super.dispose();
+  }
+
+  void _onPointerDown(PointerDownEvent event) {
+    _startPosition = event.position;
+    _isHolding = true;
+    _isDragReady = false;
+    _didDragMove = false;
+    _holdTimer?.cancel();
+
+    _holdTimer = Timer(_dragDelay, () {
+      if (!mounted) return;
+      setState(() {
+        _isDragReady = true;
+      });
+      HapticFeedback.mediumImpact();
+      widget.onDragStart?.call();
+    });
+
+    setState(() {});
+  }
+
+  void _onPointerMove(PointerMoveEvent event) {
+    if (_startPosition == null) return;
+    final distance = (event.position - _startPosition!).distance;
+
+    if (!_isDragReady) {
+      // Jika sebelum delay 2 detik tercapai jari bergeser terlalu jauh (> 18px),
+      // pengguna bermaksud melakukan pan/scroll peta, batalkan timer tahan
+      if (distance > 18.0) {
+        _holdTimer?.cancel();
+        if (_isHolding) {
+          setState(() {
+            _isHolding = false;
+          });
+        }
+      }
+    } else {
+      // Mode drag sudah aktif setelah tahan 2 detik, teruskan pergeseran titik
+      _didDragMove = true;
+      widget.onDrag?.call(event.delta);
+    }
+  }
+
+  void _onPointerUp(PointerUpEvent event) {
+    _holdTimer?.cancel();
+    final wasDragReady = _isDragReady;
+
+    _startPosition = null;
+    _isHolding = false;
+    _isDragReady = false;
+
+    if (wasDragReady) {
+      setState(() {});
+      widget.onDragEnd?.call();
+    }
+  }
+
+  void _onPointerCancel(PointerCancelEvent event) {
+    _holdTimer?.cancel();
+    final wasDragReady = _isDragReady;
+
+    _startPosition = null;
+    _isHolding = false;
+    _isDragReady = false;
+
+    if (wasDragReady) {
+      setState(() {});
+      widget.onDragEnd?.call();
+    }
+  }
+
+  void _handleTap() {
+    // Menangani tap tunggal pada icon marker dan mencegah event tembus ke peta (FlutterMap.onTap).
+    if (!_isDragReady && !_didDragMove) {
+      _holdTimer?.cancel();
+      _isHolding = false;
+      setState(() {});
+      widget.onTap?.call();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Listener(
+    final isElevated = _isDragReady;
+    final isPressed = _isHolding && !_isDragReady;
+
+    return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onPointerDown: (event) {
-        _startPosition = event.position;
-      },
-      onPointerMove: (event) {
-        if (_startPosition == null) return;
-        final distance = (event.position - _startPosition!).distance;
-        if (distance > 4.0) {
-          if (!_isDragging) {
-            setState(() {
-              _isDragging = true;
-            });
-            widget.onDragStart?.call();
-          }
-          widget.onDrag?.call(event.delta);
-        }
-      },
-      onPointerUp: (event) {
-        final wasDragging = _isDragging;
-        _startPosition = null;
-        if (wasDragging) {
-          setState(() {
-            _isDragging = false;
-          });
-          widget.onDragEnd?.call();
-        } else {
-          widget.onTap?.call();
-        }
-      },
-      onPointerCancel: (_) {
-        final wasDragging = _isDragging;
-        _startPosition = null;
-        if (wasDragging) {
-          setState(() {
-            _isDragging = false;
-          });
-          widget.onDragEnd?.call();
-        }
-      },
-      child: AnimatedScale(
-        scale: _isDragging ? 1.15 : 1.0,
-        duration: const Duration(milliseconds: 120),
-        curve: Curves.easeOut,
+      onTap: _handleTap,
+      child: Listener(
+        behavior: HitTestBehavior.opaque,
+        onPointerDown: _onPointerDown,
+        onPointerMove: _onPointerMove,
+        onPointerUp: _onPointerUp,
+        onPointerCancel: _onPointerCancel,
+        child: AnimatedScale(
+        scale: isElevated
+            ? 1.20
+            : (isPressed ? 0.94 : 1.0),
+        duration: const Duration(milliseconds: 140),
+        curve: Curves.easeOutBack,
         child: AnimatedSlide(
-          offset: _isDragging ? const Offset(0, -0.15) : Offset.zero,
-          duration: const Duration(milliseconds: 120),
+          offset: isElevated ? const Offset(0, -0.20) : Offset.zero,
+          duration: const Duration(milliseconds: 140),
           curve: Curves.easeOut,
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -2497,10 +2565,10 @@ class _PickedLocationMarkerState extends State<_PickedLocationMarker> {
                   boxShadow: [
                     BoxShadow(
                       color: AppColors.brandPrimary.withValues(
-                        alpha: _isDragging ? 0.6 : 0.4,
+                        alpha: isElevated ? 0.65 : 0.35,
                       ),
-                      blurRadius: _isDragging ? 12 : 6,
-                      offset: Offset(0, _isDragging ? 6 : 3),
+                      blurRadius: isElevated ? 14 : 6,
+                      offset: Offset(0, isElevated ? 6 : 3),
                     ),
                   ],
                 ),
@@ -2513,9 +2581,9 @@ class _PickedLocationMarkerState extends State<_PickedLocationMarker> {
                 ),
               ),
               // Jarum penunjuk bawah (downward pointer tip)
-              CustomPaint(
-                size: const Size(10, 6),
-                painter: const _PinTipPainter(color: AppColors.brandPrimary),
+              const CustomPaint(
+                size: Size(10, 6),
+                painter: _PinTipPainter(color: AppColors.brandPrimary),
               ),
               // Titik pusat koordinat (anchor dot)
               Container(
@@ -2530,6 +2598,7 @@ class _PickedLocationMarkerState extends State<_PickedLocationMarker> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

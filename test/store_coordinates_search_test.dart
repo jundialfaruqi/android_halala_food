@@ -445,8 +445,21 @@ void main() {
     final markerFinder = find.byKey(const ValueKey('picked_location_marker'));
     expect(markerFinder, findsOneWidget);
 
-    // Drag the marker icon
-    await tester.drag(markerFinder, const Offset(30, 50));
+    // Single touch/tap on marker only shows detail modal without shifting position
+    await tester.tap(markerFinder);
+    await tester.pumpAndSettle();
+    expect(find.text('Titik Lokasi Baru'), findsOneWidget);
+
+    // Close modal again to prepare for drag test
+    await tester.tap(find.text('Tutup'));
+    await tester.pumpAndSettle();
+
+    // Press & hold marker for 2 seconds to activate drag, then shift position
+    final gesture = await tester.startGesture(tester.getCenter(markerFinder));
+    await tester.pump(const Duration(seconds: 2));
+    await gesture.moveBy(const Offset(30, 50));
+    await tester.pump();
+    await gesture.up();
     await tester.pumpAndSettle();
 
     // After drag release, detail modal re-opens with updated location
