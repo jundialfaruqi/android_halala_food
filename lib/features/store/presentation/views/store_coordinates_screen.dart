@@ -1770,11 +1770,10 @@ class _StoreCoordinatesScreenState extends ConsumerState<StoreCoordinatesScreen>
                       height: 56,
                       alignment: Alignment.topCenter,
                       child: _StoreMapPinMarker(
-                        key: ValueKey(
-                          'pin_${store.id}_${isBouncing ? _bounceTrigger : 0}',
-                        ),
+                        key: ValueKey('store_marker_pin_${store.id}'),
                         store: store,
                         isBouncing: isBouncing,
+                        bounceTrigger: isBouncing ? _bounceTrigger : 0,
                         onBounceCompleted: () {
                           if (mounted && _bouncingStoreId == store.id) {
                             setState(() {
@@ -2155,10 +2154,11 @@ class _StoreCoordinatesScreenState extends ConsumerState<StoreCoordinatesScreen>
   }
 }
 
-/// Widget pin kordinat dengan foto toko dan animasi detak (3 kali loncat cepat, balik slow)
+/// Widget pin kordinat dengan foto toko dan animasi detak (1 kali loncat cepat, diam sejenak di puncak, mendarat halus)
 class _StoreMapPinMarker extends StatefulWidget {
   final StoreModel store;
   final bool isBouncing;
+  final int bounceTrigger;
   final VoidCallback? onBounceCompleted;
   final VoidCallback onTap;
 
@@ -2166,6 +2166,7 @@ class _StoreMapPinMarker extends StatefulWidget {
     super.key,
     required this.store,
     this.isBouncing = false,
+    this.bounceTrigger = 0,
     this.onBounceCompleted,
     required this.onTap,
   });
@@ -2177,32 +2178,18 @@ class _StoreMapPinMarker extends StatefulWidget {
 class _StoreMapPinMarkerState extends State<_StoreMapPinMarker>
     with SingleTickerProviderStateMixin {
   late final AnimationController _animController;
-  late final Animation<double> _animation;
-  int _bounceCyclesCompleted = 0;
-  static const int _maxCycles = 1;
 
   @override
   void initState() {
     super.initState();
     _animController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 800),
-    );
-
-    _animation = CurvedAnimation(
-      parent: _animController,
-      curve: const _JumpUpSlowFallCurve(),
+      duration: const Duration(milliseconds: 750),
     );
 
     _animController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
-        _bounceCyclesCompleted++;
-        if (_bounceCyclesCompleted < _maxCycles && mounted) {
-          _animController.forward(from: 0.0);
-        } else {
-          // Berhenti setelah 1 siklus detak dan beri tahu parent
-          widget.onBounceCompleted?.call();
-        }
+        widget.onBounceCompleted?.call();
       }
     });
 
@@ -2212,14 +2199,15 @@ class _StoreMapPinMarkerState extends State<_StoreMapPinMarker>
   }
 
   void _startBounce() {
-    _bounceCyclesCompleted = 0;
     _animController.forward(from: 0.0);
   }
 
   @override
   void didUpdateWidget(covariant _StoreMapPinMarker oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.isBouncing && !oldWidget.isBouncing) {
+    if (widget.isBouncing &&
+        (!oldWidget.isBouncing ||
+            widget.bounceTrigger != oldWidget.bounceTrigger)) {
       _startBounce();
     }
   }
@@ -2230,113 +2218,118 @@ class _StoreMapPinMarkerState extends State<_StoreMapPinMarker>
     super.dispose();
   }
 
+  /// Menghitung kurva detak halus (1 siklus):
+  /// 1. Cepat melesat ke atas (0.0 -> 0.28) - ease-out sin
+  /// 2. Diam melayang sejenak di puncak (0.28 -> 0.48) - hang time
+  /// 3. Turun perlahan dan mendarat mulus di tanah (0.48 -> 1.0) - cosine ease
+  ///
+  /// PENTING: Dihitung langsung dari progress controller tanpa `CurvedAnimation`,
+  /// karena Flutter SDK `CurvedAnimation` secara default mem-bypass kurva kustom
+  /// dan me-return 1.0 saat controller.value == 1.0 (menyebabkan flicker kilat ke atas).
+  double _calculateBounce(double t) {
+    if (t <= 0.0 || t >= 1.0) return 0.0;
+    if (t < 0.28) {
+      final p = t / 0.28;
+      return math.sin(p * math.pi / 2);
+    } else if (t < 0.48) {
+      return 1.0;
+    } else {
+      final p = (t - 0.48) / (1.0 - 0.48);
+      return (1.0 + math.cos(p * math.pi)) / 2;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final photoUrl = widget.store.photoUrl;
     final hasPhoto = photoUrl != null && photoUrl.trim().isNotEmpty;
 
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: widget.onTap,
-      child: AnimatedBuilder(
-        animation: _animation,
-        builder: (context, child) {
-          final bounceVal = _animation.value;
-          final bounceY = bounceVal * 18.0;
-
-          return Transform.translate(
-            offset: Offset(0, -bounceY),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Frame lingkaran foto toko
-                Container(
-                  width: 44,
-                  height: 44,
-                  padding: const EdgeInsets.all(2.5),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(
-                          alpha: 0.18 + (0.10 * bounceVal),
-                        ),
-                        blurRadius: 6 + (5 * bounceVal),
-                        offset: Offset(0, 3 + (6 * bounceVal)),
-                      ),
-                    ],
-                  ),
-                  child: ClipOval(
-                    child: hasPhoto
-                        ? AppCachedImage(
-                            imageUrl: photoUrl,
-                            width: 39,
-                            height: 39,
-                            fit: BoxFit.cover,
-                          )
-                        : Container(
-                            color: AppColors.brandSoftCream,
-                            alignment: Alignment.center,
-                            child: Text(
-                              widget.store.name.isNotEmpty
-                                  ? widget.store.name[0].toUpperCase()
-                                  : 'T',
-                              style: const TextStyle(
-                                fontFamily: 'PlusJakartaSans',
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.brandEspresso,
-                              ),
-                            ),
-                          ),
-                  ),
-                ),
-                // Jarum penunjuk bawah (downward pointer tip)
-                CustomPaint(
-                  size: const Size(10, 6),
-                  painter: const _PinTipPainter(color: Colors.white),
-                ),
-                // Titik pusat koordinat (anchor dot)
-                Container(
-                  width: 4,
-                  height: 4,
-                  decoration: const BoxDecoration(
-                    color: AppColors.brandEspresso,
-                    shape: BoxShape.circle,
-                  ),
+    // Konten pin di-cache agar elemen render (foto toko, border, teks, painter tip)
+    // tidak di-layout dan di-paint ulang pada setiap tick frame animasi (60/120fps).
+    final pinBody = RepaintBoundary(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Frame lingkaran foto toko
+          Container(
+            width: 44,
+            height: 44,
+            padding: const EdgeInsets.all(2.5),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Color(0x33000000), // ~20% black shadow lembut & tajam
+                  blurRadius: 8,
+                  offset: Offset(0, 4),
                 ),
               ],
             ),
-          );
-        },
+            child: ClipOval(
+              child: hasPhoto
+                  ? AppCachedImage(
+                      imageUrl: photoUrl,
+                      width: 39,
+                      height: 39,
+                      fit: BoxFit.cover,
+                    )
+                  : Container(
+                      color: AppColors.brandSoftCream,
+                      alignment: Alignment.center,
+                      child: Text(
+                        widget.store.name.isNotEmpty
+                            ? widget.store.name[0].toUpperCase()
+                            : 'T',
+                        style: const TextStyle(
+                          fontFamily: 'PlusJakartaSans',
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.brandEspresso,
+                        ),
+                      ),
+                    ),
+            ),
+          ),
+          // Jarum penunjuk bawah (downward pointer tip)
+          const CustomPaint(
+            size: Size(10, 6),
+            painter: _PinTipPainter(color: Colors.white),
+          ),
+          // Titik pusat koordinat (anchor dot)
+          Container(
+            width: 4,
+            height: 4,
+            decoration: const BoxDecoration(
+              color: AppColors.brandEspresso,
+              shape: BoxShape.circle,
+            ),
+          ),
+        ],
       ),
     );
-  }
-}
 
-/// Kurva animasi detak halus (1 siklus):
-/// 1. Cepat loncat ke atas (0.0 -> 0.25)
-/// 2. Diam/melayang di atas sebentar (0.25 -> 0.45) - hang time di puncak
-/// 3. Turun kembali ke bawah secara melambat dan halus (0.45 -> 1.0) dengan cosine ease
-class _JumpUpSlowFallCurve extends Curve {
-  const _JumpUpSlowFallCurve();
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: widget.onTap,
+      child: RepaintBoundary(
+        child: AnimatedBuilder(
+          animation: _animController,
+          child: pinBody,
+          builder: (context, child) {
+            final bounceVal = widget.isBouncing
+                ? _calculateBounce(_animController.value)
+                : 0.0;
+            final bounceY = bounceVal * 18.0;
 
-  @override
-  double transformInternal(double t) {
-    if (t < 0.25) {
-      // 1. Cepat loncat ke atas (ease-out sin)
-      final p = t / 0.25;
-      return math.sin(p * math.pi / 2);
-    } else if (t < 0.45) {
-      // 2. Diam di atas sebentar (hang time)
-      return 1.0;
-    } else {
-      // 3. Turun kembali ke bawah secara melambat dan halus (cosine ease)
-      final p = (t - 0.45) / (1.0 - 0.45);
-      return (1.0 + math.cos(p * math.pi)) / 2;
-    }
+            return Transform.translate(
+              offset: Offset(0, -bounceY),
+              child: child,
+            );
+          },
+        ),
+      ),
+    );
   }
 }
 
