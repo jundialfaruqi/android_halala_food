@@ -876,7 +876,6 @@ class _StoreCoordinatesScreenState extends ConsumerState<StoreCoordinatesScreen>
     });
     if (_pickedLocation == null) return;
     _fetchPickedLocationAddress(_pickedLocation!);
-    _showPickedLocationDetailModalCard(_pickedLocation!);
   }
 
   /// Menampilkan modal card core widget untuk data titik koordinat baru yang dipilih dari peta
@@ -1737,7 +1736,6 @@ class _StoreCoordinatesScreenState extends ConsumerState<StoreCoordinatesScreen>
                     _pickedLocationAddress = null;
                   });
                   _fetchPickedLocationAddress(point);
-                  _showPickedLocationDetailModalCard(point);
                 }
               },
               onPositionChanged: (position, hasGesture) {
@@ -1945,10 +1943,12 @@ class _StoreCoordinatesScreenState extends ConsumerState<StoreCoordinatesScreen>
                             size: 18,
                           ),
                           const SizedBox(width: 8),
-                          const Expanded(
+                          Expanded(
                             child: Text(
-                              'Mode Tambah Titik Aktif: Ketuk peta atau geser pin untuk menentukan lokasi baru.',
-                              style: TextStyle(
+                              _pickedLocation == null
+                                  ? 'Mode Tambah Titik Aktif: Ketuk peta untuk menempatkan titik lokasi baru.'
+                                  : 'Titik dipilih: Ketuk tombol Tambah Titik atau icon mark untuk membuka detail.',
+                              style: const TextStyle(
                                 fontFamily: 'PlusJakartaSans',
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
@@ -1976,6 +1976,53 @@ class _StoreCoordinatesScreenState extends ConsumerState<StoreCoordinatesScreen>
                     ),
                   ],
                 ],
+              ),
+            ),
+
+          // Tombol Aksi Konfirmasi Tambah Titik Kordinat (Muncul saat titik sudah ditempatkan di peta)
+          if (_isAddPointMode && _pickedLocation != null)
+            Positioned(
+              bottom: 24,
+              left: 16,
+              right: 76,
+              child: Material(
+                color: AppColors.brandPrimary,
+                elevation: 4,
+                borderRadius: BorderRadius.circular(14),
+                shadowColor: AppColors.brandPrimary.withValues(alpha: 0.35),
+                child: InkWell(
+                  key: const ValueKey('confirm_picked_location_button'),
+                  borderRadius: BorderRadius.circular(14),
+                  onTap: () =>
+                      _showPickedLocationDetailModalCard(_pickedLocation!),
+                  child: Container(
+                    height: 44,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          TablerIcons.map_pin_plus,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                        SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            'Tambah Titik Ini',
+                            style: TextStyle(
+                              fontFamily: 'PlusJakartaSans',
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
 

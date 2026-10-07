@@ -350,13 +350,23 @@ void main() {
     expect(find.byIcon(TablerIcons.x), findsWidgets);
     expect(find.textContaining('Mode Tambah Titik Aktif'), findsOneWidget);
 
-    // Tap on map
+    // Tap on map: places marker on map without auto-opening modal dialog
     await tester.tap(find.byType(FlutterMap));
     await tester.pump(const Duration(milliseconds: 300));
     await tester.pumpAndSettle();
 
     // Marker for picked location appears
     expect(find.byKey(const ValueKey('picked_location_marker')), findsOneWidget);
+
+    // Modal dialog is NOT auto-opened on tap map
+    expect(find.text('Titik Lokasi Baru'), findsNothing);
+
+    // Tap confirm button 'Tambah Titik Ini' to open modal dialog
+    final confirmButtonFinder =
+        find.byKey(const ValueKey('confirm_picked_location_button'));
+    expect(confirmButtonFinder, findsOneWidget);
+    await tester.tap(confirmButtonFinder);
+    await tester.pumpAndSettle();
 
     // Modal bottom sheet opens with title and CTA
     expect(find.text('Titik Lokasi Baru'), findsOneWidget);
@@ -404,6 +414,10 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     await tester.pumpAndSettle();
 
+    // Tap confirm button to open modal
+    await tester.tap(find.byKey(const ValueKey('confirm_picked_location_button')));
+    await tester.pumpAndSettle();
+
     // Tap CTA Tambahkan Toko
     await tester.tap(find.text('Tambahkan Toko Mitra pada Titik Ini'));
     await tester.pumpAndSettle();
@@ -433,24 +447,21 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('toggle_add_point_mode_button')));
     await tester.pumpAndSettle();
 
-    // Tap map to place initial marker
+    // Tap map to place initial marker (does not auto-open modal)
     await tester.tap(find.byType(FlutterMap));
     await tester.pump(const Duration(milliseconds: 300));
     await tester.pumpAndSettle();
 
-    // Close initial modal
-    await tester.tap(find.text('Tutup'));
-    await tester.pumpAndSettle();
-
     final markerFinder = find.byKey(const ValueKey('picked_location_marker'));
     expect(markerFinder, findsOneWidget);
+    expect(find.text('Titik Lokasi Baru'), findsNothing);
 
-    // Single touch/tap on marker only shows detail modal without shifting position
+    // Single touch/tap on marker icon shows detail modal without shifting position
     await tester.tap(markerFinder);
     await tester.pumpAndSettle();
     expect(find.text('Titik Lokasi Baru'), findsOneWidget);
 
-    // Close modal again to prepare for drag test
+    // Close modal to prepare for drag test
     await tester.tap(find.text('Tutup'));
     await tester.pumpAndSettle();
 
@@ -462,7 +473,13 @@ void main() {
     await gesture.up();
     await tester.pumpAndSettle();
 
-    // After drag release, detail modal re-opens with updated location
+    // After drag release, modal does not auto-open
+    expect(find.text('Titik Lokasi Baru'), findsNothing);
+
+    // Tap confirm button 'Tambah Titik Ini' to open modal with updated coordinates
+    await tester.tap(find.byKey(const ValueKey('confirm_picked_location_button')));
+    await tester.pumpAndSettle();
+
     expect(find.text('Titik Lokasi Baru'), findsOneWidget);
     expect(find.text('Tambahkan Toko Mitra pada Titik Ini'), findsOneWidget);
   });
