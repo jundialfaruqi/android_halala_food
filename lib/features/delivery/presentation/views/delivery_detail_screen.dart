@@ -226,6 +226,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
           actions: [
             if (actionItems.isNotEmpty)
               AppDropdownMenu<String>(
+                padding: const EdgeInsets.only(right: 14),
                 items: actionItems,
                 onSelected: (val) {
                   if (val == 'edit') {
