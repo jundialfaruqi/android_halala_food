@@ -55,7 +55,7 @@ class DeliveryCourierModel {
       id: json['id'] as int? ?? 0,
       name: json['name'] as String? ?? '-',
       phone: json['phone'] as String?,
-      username: json['username'] as String?,
+      username: json['username'] as String? ?? json['email'] as String?,
     );
   }
 }
@@ -396,10 +396,12 @@ class ProductOptionModel {
       consignmentPrice: json['consignment_price'] != null
           ? double.tryParse(json['consignment_price'].toString()) ?? 0.0
           : 0.0,
-      depositPrice: json['deposit_price'] != null
-          ? double.tryParse(json['deposit_price'].toString()) ?? 0.0
-          : 0.0,
-      image: json['image'] as String?,
+      depositPrice: json['retail_price'] != null
+          ? double.tryParse(json['retail_price'].toString()) ?? 0.0
+          : (json['deposit_price'] != null
+              ? double.tryParse(json['deposit_price'].toString()) ?? 0.0
+              : 0.0),
+      image: (json['photo'] ?? json['image']) as String?,
     );
   }
 }
@@ -447,6 +449,7 @@ class DeliveryListResult {
   final int currentPage;
   final int lastPage;
   final Map<String, int> statusCounts;
+  final List<String> routes;
   final bool isCourier;
   final int? currentUserId;
 
@@ -456,6 +459,7 @@ class DeliveryListResult {
     required this.currentPage,
     required this.lastPage,
     required this.statusCounts,
+    this.routes = const [],
     this.isCourier = false,
     this.currentUserId,
   });

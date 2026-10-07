@@ -133,6 +133,9 @@ class DeliveryViewModel extends Notifier<DeliveryState> {
         currentPage: result.currentPage,
         lastPage: result.lastPage,
         statusCounts: result.statusCounts,
+        availableRoutes: result.routes.isNotEmpty
+            ? result.routes
+            : state.availableRoutes,
         isCourier: result.isCourier,
         currentUserId: result.currentUserId,
         clearError: true,

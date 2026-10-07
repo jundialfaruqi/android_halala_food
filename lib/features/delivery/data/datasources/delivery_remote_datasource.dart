@@ -132,12 +132,25 @@ class DeliveryRemoteDataSourceImpl implements DeliveryRemoteDataSource {
         ? (response['current_user_id'] as int?)
         : null;
 
+    final routes = <String>[];
+    if (response is Map<String, dynamic> && response.containsKey('routes')) {
+      final rawRoutes = response['routes'];
+      if (rawRoutes is List) {
+        for (final r in rawRoutes) {
+          if (r != null && r.toString().trim().isNotEmpty) {
+            routes.add(r.toString().trim());
+          }
+        }
+      }
+    }
+
     return DeliveryListResult(
       deliveries: deliveries,
       total: total,
       currentPage: currentPage,
       lastPage: lastPage,
       statusCounts: statusCounts,
+      routes: routes,
       isCourier: isCourier,
       currentUserId: currentUserId,
     );
