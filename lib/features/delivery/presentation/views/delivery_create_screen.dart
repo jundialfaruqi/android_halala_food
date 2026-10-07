@@ -317,12 +317,7 @@ class _DeliveryCreateScreenState extends ConsumerState<DeliveryCreateScreen> {
 
   Widget _buildBody() {
     if (_isLoadingOptions) {
-      return const Center(
-        child: CircularProgressIndicator(
-          strokeWidth: 2.5,
-          color: AppColors.brandPrimary,
-        ),
-      );
+      return _buildShimmerForm();
     }
 
     if (_errorMessage != null) {
@@ -728,6 +723,58 @@ class _DeliveryCreateScreenState extends ConsumerState<DeliveryCreateScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  /// Skeleton shimmer saat memuat data opsi toko dan kurir
+  Widget _buildShimmerForm() {
+    return ListView(
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.all(16),
+      children: const [
+        // Skeleton Pilih Mitra Toko
+        ShimmerLoading(width: 120, height: 14, borderRadius: 4),
+        SizedBox(height: 8),
+        ShimmerLoading(width: double.infinity, height: 48, borderRadius: 12),
+        SizedBox(height: 18),
+
+        // Skeleton Pilih Kurir
+        ShimmerLoading(width: 100, height: 14, borderRadius: 4),
+        SizedBox(height: 8),
+        ShimmerLoading(width: double.infinity, height: 48, borderRadius: 12),
+        SizedBox(height: 18),
+
+        // Skeleton Tanggal Pengantaran
+        ShimmerLoading(width: 130, height: 14, borderRadius: 4),
+        SizedBox(height: 8),
+        ShimmerLoading(width: double.infinity, height: 48, borderRadius: 12),
+        SizedBox(height: 24),
+
+        // Skeleton Card Muatan Barang
+        AppCard(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  ShimmerLoading(width: 110, height: 16, borderRadius: 4),
+                  ShimmerLoading(width: 70, height: 28, borderRadius: 8),
+                ],
+              ),
+              SizedBox(height: 14),
+              Divider(height: 1, color: AppColors.brandBorder),
+              SizedBox(height: 14),
+              ShimmerLoading(
+                  width: double.infinity, height: 50, borderRadius: 8),
+              SizedBox(height: 8),
+              ShimmerLoading(
+                  width: double.infinity, height: 50, borderRadius: 8),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

@@ -314,12 +314,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(
-          strokeWidth: 2.5,
-          color: AppColors.brandPrimary,
-        ),
-      );
+      return _buildShimmerDetail();
     }
 
     if (_errorMessage != null) {
@@ -809,6 +804,126 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
           ],
         ],
       ),
+    );
+  }
+
+  /// Skeleton shimmer saat memuat data rincian surat jalan
+  Widget _buildShimmerDetail() {
+    return ListView(
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+      children: const [
+        // 1. Ringkasan Surat Jalan (Card Utama)
+        AppCard(
+          padding: EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  ShimmerLoading(width: 150, height: 20, borderRadius: 4),
+                  ShimmerLoading(width: 100, height: 18, borderRadius: 4),
+                ],
+              ),
+              SizedBox(height: 8),
+              ShimmerLoading(width: 140, height: 13, borderRadius: 4),
+            ],
+          ),
+        ),
+        SizedBox(height: 14),
+
+        // 2. Status Pengantaran
+        AppCard(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  ShimmerLoading(width: 80, height: 13, borderRadius: 4),
+                  ShimmerLoading(width: 90, height: 15, borderRadius: 4),
+                ],
+              ),
+              SizedBox(height: 12),
+              Divider(height: 1, color: AppColors.brandBorder),
+              SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  ShimmerLoading(width: 110, height: 13, borderRadius: 4),
+                  ShimmerLoading(width: 110, height: 13, borderRadius: 4),
+                ],
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: 14),
+
+        // 3. Info Mitra Toko
+        AppCard(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ShimmerLoading(width: 120, height: 14, borderRadius: 4),
+              SizedBox(height: 10),
+              Divider(height: 1, color: AppColors.brandBorder),
+              SizedBox(height: 12),
+              ShimmerLoading(width: 180, height: 16, borderRadius: 4),
+              SizedBox(height: 6),
+              ShimmerLoading(width: 140, height: 13, borderRadius: 4),
+              SizedBox(height: 6),
+              ShimmerLoading(width: 220, height: 13, borderRadius: 4),
+            ],
+          ),
+        ),
+        SizedBox(height: 14),
+
+        // 4. Info Kurir
+        AppCard(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ShimmerLoading(width: 100, height: 14, borderRadius: 4),
+              SizedBox(height: 10),
+              Divider(height: 1, color: AppColors.brandBorder),
+              SizedBox(height: 12),
+              ShimmerLoading(width: 160, height: 15, borderRadius: 4),
+              SizedBox(height: 6),
+              ShimmerLoading(width: 120, height: 13, borderRadius: 4),
+            ],
+          ),
+        ),
+        SizedBox(height: 14),
+
+        // 5. Muatan Barang
+        AppCard(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  ShimmerLoading(width: 100, height: 14, borderRadius: 4),
+                  ShimmerLoading(width: 60, height: 14, borderRadius: 4),
+                ],
+              ),
+              SizedBox(height: 10),
+              Divider(height: 1, color: AppColors.brandBorder),
+              SizedBox(height: 12),
+              ShimmerLoading(
+                  width: double.infinity, height: 42, borderRadius: 8),
+              SizedBox(height: 8),
+              ShimmerLoading(
+                  width: double.infinity, height: 42, borderRadius: 8),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

@@ -373,12 +373,7 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
     dynamic user,
   ) {
     if (state.isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(
-          strokeWidth: 2.5,
-          color: AppColors.brandPrimary,
-        ),
-      );
+      return _buildShimmerLoadingList();
     }
 
     if (state.deliveries.isEmpty) {
@@ -419,12 +414,11 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
       itemBuilder: (context, index) {
         if (index == state.deliveries.length) {
           return const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
-            child: Center(
-              child: CircularProgressIndicator(
-                strokeWidth: 2.0,
-                color: AppColors.brandPrimary,
-              ),
+            padding: EdgeInsets.only(bottom: 12),
+            child: ShimmerLoading(
+              width: double.infinity,
+              height: 100,
+              borderRadius: 16,
             ),
           );
         }
@@ -437,6 +431,66 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
           canDeletePermission,
         );
       },
+    );
+  }
+
+  /// Shimmer loading skeleton list saat pertama kali memuat data surat jalan
+  Widget _buildShimmerLoadingList() {
+    return ListView.builder(
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
+      itemCount: 5,
+      itemBuilder: (context, index) => _buildShimmerDeliveryCard(),
+    );
+  }
+
+  /// Shimmer skeleton untuk satu card data surat jalan
+  Widget _buildShimmerDeliveryCard() {
+    return const AppCard(
+      margin: EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ShimmerLoading(width: 150, height: 16, borderRadius: 4),
+                  SizedBox(height: 6),
+                  ShimmerLoading(width: 100, height: 13, borderRadius: 4),
+                ],
+              ),
+              ShimmerLoading(width: 32, height: 32, borderRadius: 16),
+            ],
+          ),
+          SizedBox(height: 12),
+          Divider(height: 1, color: AppColors.brandBorder),
+          SizedBox(height: 12),
+          ShimmerLoading(width: 180, height: 15, borderRadius: 4),
+          SizedBox(height: 6),
+          ShimmerLoading(width: 130, height: 13, borderRadius: 4),
+          SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              ShimmerLoading(width: 50, height: 13, borderRadius: 4),
+              ShimmerLoading(width: 120, height: 13, borderRadius: 4),
+            ],
+          ),
+          SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              ShimmerLoading(width: 55, height: 13, borderRadius: 4),
+              ShimmerLoading(width: 160, height: 13, borderRadius: 4),
+            ],
+          ),
+        ],
+      ),
     );
   }
 

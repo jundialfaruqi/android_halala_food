@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
 import '../constants/app_colors.dart';
 
+const Object _kFilterAllSentinel = Object();
+
 /// Reusable core component filter dropdown berbentuk pill/capsule atau expanded container.
 /// Menggunakan [PopupMenuButton] dengan styling khas Halala Food:
 /// - Rounded border dengan border aktif [AppColors.brandPrimary]
@@ -121,7 +123,7 @@ class AppFilterDropdown<T> extends StatelessWidget {
         offset ?? (isExpanded ? const Offset(0, 44) : const Offset(0, 38));
     final effectiveIconSize = iconSize ?? (isExpanded ? 16.0 : 14.0);
 
-    return PopupMenuButton<T?>(
+    return PopupMenuButton<Object?>(
       tooltip: tooltip,
       offset: effectiveOffset,
       elevation: elevation,
@@ -132,12 +134,18 @@ class AppFilterDropdown<T> extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         side: const BorderSide(color: AppColors.brandBorder),
       ),
-      onSelected: onSelected,
+      onSelected: (val) {
+        if (val == _kFilterAllSentinel) {
+          onSelected(null);
+        } else if (val is T) {
+          onSelected(val);
+        }
+      },
       itemBuilder: (context) {
         return [
           // Opsi Semua / Tanpa Filter
-          PopupMenuItem<T?>(
-            value: null,
+          PopupMenuItem<Object?>(
+            value: _kFilterAllSentinel,
             height: 40,
             child: Text(
               allLabel,
@@ -156,7 +164,7 @@ class AppFilterDropdown<T> extends StatelessWidget {
           ...items.map(
             (item) {
               final isItemActive = selectedValue == item;
-              return PopupMenuItem<T?>(
+              return PopupMenuItem<Object?>(
                 value: item,
                 height: 40,
                 child: Text(
