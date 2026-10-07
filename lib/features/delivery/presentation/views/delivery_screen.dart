@@ -226,67 +226,19 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
                     ),
                     const SizedBox(height: 10),
 
-                    // Filter Bar: Wilayah Rute & Tugas Saya
-                    Row(
-                      children: [
-                        // Dropdown Wilayah Rute
-                        Expanded(
-                          child: AppFilterDropdown<String>(
-                            selectedValue: state.selectedRoute,
-                            items: state.availableRoutes,
-                            allLabel: 'Semua Rute Wilayah',
-                            prefixLabel: 'Rute: ',
-                            isExpanded: true,
-                            tooltip: 'Filter Rute Wilayah',
-                            onSelected: (route) {
-                              ref
-                                  .read(deliveryViewModelProvider.notifier)
-                                  .setRouteFilter(route);
-                            },
-                          ),
-                        ),
-
-                        // Switch Tugas Saya (Jika pengguna adalah kurir atau ingin filter penugasan pribadi)
-                        if (state.isCourier) ...[
-                          const SizedBox(width: 8),
-                          InkWell(
-                            onTap: () {
-                              ref
-                                  .read(deliveryViewModelProvider.notifier)
-                                  .toggleMyTasks(!state.myTasksOnly);
-                            },
-                            borderRadius: BorderRadius.circular(10),
-                            child: Container(
-                              height: 42,
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 12),
-                              decoration: BoxDecoration(
-                                color: state.myTasksOnly
-                                    ? AppColors.brandEspresso
-                                    : Colors.white,
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color: state.myTasksOnly
-                                      ? AppColors.brandEspresso
-                                      : AppColors.brandBorder,
-                                ),
-                              ),
-                              alignment: Alignment.center,
-                              child: Text(
-                                'Tugas Saya',
-                                style: TextStyle(
-                                  fontFamily: 'PlusJakartaSans',
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: state.myTasksOnly
-                                      ? Colors.white
-                                      : AppColors.brandEspresso,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
+                    // Filter Bar: Wilayah Rute
+                    AppFilterDropdown<String>(
+                      selectedValue: state.selectedRoute,
+                      items: state.availableRoutes,
+                      allLabel: 'Semua Rute Wilayah',
+                      prefixLabel: 'Rute: ',
+                      isExpanded: true,
+                      tooltip: 'Filter Rute Wilayah',
+                      onSelected: (route) {
+                        ref
+                            .read(deliveryViewModelProvider.notifier)
+                            .setRouteFilter(route);
+                      },
                     ),
                   ],
                 ),

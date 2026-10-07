@@ -8,7 +8,6 @@ abstract class DeliveryRepository {
     String? status,
     String? route,
     String? date,
-    bool? myTasks,
     int? courierId,
   });
 

@@ -13,7 +13,6 @@ class DeliveryState {
   final String selectedStatus; // 'all', 'diproses', 'dikirim', 'selesai', 'dibatalkan'
   final String? selectedRoute;
   final String searchQuery;
-  final bool myTasksOnly;
   final Map<String, int> statusCounts;
   final List<String> availableRoutes;
   final bool isCourier;
@@ -30,7 +29,6 @@ class DeliveryState {
     this.selectedStatus = 'all',
     this.selectedRoute,
     this.searchQuery = '',
-    this.myTasksOnly = false,
     this.statusCounts = const {
       'all': 0,
       'diproses': 0,
@@ -48,8 +46,7 @@ class DeliveryState {
   bool get hasFilter =>
       selectedStatus != 'all' ||
       selectedRoute != null ||
-      searchQuery.isNotEmpty ||
-      myTasksOnly;
+      searchQuery.isNotEmpty;
 
   DeliveryState copyWith({
     bool? isLoading,
@@ -62,7 +59,6 @@ class DeliveryState {
     String? selectedRoute,
     bool clearRoute = false,
     String? searchQuery,
-    bool? myTasksOnly,
     Map<String, int>? statusCounts,
     List<String>? availableRoutes,
     bool? isCourier,
@@ -80,7 +76,6 @@ class DeliveryState {
       selectedStatus: selectedStatus ?? this.selectedStatus,
       selectedRoute: clearRoute ? null : (selectedRoute ?? this.selectedRoute),
       searchQuery: searchQuery ?? this.searchQuery,
-      myTasksOnly: myTasksOnly ?? this.myTasksOnly,
       statusCounts: statusCounts ?? this.statusCounts,
       availableRoutes: availableRoutes ?? this.availableRoutes,
       isCourier: isCourier ?? this.isCourier,
@@ -123,7 +118,6 @@ class DeliveryViewModel extends Notifier<DeliveryState> {
         search: state.searchQuery,
         status: state.selectedStatus,
         route: state.selectedRoute,
-        myTasks: state.myTasksOnly,
       );
 
       state = state.copyWith(
@@ -161,7 +155,6 @@ class DeliveryViewModel extends Notifier<DeliveryState> {
         search: state.searchQuery,
         status: state.selectedStatus,
         route: state.selectedRoute,
-        myTasks: state.myTasksOnly,
       );
 
       state = state.copyWith(
@@ -197,12 +190,6 @@ class DeliveryViewModel extends Notifier<DeliveryState> {
 
   void setSearchQuery(String query) {
     state = state.copyWith(searchQuery: query);
-    loadDeliveries(refresh: true);
-  }
-
-  void toggleMyTasks(bool myTasks) {
-    if (state.myTasksOnly == myTasks) return;
-    state = state.copyWith(myTasksOnly: myTasks);
     loadDeliveries(refresh: true);
   }
 

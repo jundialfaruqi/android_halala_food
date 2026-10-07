@@ -17,7 +17,6 @@ abstract class DeliveryRemoteDataSource {
     String? status,
     String? route,
     String? date,
-    bool? myTasks,
     int? courierId,
   });
 
@@ -52,7 +51,6 @@ class DeliveryRemoteDataSourceImpl implements DeliveryRemoteDataSource {
     String? status,
     String? route,
     String? date,
-    bool? myTasks,
     int? courierId,
   }) async {
     final queryParams = <String, dynamic>{
@@ -76,9 +74,7 @@ class DeliveryRemoteDataSourceImpl implements DeliveryRemoteDataSource {
       queryParams['delivery_date'] = date;
     }
 
-    if (myTasks == true) {
-      queryParams['my_tasks'] = true;
-    } else if (courierId != null) {
+    if (courierId != null) {
       queryParams['courier_id'] = courierId;
     }
 

@@ -22,7 +22,6 @@ class DeliveryRepositoryImpl implements DeliveryRepository {
     String? status,
     String? route,
     String? date,
-    bool? myTasks,
     int? courierId,
   }) {
     return _remoteDataSource.getDeliveries(
@@ -32,7 +31,6 @@ class DeliveryRepositoryImpl implements DeliveryRepository {
       status: status,
       route: route,
       date: date,
-      myTasks: myTasks,
       courierId: courierId,
     );
   }
