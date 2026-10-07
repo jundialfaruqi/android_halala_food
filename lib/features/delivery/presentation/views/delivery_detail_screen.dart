@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -492,14 +494,12 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                     ),
                   ],
                   if (d.store!.phone != null && d.store!.phone!.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      'No. HP/WA: ${d.store!.phone}',
-                      style: const TextStyle(
-                        fontFamily: 'PlusJakartaSans',
-                        fontSize: 13.5,
-                        color: AppColors.brandWarmGray,
-                      ),
+                    const SizedBox(height: 4),
+                    _buildPhoneRow(
+                      context,
+                      label: 'No. HP/WA',
+                      rawPhone: d.store!.phone!,
+                      targetName: d.store!.name,
                     ),
                   ],
                   if (d.store!.route != null && d.store!.route!.isNotEmpty) ...[
@@ -565,14 +565,12 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                   ),
                 ),
                 if (d.courier?.phone != null && d.courier!.phone!.isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    'No. HP: ${d.courier!.phone}',
-                    style: const TextStyle(
-                      fontFamily: 'PlusJakartaSans',
-                      fontSize: 13.5,
-                      color: AppColors.brandWarmGray,
-                    ),
+                  const SizedBox(height: 4),
+                  _buildPhoneRow(
+                    context,
+                    label: 'No. HP',
+                    rawPhone: d.courier!.phone!,
+                    targetName: d.courier?.name ?? 'Kurir',
                   ),
                 ],
               ],
@@ -746,14 +744,12 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                   ],
                   if (d.recipientPhone != null &&
                       d.recipientPhone!.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      'No. HP Penerima: ${d.recipientPhone}',
-                      style: const TextStyle(
-                        fontFamily: 'PlusJakartaSans',
-                        fontSize: 13.5,
-                        color: AppColors.brandWarmGray,
-                      ),
+                    const SizedBox(height: 4),
+                    _buildPhoneRow(
+                      context,
+                      label: 'No. HP Penerima',
+                      rawPhone: d.recipientPhone!,
+                      targetName: d.recipientName ?? 'Penerima',
                     ),
                   ],
                   if (d.deliveredAt != null && d.deliveredAt!.isNotEmpty) ...[
@@ -926,6 +922,186 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                   width: double.infinity, height: 42, borderRadius: 8),
             ],
           ),
+        ),
+      ],
+    );
+  }
+
+  /// Format nomor telepon agar selalu diawali '+'
+  String _formatPhone(String rawPhone) {
+    final clean = rawPhone.trim();
+    if (clean.isEmpty) return clean;
+    return clean.startsWith('+') ? clean : '+$clean';
+  }
+
+  /// Salin nomor telepon ke clipboard lengkap dengan tanda '+'
+  Future<void> _copyPhoneToClipboard(
+    BuildContext context,
+    String rawPhone,
+  ) async {
+    final phoneToCopy = _formatPhone(rawPhone);
+
+    await Clipboard.setData(ClipboardData(text: phoneToCopy));
+
+    if (context.mounted) {
+      AppSnackBar.showSuccess(
+        context,
+        message: 'Nomor $phoneToCopy disalin ke clipboard.',
+      );
+    }
+  }
+
+  /// Buka obrolan direct chat WhatsApp (wa.me)
+  Future<void> _openWhatsApp(
+    BuildContext context,
+    String rawPhone,
+    String targetName,
+  ) async {
+    var digits = rawPhone.replaceAll(RegExp(r'\D'), '');
+    if (digits.startsWith('0')) {
+      digits = '62${digits.substring(1)}';
+    }
+
+    if (digits.isEmpty) {
+      AppSnackBar.showError(
+        context,
+        message: 'Nomor WhatsApp tidak valid.',
+      );
+      return;
+    }
+
+    final message = Uri.encodeComponent(
+      'Halo $targetName, saya dari Halala Food terkait surat jalan ${_delivery?.deliveryNumber ?? ''}.',
+    );
+    final whatsappUri = Uri.parse('whatsapp://send?phone=$digits&text=$message');
+    final webUri = Uri.parse('https://wa.me/$digits?text=$message');
+
+    try {
+      if (await canLaunchUrl(whatsappUri)) {
+        await launchUrl(whatsappUri, mode: LaunchMode.externalApplication);
+      } else if (await canLaunchUrl(webUri)) {
+        await launchUrl(webUri, mode: LaunchMode.externalApplication);
+      } else {
+        if (context.mounted) {
+          AppSnackBar.showError(
+            context,
+            message: 'Tidak dapat membuka aplikasi WhatsApp.',
+          );
+        }
+      }
+    } catch (_) {
+      try {
+        await launchUrl(webUri, mode: LaunchMode.externalApplication);
+      } catch (_) {
+        if (context.mounted) {
+          AppSnackBar.showError(
+            context,
+            message: 'Gagal membuka tautan WhatsApp.',
+          );
+        }
+      }
+    }
+  }
+
+  /// Widget baris nomor HP dengan format '+' serta tombol Salin dan WhatsApp secara between
+  Widget _buildPhoneRow(
+    BuildContext context, {
+    required String label,
+    required String rawPhone,
+    required String targetName,
+  }) {
+    final formattedPhone = _formatPhone(rawPhone);
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Expanded(
+          child: Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text: '$label: ',
+                  style: const TextStyle(
+                    fontFamily: 'PlusJakartaSans',
+                    fontSize: 13.5,
+                    color: AppColors.brandWarmGray,
+                  ),
+                ),
+                TextSpan(
+                  text: formattedPhone,
+                  style: const TextStyle(
+                    fontFamily: 'PlusJakartaSans',
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.brandEspresso,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Tombol Salin dengan Icon
+            InkWell(
+              onTap: () => _copyPhoneToClipboard(context, rawPhone),
+              borderRadius: BorderRadius.circular(4),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      TablerIcons.copy,
+                      size: 14,
+                      color: AppColors.brandPrimary,
+                    ),
+                    SizedBox(width: 3),
+                    Text(
+                      'Salin',
+                      style: TextStyle(
+                        fontFamily: 'PlusJakartaSans',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.brandPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            // Tombol WhatsApp dengan Icon
+            InkWell(
+              onTap: () => _openWhatsApp(context, rawPhone, targetName),
+              borderRadius: BorderRadius.circular(4),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      TablerIcons.brand_whatsapp,
+                      size: 14,
+                      color: AppColors.brandNaturalGreen,
+                    ),
+                    SizedBox(width: 3),
+                    Text(
+                      'WhatsApp',
+                      style: TextStyle(
+                        fontFamily: 'PlusJakartaSans',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.brandNaturalGreen,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );
