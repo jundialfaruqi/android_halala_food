@@ -501,7 +501,6 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
     return AppCard(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
-      onTap: () => _handleAction(item, 'detail'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
