@@ -319,30 +319,30 @@ class _DeliveryProductSelectionDialogState
             Expanded(
               child: filteredStates.isEmpty
                   ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24.0),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              TablerIcons.box_off,
-                              size: 42,
-                              color: AppColors.brandWarmGray.withValues(alpha: 0.5),
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              _searchQuery.isNotEmpty
-                                  ? 'Tidak ada produk sesuai pencarian "$_searchQuery"'
-                                  : 'Belum ada produk jadi tersedia.',
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontFamily: 'PlusJakartaSans',
-                                fontSize: 13,
-                                color: AppColors.brandWarmGray,
-                              ),
-                            ),
-                          ],
+                      child: AppEmptyCard(
+                        icon: TablerIcons.box_off,
+                        iconSize: 42,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 32,
                         ),
+                        title: _searchQuery.isNotEmpty
+                            ? 'Produk Tidak Ditemukan'
+                            : 'Belum Ada Produk',
+                        message: _searchQuery.isNotEmpty
+                            ? 'Tidak ada produk sesuai pencarian "$_searchQuery"'
+                            : 'Belum ada produk jadi tersedia.',
+                        actionText:
+                            _searchQuery.isNotEmpty ? 'Hapus Pencarian' : null,
+                        actionIcon: TablerIcons.x,
+                        onAction: _searchQuery.isNotEmpty
+                            ? () {
+                                setState(() {
+                                  _searchController.clear();
+                                  _searchQuery = '';
+                                });
+                              }
+                            : null,
                       ),
                     )
                   : SingleChildScrollView(
@@ -404,24 +404,21 @@ class _DeliveryProductSelectionDialogState
     final isAlreadyAdded = state.isAlreadyAdded;
     final hasError = state.errorMessage != null && state.errorMessage!.isNotEmpty;
 
-    return Container(
+    return AppCard(
       margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: isAlreadyAdded
-            ? AppColors.brandSoftCream.withValues(alpha: 0.35)
-            : (isSelected
-                ? AppColors.brandSoftCreamLight
-                : Colors.white),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: hasError
-              ? AppColors.error
-              : (isSelected
-                  ? AppColors.brandPrimary
-                  : AppColors.brandBorder),
-          width: hasError || isSelected ? 1.5 : 1.0,
-        ),
-      ),
+      padding: EdgeInsets.zero,
+      borderRadius: 14,
+      backgroundColor: isAlreadyAdded
+          ? AppColors.brandSoftCream.withValues(alpha: 0.35)
+          : (isSelected
+              ? AppColors.brandSoftCreamLight
+              : Colors.white),
+      borderColor: hasError
+          ? AppColors.error
+          : (isSelected
+              ? AppColors.brandPrimary
+              : AppColors.brandBorder),
+      borderWidth: hasError || isSelected ? 1.5 : 1.0,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -633,25 +630,33 @@ class _DeliveryProductSelectionDialogState
                     const SizedBox(width: 4),
                     // Input Textfield Jumlah
                     Expanded(
-                      child: Container(
+                      child: SizedBox(
                         height: 32,
-                        decoration: BoxDecoration(
-                          color: isAlreadyAdded
-                              ? Colors.grey.shade100
-                              : Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: hasError && (state.quantity <= 0 || state.quantity > product.stockReady)
-                                ? AppColors.error
-                                : AppColors.brandBorder,
-                          ),
-                        ),
-                        child: TextField(
+                        child: AppTextField(
                           key: Key('qty_field_${product.id}'),
                           controller: state.quantityController,
                           enabled: !isAlreadyAdded,
                           keyboardType: TextInputType.number,
                           textAlign: TextAlign.center,
+                          isDense: true,
+                          borderRadius: 8,
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 6,
+                            horizontal: 4,
+                          ),
+                          fillColor: isAlreadyAdded
+                              ? Colors.grey.shade100
+                              : Colors.white,
+                          borderColor: hasError &&
+                                  (state.quantity <= 0 ||
+                                      state.quantity > product.stockReady)
+                              ? AppColors.error
+                              : AppColors.brandBorder,
+                          borderWidth: hasError &&
+                                  (state.quantity <= 0 ||
+                                      state.quantity > product.stockReady)
+                              ? 1.5
+                              : 1.0,
                           inputFormatters: [
                             FilteringTextInputFormatter.digitsOnly,
                           ],
@@ -660,11 +665,6 @@ class _DeliveryProductSelectionDialogState
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
                             color: AppColors.brandEspresso,
-                          ),
-                          decoration: const InputDecoration(
-                            isDense: true,
-                            contentPadding: EdgeInsets.symmetric(vertical: 7),
-                            border: InputBorder.none,
                           ),
                           onChanged: (_) {
                             if (!state.isSelected) {
@@ -727,65 +727,64 @@ class _DeliveryProductSelectionDialogState
                   ),
                 ),
                 const SizedBox(height: 4),
-                Container(
+                SizedBox(
                   height: 34,
-                  decoration: BoxDecoration(
-                    color: isAlreadyAdded ? Colors.grey.shade100 : Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: hasError && state.unitPrice <= 0
-                          ? AppColors.error
-                          : AppColors.brandBorder,
+                  child: AppTextField(
+                    key: Key('price_field_${product.id}'),
+                    controller: state.priceController,
+                    enabled: !isAlreadyAdded,
+                    keyboardType: TextInputType.number,
+                    isDense: true,
+                    borderRadius: 8,
+                    contentPadding: const EdgeInsets.symmetric(
+                      vertical: 7,
+                      horizontal: 8,
                     ),
-                  ),
-                  child: Row(
-                    children: [
-                      const Padding(
-                        padding: EdgeInsets.only(left: 8, right: 4),
-                        child: Text(
-                          'Rp',
-                          style: TextStyle(
-                            fontFamily: 'PlusJakartaSans',
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.brandWarmGray,
-                          ),
+                    fillColor:
+                        isAlreadyAdded ? Colors.grey.shade100 : Colors.white,
+                    borderColor: hasError && state.unitPrice <= 0
+                        ? AppColors.error
+                        : AppColors.brandBorder,
+                    borderWidth: hasError && state.unitPrice <= 0 ? 1.5 : 1.0,
+                    prefixIcon: const Padding(
+                      padding: EdgeInsets.only(left: 8, right: 4),
+                      child: Text(
+                        'Rp',
+                        style: TextStyle(
+                          fontFamily: 'PlusJakartaSans',
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.brandWarmGray,
                         ),
                       ),
-                      Expanded(
-                        child: TextField(
-                          key: Key('price_field_${product.id}'),
-                          controller: state.priceController,
-                          enabled: !isAlreadyAdded,
-                          keyboardType: TextInputType.number,
-                          style: const TextStyle(
-                            fontFamily: 'PlusJakartaSans',
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.brandEspresso,
-                            fontFeatures: [FontFeature.tabularFigures()],
-                          ),
-                          inputFormatters: const [
-                            ThousandsSeparatorInputFormatter(),
-                          ],
-                          decoration: const InputDecoration(
-                            isDense: true,
-                            hintText: '0',
-                            contentPadding: EdgeInsets.symmetric(
-                              vertical: 7,
-                              horizontal: 2,
-                            ),
-                            border: InputBorder.none,
-                          ),
-                          onChanged: (_) {
-                            if (!state.isSelected) {
-                              state.isSelected = true;
-                            }
-                            _onFieldChanged(state);
-                          },
-                        ),
-                      ),
+                    ),
+                    prefixIconConstraints: const BoxConstraints(
+                      minWidth: 26,
+                      minHeight: 0,
+                    ),
+                    hintText: '0',
+                    hintStyle: const TextStyle(
+                      fontFamily: 'PlusJakartaSans',
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.brandWarmGray,
+                    ),
+                    style: const TextStyle(
+                      fontFamily: 'PlusJakartaSans',
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.brandEspresso,
+                      fontFeatures: [FontFeature.tabularFigures()],
+                    ),
+                    inputFormatters: const [
+                      ThousandsSeparatorInputFormatter(),
                     ],
+                    onChanged: (_) {
+                      if (!state.isSelected) {
+                        state.isSelected = true;
+                      }
+                      _onFieldChanged(state);
+                    },
                   ),
                 ),
               ],
@@ -796,33 +795,37 @@ class _DeliveryProductSelectionDialogState
           // Subtotal Baris
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: Row(
-              children: [
-                const Text(
-                  'Subtotal:',
-                  style: TextStyle(
-                    fontFamily: 'PlusJakartaSans',
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.brandWarmGray,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    'Rp ${ThousandsSeparatorInputFormatter.format(state.subtotal)}',
-                    textAlign: TextAlign.end,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+            child: AppCard.soft(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+              borderRadius: 8,
+              child: Row(
+                children: [
+                  const Text(
+                    'Subtotal:',
+                    style: TextStyle(
                       fontFamily: 'PlusJakartaSans',
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.brandEspresso,
-                      fontFeatures: [FontFeature.tabularFigures()],
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.brandWarmGray,
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      'Rp ${ThousandsSeparatorInputFormatter.format(state.subtotal)}',
+                      textAlign: TextAlign.end,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily: 'PlusJakartaSans',
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.brandEspresso,
+                        fontFeatures: [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
 

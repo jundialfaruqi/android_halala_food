@@ -25,6 +25,19 @@ class AppTextField extends StatefulWidget {
   final AutovalidateMode? autovalidateMode;
   final bool dynamicValidationClearing;
   final GlobalKey<FormFieldState<String>>? formFieldKey;
+  final EdgeInsetsGeometry? contentPadding;
+  final bool? isDense;
+  final TextStyle? style;
+  final TextAlign textAlign;
+  final double? borderRadius;
+  final Color? fillColor;
+  final String? prefixText;
+  final TextStyle? prefixStyle;
+  final BoxConstraints? prefixIconConstraints;
+  final BoxConstraints? suffixIconConstraints;
+  final TextStyle? hintStyle;
+  final Color? borderColor;
+  final double? borderWidth;
 
   const AppTextField({
     super.key,
@@ -48,6 +61,19 @@ class AppTextField extends StatefulWidget {
     this.autovalidateMode,
     this.dynamicValidationClearing = true,
     this.formFieldKey,
+    this.contentPadding,
+    this.isDense,
+    this.style,
+    this.textAlign = TextAlign.start,
+    this.borderRadius,
+    this.fillColor,
+    this.prefixText,
+    this.prefixStyle,
+    this.prefixIconConstraints,
+    this.suffixIconConstraints,
+    this.hintStyle,
+    this.borderColor,
+    this.borderWidth,
   });
 
   @override
@@ -132,60 +158,130 @@ class _AppTextFieldState extends State<AppTextField> {
       );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (widget.labelText != null) ...[
-          Text(
-            widget.labelText!,
-            style: const TextStyle(
-              fontFamily: 'PlusJakartaSans',
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: AppColors.brandEspresso,
+    final effectiveBorderSide = BorderSide(
+      color: widget.borderColor ?? AppColors.brandBorder,
+      width: widget.borderWidth ?? 1.0,
+    );
+
+    final border = widget.borderRadius != null
+        ? OutlineInputBorder(
+            borderRadius: BorderRadius.circular(widget.borderRadius!),
+            borderSide: effectiveBorderSide,
+          )
+        : null;
+
+    final enabledBorder = widget.borderRadius != null
+        ? OutlineInputBorder(
+            borderRadius: BorderRadius.circular(widget.borderRadius!),
+            borderSide: effectiveBorderSide,
+          )
+        : null;
+
+    final disabledBorder = widget.borderRadius != null
+        ? OutlineInputBorder(
+            borderRadius: BorderRadius.circular(widget.borderRadius!),
+            borderSide: BorderSide(
+              color: widget.borderColor?.withValues(alpha: 0.5) ??
+                  AppColors.brandBorder.withValues(alpha: 0.5),
+              width: widget.borderWidth ?? 1.0,
             ),
-          ),
-          const SizedBox(height: 6),
-        ],
-        TextFormField(
-          key: _fieldKey,
-          controller: widget.controller,
-          focusNode: widget.focusNode,
-          scrollPadding: widget.scrollPadding,
-          obscureText: _obscureText,
-          keyboardType: widget.keyboardType,
-          inputFormatters: widget.inputFormatters,
-          validator: widget.validator,
-          autovalidateMode: widget.autovalidateMode,
-          onChanged: (val) {
-            if (widget.controller == null && widget.dynamicValidationClearing) {
-              _clearOrRevalidate(val);
-            }
-            widget.onChanged?.call(val);
-          },
-          enabled: widget.enabled,
-          maxLines: widget.maxLines,
-          textInputAction: widget.textInputAction,
-          onFieldSubmitted: widget.onFieldSubmitted,
-          style: const TextStyle(
+          )
+        : null;
+
+    final focusedBorder = widget.borderRadius != null
+        ? OutlineInputBorder(
+            borderRadius: BorderRadius.circular(widget.borderRadius!),
+            borderSide: BorderSide(
+              color: widget.borderColor ?? AppColors.brandPrimary,
+              width: (widget.borderWidth != null && widget.borderWidth! > 1.5)
+                  ? widget.borderWidth!
+                  : 1.5,
+            ),
+          )
+        : null;
+
+    final errorBorder = widget.borderRadius != null
+        ? OutlineInputBorder(
+            borderRadius: BorderRadius.circular(widget.borderRadius!),
+            borderSide: const BorderSide(color: AppColors.error),
+          )
+        : null;
+
+    final field = TextFormField(
+      key: _fieldKey,
+      controller: widget.controller,
+      focusNode: widget.focusNode,
+      scrollPadding: widget.scrollPadding,
+      obscureText: _obscureText,
+      keyboardType: widget.keyboardType,
+      textAlign: widget.textAlign,
+      inputFormatters: widget.inputFormatters,
+      validator: widget.validator,
+      autovalidateMode: widget.autovalidateMode,
+      onChanged: (val) {
+        if (widget.controller == null && widget.dynamicValidationClearing) {
+          _clearOrRevalidate(val);
+        }
+        widget.onChanged?.call(val);
+      },
+      enabled: widget.enabled,
+      maxLines: widget.maxLines,
+      textInputAction: widget.textInputAction,
+      onFieldSubmitted: widget.onFieldSubmitted,
+      style: widget.style ??
+          const TextStyle(
             fontFamily: 'PlusJakartaSans',
             fontSize: 14,
             color: AppColors.brandTextPrimary,
           ),
-          decoration: InputDecoration(
-            hintText: widget.hintText,
-            prefixIcon: widget.prefixIcon,
-            suffixIcon: computedSuffixIcon,
-            errorText: _currentErrorText,
-            errorMaxLines: 3,
-            errorStyle: const TextStyle(
-              fontFamily: 'PlusJakartaSans',
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: AppColors.error,
-            ),
+      decoration: InputDecoration(
+        hintText: widget.hintText,
+        hintStyle: widget.hintStyle,
+        prefixText: widget.prefixText,
+        prefixStyle: widget.prefixStyle,
+        prefixIcon: widget.prefixIcon,
+        prefixIconConstraints: widget.prefixIconConstraints,
+        suffixIcon: computedSuffixIcon,
+        suffixIconConstraints: widget.suffixIconConstraints,
+        errorText: _currentErrorText,
+        errorMaxLines: 3,
+        isDense: widget.isDense,
+        contentPadding: widget.contentPadding,
+        filled: widget.fillColor != null,
+        fillColor: widget.fillColor,
+        border: border,
+        enabledBorder: enabledBorder,
+        disabledBorder: disabledBorder,
+        focusedBorder: focusedBorder,
+        errorBorder: errorBorder,
+        errorStyle: const TextStyle(
+          fontFamily: 'PlusJakartaSans',
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          color: AppColors.error,
+        ),
+      ),
+    );
+
+    if (widget.labelText == null) {
+      return field;
+    }
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          widget.labelText!,
+          style: const TextStyle(
+            fontFamily: 'PlusJakartaSans',
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: AppColors.brandEspresso,
           ),
         ),
+        const SizedBox(height: 6),
+        field,
       ],
     );
   }

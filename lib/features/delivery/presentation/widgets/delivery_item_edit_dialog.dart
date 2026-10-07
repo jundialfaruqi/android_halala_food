@@ -165,13 +165,12 @@ class _DeliveryItemEditDialogState extends State<DeliveryItemEditDialog> {
                 const SizedBox(height: 14),
 
                 // Card Ringkasan Produk
-                Container(
+                AppCard(
                   padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.brandSoftCreamLight,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.brandBorder),
-                  ),
+                  borderRadius: 12,
+                  backgroundColor: AppColors.brandSoftCreamLight,
+                  borderColor: AppColors.brandBorder,
+                  borderWidth: 1.0,
                   child: Row(
                     children: [
                       // Thumbnail
@@ -192,6 +191,7 @@ class _DeliveryItemEditDialogState extends State<DeliveryItemEditDialog> {
                                   width: 48,
                                   height: 48,
                                   fit: BoxFit.cover,
+                                  borderRadius: 8,
                                 )
                               : Center(
                                   child: Text(
@@ -276,17 +276,20 @@ class _DeliveryItemEditDialogState extends State<DeliveryItemEditDialog> {
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Container(
+                      child: SizedBox(
                         height: 42,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: AppColors.brandBorder),
-                        ),
-                        child: TextField(
+                        child: AppTextField(
                           controller: _quantityController,
                           keyboardType: TextInputType.number,
                           textAlign: TextAlign.center,
+                          isDense: true,
+                          borderRadius: 10,
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 10,
+                            horizontal: 4,
+                          ),
+                          fillColor: Colors.white,
+                          borderColor: AppColors.brandBorder,
                           inputFormatters: [
                             FilteringTextInputFormatter.digitsOnly,
                           ],
@@ -295,11 +298,6 @@ class _DeliveryItemEditDialogState extends State<DeliveryItemEditDialog> {
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
                             color: AppColors.brandEspresso,
-                          ),
-                          decoration: const InputDecoration(
-                            isDense: true,
-                            contentPadding: EdgeInsets.symmetric(vertical: 11),
-                            border: InputBorder.none,
                           ),
                           onChanged: (_) => _validate(),
                         ),
@@ -341,66 +339,62 @@ class _DeliveryItemEditDialogState extends State<DeliveryItemEditDialog> {
                   ),
                 ),
                 const SizedBox(height: 6),
-                Container(
+                SizedBox(
                   height: 44,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppColors.brandBorder),
-                  ),
-                  child: Row(
-                    children: [
-                      const Padding(
-                        padding: EdgeInsets.only(left: 12, right: 6),
-                        child: Text(
-                          'Rp',
-                          style: TextStyle(
-                            fontFamily: 'PlusJakartaSans',
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.brandWarmGray,
-                          ),
+                  child: AppTextField(
+                    controller: _priceController,
+                    keyboardType: TextInputType.number,
+                    isDense: true,
+                    borderRadius: 10,
+                    contentPadding: const EdgeInsets.symmetric(
+                      vertical: 11,
+                      horizontal: 8,
+                    ),
+                    fillColor: Colors.white,
+                    borderColor: AppColors.brandBorder,
+                    prefixIcon: const Padding(
+                      padding: EdgeInsets.only(left: 12, right: 6),
+                      child: Text(
+                        'Rp',
+                        style: TextStyle(
+                          fontFamily: 'PlusJakartaSans',
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.brandWarmGray,
                         ),
                       ),
-                      Expanded(
-                        child: TextField(
-                          controller: _priceController,
-                          keyboardType: TextInputType.number,
-                          style: const TextStyle(
-                            fontFamily: 'PlusJakartaSans',
-                            fontSize: 14.5,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.brandEspresso,
-                            fontFeatures: [FontFeature.tabularFigures()],
-                          ),
-                          inputFormatters: const [
-                            ThousandsSeparatorInputFormatter(),
-                          ],
-                          decoration: const InputDecoration(
-                            isDense: true,
-                            hintText: '0',
-                            contentPadding: EdgeInsets.symmetric(
-                              vertical: 11,
-                              horizontal: 4,
-                            ),
-                            border: InputBorder.none,
-                          ),
-                          onChanged: (_) => _validate(),
-                        ),
-                      ),
+                    ),
+                    prefixIconConstraints: const BoxConstraints(
+                      minWidth: 32,
+                      minHeight: 0,
+                    ),
+                    hintText: '0',
+                    hintStyle: const TextStyle(
+                      fontFamily: 'PlusJakartaSans',
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.brandWarmGray,
+                    ),
+                    style: const TextStyle(
+                      fontFamily: 'PlusJakartaSans',
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.brandEspresso,
+                      fontFeatures: [FontFeature.tabularFigures()],
+                    ),
+                    inputFormatters: const [
+                      ThousandsSeparatorInputFormatter(),
                     ],
+                    onChanged: (_) => _validate(),
                   ),
                 ),
                 const SizedBox(height: 16),
 
                 // Subtotal Baris
-                Container(
+                AppCard.soft(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: AppColors.brandSoftCream,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
+                  borderRadius: 10,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
