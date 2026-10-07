@@ -2416,7 +2416,7 @@ class _MyLocationMarker extends StatelessWidget {
 /// Widget marker titik kordinat baru yang dipilih oleh pengguna di peta.
 /// Fitur interaksi:
 /// - Jika hanya disentuh (tap) sekali: titik tidak bergeser dan langsung memunculkan dialog detail modal.
-/// - Jika ditekan dan ditahan selama 2 detik: mode drag aktif (haptic feedback & marker terangkat),
+/// - Jika ditekan dan ditahan sejenak (~600ms): mode drag aktif (haptic feedback & marker terangkat),
 ///   sehingga pengguna dapat menggeser titik kordinat baru ke lokasi yang diinginkan.
 class _PickedLocationMarker extends StatefulWidget {
   final VoidCallback? onTap;
@@ -2436,7 +2436,7 @@ class _PickedLocationMarker extends StatefulWidget {
 }
 
 class _PickedLocationMarkerState extends State<_PickedLocationMarker> {
-  static const Duration _dragDelay = Duration(seconds: 2);
+  static const Duration _dragDelay = Duration(milliseconds: 600);
   Timer? _holdTimer;
   bool _isHolding = false;
   bool _isDragReady = false;

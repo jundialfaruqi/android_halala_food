@@ -454,9 +454,9 @@ void main() {
     await tester.tap(find.text('Tutup'));
     await tester.pumpAndSettle();
 
-    // Press & hold marker for 2 seconds to activate drag, then shift position
+    // Press & hold marker for ~600ms to activate drag, then shift position
     final gesture = await tester.startGesture(tester.getCenter(markerFinder));
-    await tester.pump(const Duration(seconds: 2));
+    await tester.pump(const Duration(milliseconds: 650));
     await gesture.moveBy(const Offset(30, 50));
     await tester.pump();
     await gesture.up();
