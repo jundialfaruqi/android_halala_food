@@ -411,5 +411,47 @@ void main() {
     // StoreCreateScreen opens
     expect(find.byType(StoreCreateScreen), findsOneWidget);
   });
+
+  testWidgets(
+      'Dragging picked location marker shifts position and opens detail modal with new coordinates',
+      (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          storeRepositoryProvider.overrideWithValue(MockStoreRepository()),
+          authViewModelProvider.overrideWith(() => FakeAuthViewModel()),
+        ],
+        child: const MaterialApp(
+          home: StoreCoordinatesScreen(),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    // Activate add point mode
+    await tester.tap(find.byKey(const ValueKey('toggle_add_point_mode_button')));
+    await tester.pumpAndSettle();
+
+    // Tap map to place initial marker
+    await tester.tap(find.byType(FlutterMap));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
+
+    // Close initial modal
+    await tester.tap(find.text('Tutup'));
+    await tester.pumpAndSettle();
+
+    final markerFinder = find.byKey(const ValueKey('picked_location_marker'));
+    expect(markerFinder, findsOneWidget);
+
+    // Drag the marker icon
+    await tester.drag(markerFinder, const Offset(30, 50));
+    await tester.pumpAndSettle();
+
+    // After drag release, detail modal re-opens with updated location
+    expect(find.text('Titik Lokasi Baru'), findsOneWidget);
+    expect(find.text('Tambahkan Toko Mitra pada Titik Ini'), findsOneWidget);
+  });
 }
 

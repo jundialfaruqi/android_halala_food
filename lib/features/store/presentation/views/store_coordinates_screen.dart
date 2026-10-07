@@ -844,6 +844,40 @@ class _StoreCoordinatesScreenState extends ConsumerState<StoreCoordinatesScreen>
     }
   }
 
+  /// State apakah pengguna sedang menggeser marker titik lokasi
+  bool _isDraggingPickedMarker = false;
+
+  /// Handler saat pengguna mulai menggeser marker titik lokasi baru
+  void _onPickedLocationMarkerDragStart() {
+    setState(() {
+      _isDraggingPickedMarker = true;
+    });
+  }
+
+  /// Handler saat marker titik lokasi baru digeser (drag) oleh pengguna
+  void _onPickedLocationMarkerDragged(Offset delta) {
+    if (_pickedLocation == null) return;
+    final currentScreenOffset =
+        _mapController.camera.latLngToScreenOffset(_pickedLocation!);
+    final newScreenOffset = currentScreenOffset + delta;
+    final newLatLng =
+        _mapController.camera.screenOffsetToLatLng(newScreenOffset);
+    setState(() {
+      _pickedLocation = newLatLng;
+      _pickedLocationAddress = null;
+    });
+  }
+
+  /// Handler saat pengguna selesai menggeser marker titik lokasi baru
+  void _onPickedLocationMarkerDragEnd() {
+    setState(() {
+      _isDraggingPickedMarker = false;
+    });
+    if (_pickedLocation == null) return;
+    _fetchPickedLocationAddress(_pickedLocation!);
+    _showPickedLocationDetailModalCard(_pickedLocation!);
+  }
+
   /// Menampilkan modal card core widget untuk data titik koordinat baru yang dipilih dari peta
   /// serta tombol Call to Action "Tambahkan Toko Mitra pada Titik Ini"
   void _showPickedLocationDetailModalCard(LatLng point) {
@@ -1684,6 +1718,11 @@ class _StoreCoordinatesScreenState extends ConsumerState<StoreCoordinatesScreen>
               initialZoom: 12.0,
               minZoom: 4.0,
               maxZoom: 19.0,
+              interactionOptions: InteractionOptions(
+                flags: _isDraggingPickedMarker
+                    ? InteractiveFlag.none
+                    : InteractiveFlag.all,
+              ),
               onTap: (_, point) {
                 if (_searchFocusNode.hasFocus || _showSearchResults) {
                   _searchFocusNode.unfocus();
@@ -1761,12 +1800,15 @@ class _StoreCoordinatesScreenState extends ConsumerState<StoreCoordinatesScreen>
                     Marker(
                       key: const ValueKey('picked_location_marker'),
                       point: _pickedLocation!,
-                      width: 44,
-                      height: 50,
+                      width: 48,
+                      height: 56,
                       alignment: Alignment.topCenter,
                       child: _PickedLocationMarker(
                         onTap: () =>
                             _showPickedLocationDetailModalCard(_pickedLocation!),
+                        onDragStart: _onPickedLocationMarkerDragStart,
+                        onDrag: _onPickedLocationMarkerDragged,
+                        onDragEnd: _onPickedLocationMarkerDragEnd,
                       ),
                     ),
                 ],
@@ -1905,7 +1947,7 @@ class _StoreCoordinatesScreenState extends ConsumerState<StoreCoordinatesScreen>
                           const SizedBox(width: 8),
                           const Expanded(
                             child: Text(
-                              'Mode Tambah Titik Aktif: Ketuk di peta untuk menentukan lokasi baru.',
+                              'Mode Tambah Titik Aktif: Ketuk peta atau geser pin untuk menentukan lokasi baru.',
                               style: TextStyle(
                                 fontFamily: 'PlusJakartaSans',
                                 fontSize: 12,
@@ -2377,58 +2419,123 @@ class _MyLocationMarker extends StatelessWidget {
   }
 }
 
-/// Widget marker titik kordinat baru yang dipilih oleh pengguna di peta
-class _PickedLocationMarker extends StatelessWidget {
+/// Widget marker titik kordinat baru yang dipilih oleh pengguna di peta (dapat digeser / draggable)
+class _PickedLocationMarker extends StatefulWidget {
   final VoidCallback? onTap;
+  final VoidCallback? onDragStart;
+  final ValueChanged<Offset>? onDrag;
+  final VoidCallback? onDragEnd;
 
-  const _PickedLocationMarker({this.onTap});
+  const _PickedLocationMarker({
+    this.onTap,
+    this.onDragStart,
+    this.onDrag,
+    this.onDragEnd,
+  });
+
+  @override
+  State<_PickedLocationMarker> createState() => _PickedLocationMarkerState();
+}
+
+class _PickedLocationMarkerState extends State<_PickedLocationMarker> {
+  bool _isDragging = false;
+  Offset? _startPosition;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return Listener(
       behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: AppColors.brandPrimary,
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 2.5),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.brandPrimary.withValues(alpha: 0.4),
-                  blurRadius: 6,
-                  offset: const Offset(0, 3),
+      onPointerDown: (event) {
+        _startPosition = event.position;
+      },
+      onPointerMove: (event) {
+        if (_startPosition == null) return;
+        final distance = (event.position - _startPosition!).distance;
+        if (distance > 4.0) {
+          if (!_isDragging) {
+            setState(() {
+              _isDragging = true;
+            });
+            widget.onDragStart?.call();
+          }
+          widget.onDrag?.call(event.delta);
+        }
+      },
+      onPointerUp: (event) {
+        final wasDragging = _isDragging;
+        _startPosition = null;
+        if (wasDragging) {
+          setState(() {
+            _isDragging = false;
+          });
+          widget.onDragEnd?.call();
+        } else {
+          widget.onTap?.call();
+        }
+      },
+      onPointerCancel: (_) {
+        final wasDragging = _isDragging;
+        _startPosition = null;
+        if (wasDragging) {
+          setState(() {
+            _isDragging = false;
+          });
+          widget.onDragEnd?.call();
+        }
+      },
+      child: AnimatedScale(
+        scale: _isDragging ? 1.15 : 1.0,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOut,
+        child: AnimatedSlide(
+          offset: _isDragging ? const Offset(0, -0.15) : Offset.zero,
+          duration: const Duration(milliseconds: 120),
+          curve: Curves.easeOut,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: AppColors.brandPrimary,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2.5),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.brandPrimary.withValues(
+                        alpha: _isDragging ? 0.6 : 0.4,
+                      ),
+                      blurRadius: _isDragging ? 12 : 6,
+                      offset: Offset(0, _isDragging ? 6 : 3),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            child: const Center(
-              child: Icon(
-                TablerIcons.plus,
-                color: Colors.white,
-                size: 20,
+                child: const Center(
+                  child: Icon(
+                    TablerIcons.plus,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
               ),
-            ),
+              // Jarum penunjuk bawah (downward pointer tip)
+              CustomPaint(
+                size: const Size(10, 6),
+                painter: const _PinTipPainter(color: AppColors.brandPrimary),
+              ),
+              // Titik pusat koordinat (anchor dot)
+              Container(
+                width: 4,
+                height: 4,
+                decoration: const BoxDecoration(
+                  color: AppColors.brandEspresso,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ],
           ),
-          // Jarum penunjuk bawah (downward pointer tip)
-          CustomPaint(
-            size: const Size(10, 6),
-            painter: const _PinTipPainter(color: AppColors.brandPrimary),
-          ),
-          // Titik pusat koordinat (anchor dot)
-          Container(
-            width: 4,
-            height: 4,
-            decoration: const BoxDecoration(
-              color: AppColors.brandEspresso,
-              shape: BoxShape.circle,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
