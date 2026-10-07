@@ -625,13 +625,16 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              '${index + 1}. ',
-                              style: const TextStyle(
-                                fontFamily: 'PlusJakartaSans',
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.brandWarmGray,
+                            SizedBox(
+                              width: 22,
+                              child: Text(
+                                '${index + 1}.',
+                                style: const TextStyle(
+                                  fontFamily: 'PlusJakartaSans',
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.brandWarmGray,
+                                ),
                               ),
                             ),
                             Expanded(
@@ -658,7 +661,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                         ),
                         const SizedBox(height: 4),
                         Padding(
-                          padding: const EdgeInsets.only(left: 18),
+                          padding: const EdgeInsets.only(left: 22),
                           child: Text(
                             '${item.quantity} ${item.productUnit} @ ${_currencyFormat.format(item.unitPrice)}',
                             style: const TextStyle(

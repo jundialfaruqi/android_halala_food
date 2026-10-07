@@ -488,9 +488,21 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
             ],
           ),
           SizedBox(height: 6),
-          ShimmerLoading(width: 220, height: 13, borderRadius: 4),
-          SizedBox(height: 4),
-          ShimmerLoading(width: 170, height: 13, borderRadius: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              ShimmerLoading(width: 140, height: 13, borderRadius: 4),
+              ShimmerLoading(width: 60, height: 13, borderRadius: 4),
+            ],
+          ),
+          SizedBox(height: 5),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              ShimmerLoading(width: 110, height: 13, borderRadius: 4),
+              ShimmerLoading(width: 50, height: 13, borderRadius: 4),
+            ],
+          ),
         ],
       ),
     );
@@ -769,31 +781,45 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
                     final index = entry.key + 1;
                     final it = entry.value;
                     final unitText = it.productUnit.isNotEmpty
-                        ? ' (${it.quantity} ${it.productUnit})'
-                        : ' (${it.quantity})';
+                        ? '${it.quantity} ${it.productUnit}'
+                        : '${it.quantity}';
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 3),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            '$index. ',
-                            style: const TextStyle(
-                              fontFamily: 'PlusJakartaSans',
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.brandEspresso,
-                            ),
-                          ),
-                          Expanded(
+                          SizedBox(
+                            width: 22,
                             child: Text(
-                              '${it.productName}$unitText',
+                              '$index.',
                               style: const TextStyle(
                                 fontFamily: 'PlusJakartaSans',
                                 fontSize: 13.5,
                                 fontWeight: FontWeight.w600,
                                 color: AppColors.brandEspresso,
                               ),
+                            ),
+                          ),
+                          Expanded(
+                            child: Text(
+                              it.productName,
+                              style: const TextStyle(
+                                fontFamily: 'PlusJakartaSans',
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.brandEspresso,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            unitText,
+                            textAlign: TextAlign.end,
+                            style: const TextStyle(
+                              fontFamily: 'PlusJakartaSans',
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.brandEspresso,
                             ),
                           ),
                         ],
@@ -805,7 +831,7 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
                 const Padding(
                   padding: EdgeInsets.only(bottom: 2),
                   child: Text(
-                    '1. Belum ada barang muatan',
+                    'Belum ada barang muatan',
                     style: TextStyle(
                       fontFamily: 'PlusJakartaSans',
                       fontSize: 13.5,
