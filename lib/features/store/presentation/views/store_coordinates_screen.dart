@@ -63,9 +63,15 @@ class _StoreCoordinatesScreenState extends ConsumerState<StoreCoordinatesScreen>
   bool _showSearchResults = false;
   List<StoreModel> _searchResults = [];
 
-  // State animasi detak (bounce 3x) untuk toko mitra yang dipilih dari hasil pencarian
+  // State animasi detak (bounce 1x) untuk toko mitra yang dipilih dari hasil pencarian
   int? _bouncingStoreId;
   int _bounceTrigger = 0;
+
+  // State untuk mode tambah titik kordinat dari peta
+  bool _isAddPointMode = false;
+  LatLng? _pickedLocation;
+  String? _pickedLocationAddress;
+  bool _isFetchingPickedLocationAddress = false;
 
   // Titik default (Malang, Jawa Timur) jika belum ada kordinat
   static const LatLng _defaultLocation = LatLng(-7.983908, 112.630852);
@@ -557,6 +563,11 @@ class _StoreCoordinatesScreenState extends ConsumerState<StoreCoordinatesScreen>
       points.add(_myLocation!);
     }
 
+    // Masukkan titik lokasi yang dipilih jika tersedia
+    if (_pickedLocation != null) {
+      points.add(_pickedLocation!);
+    }
+
     if (points.isEmpty) {
       _mapController.move(_defaultLocation, 12.0);
       return;
@@ -788,10 +799,181 @@ class _StoreCoordinatesScreenState extends ConsumerState<StoreCoordinatesScreen>
     });
   }
 
-  /// Navigasi ke formulir tambah toko mitra baru dengan koordinat lokasi saya sudah terisi
-  Future<void> _navigateToAddStoreAtMyLocation() async {
-    if (_myLocation == null) return;
+  /// Mengambil nama alamat titik lokasi yang dipilih via OpenStreetMap Nominatim
+  Future<void> _fetchPickedLocationAddress(LatLng loc) async {
+    if (_isFetchingPickedLocationAddress) return;
+    _isFetchingPickedLocationAddress = true;
 
+    try {
+      final response = await _geoDio.get(
+        'https://nominatim.openstreetmap.org/reverse',
+        queryParameters: {
+          'format': 'json',
+          'lat': loc.latitude,
+          'lon': loc.longitude,
+          'zoom': 18,
+          'addressdetails': 1,
+        },
+        options: Options(
+          headers: {
+            'User-Agent':
+                'HalalaFoodAndroidApp/1.0 (contact: admin@halala-food.id)',
+          },
+          sendTimeout: const Duration(seconds: 5),
+          receiveTimeout: const Duration(seconds: 5),
+        ),
+      );
+
+      if (response.statusCode == 200 && response.data is Map) {
+        final data = response.data as Map<String, dynamic>;
+        final displayName = data['display_name'] as String?;
+        if (mounted && displayName != null && displayName.isNotEmpty) {
+          setState(() {
+            _pickedLocationAddress = displayName;
+          });
+          _modalSetState?.call(() {});
+        }
+      }
+    } catch (_) {
+      // Fallback silently jika offline / limit request OSM
+    } finally {
+      _isFetchingPickedLocationAddress = false;
+      if (mounted) {
+        _modalSetState?.call(() {});
+      }
+    }
+  }
+
+  /// Menampilkan modal card core widget untuk data titik koordinat baru yang dipilih dari peta
+  /// serta tombol Call to Action "Tambahkan Toko Mitra pada Titik Ini"
+  void _showPickedLocationDetailModalCard(LatLng point) {
+    if (_searchFocusNode.hasFocus || _showSearchResults) {
+      _searchFocusNode.unfocus();
+      setState(() {
+        _showSearchResults = false;
+      });
+    }
+
+    // Jika alamat belum pernah diambil, panggil reverse geocoding
+    if (_pickedLocationAddress == null && !_isFetchingPickedLocationAddress) {
+      _fetchPickedLocationAddress(point);
+    }
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (modalContext) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            _modalSetState = setModalState;
+
+            final addressText =
+                _pickedLocationAddress ??
+                (_isFetchingPickedLocationAddress
+                    ? 'Sedang mengambil alamat lokasi...'
+                    : 'Area sekitar titik koordinat');
+
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: AppCard(
+                  backgroundColor: Colors.white,
+                  borderRadius: 20,
+                  padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Handle bar minimalis
+                      Center(
+                        child: Container(
+                          width: 36,
+                          height: 4,
+                          margin: const EdgeInsets.only(bottom: 16),
+                          decoration: BoxDecoration(
+                            color: AppColors.brandBorder,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+
+                      // Header Modal: Judul & Subjudul
+                      const Text(
+                        'Titik Lokasi Baru',
+                        style: TextStyle(
+                          fontFamily: 'PlusJakartaSans',
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.brandEspresso,
+                          height: 1.25,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Informasi titik koordinat yang Anda tentukan pada peta.',
+                        style: TextStyle(
+                          fontFamily: 'PlusJakartaSans',
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.brandWarmGray,
+                        ),
+                      ),
+
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 14),
+                        child: Divider(
+                          height: 1,
+                          thickness: 1,
+                          color: AppColors.brandBorder,
+                        ),
+                      ),
+
+                      // Detail Data Koordinat & Alamat
+                      _buildDetailRow(
+                        'Latitude',
+                        point.latitude.toStringAsFixed(6),
+                      ),
+                      _buildDetailRow(
+                        'Longitude',
+                        point.longitude.toStringAsFixed(6),
+                      ),
+                      _buildDetailRow('Alamat', addressText),
+
+                      const SizedBox(height: 20),
+
+                      // Tombol Call to Action: Tambahkan Toko Mitra pada Titik Ini
+                      AppButton(
+                        text: 'Tambahkan Toko Mitra pada Titik Ini',
+                        height: 46,
+                        onPressed: () {
+                          Navigator.of(modalContext).pop();
+                          _navigateToAddStore(point);
+                        },
+                      ),
+                      const SizedBox(height: 10),
+
+                      // Tombol Tutup Modal
+                      AppButton.outline(
+                        text: 'Tutup',
+                        height: 46,
+                        onPressed: () => Navigator.of(modalContext).pop(),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    ).then((_) {
+      _modalSetState = null;
+    });
+  }
+
+  /// Navigasi ke formulir tambah toko mitra baru dengan koordinat lokasi yang ditentukan
+  Future<void> _navigateToAddStore(LatLng location) async {
     final authState = ref.read(authViewModelProvider);
     final canCreate = authState.user?.hasPermission('toko-create') ?? false;
 
@@ -806,13 +988,20 @@ class _StoreCoordinatesScreenState extends ConsumerState<StoreCoordinatesScreen>
     final result = await Navigator.of(context).push<dynamic>(
       MaterialPageRoute(
         builder: (routeContext) =>
-            StoreCreateScreen(initialLocation: _myLocation),
+            StoreCreateScreen(initialLocation: location),
       ),
     );
 
     if (!mounted) return;
 
     if (result != null) {
+      // Keluar dari mode tambah titik dan reset marker sementara
+      setState(() {
+        _isAddPointMode = false;
+        _pickedLocation = null;
+        _pickedLocationAddress = null;
+      });
+
       // Jika filter rute sedang aktif dan rute toko baru berbeda, reset filter agar toko baru langsung terlihat
       if (result is StoreModel) {
         if (_selectedRoute != null && result.route != null) {
@@ -849,6 +1038,12 @@ class _StoreCoordinatesScreenState extends ConsumerState<StoreCoordinatesScreen>
         );
       }
     }
+  }
+
+  /// Navigasi ke formulir tambah toko mitra baru dengan koordinat lokasi saya sudah terisi
+  Future<void> _navigateToAddStoreAtMyLocation() async {
+    if (_myLocation == null) return;
+    await _navigateToAddStore(_myLocation!);
   }
 
   /// Navigasi ke Halaman Formulir Edit Toko Mitra dari Modal Detail Toko
@@ -1489,12 +1684,20 @@ class _StoreCoordinatesScreenState extends ConsumerState<StoreCoordinatesScreen>
               initialZoom: 12.0,
               minZoom: 4.0,
               maxZoom: 19.0,
-              onTap: (_, __) {
+              onTap: (_, point) {
                 if (_searchFocusNode.hasFocus || _showSearchResults) {
                   _searchFocusNode.unfocus();
                   setState(() {
                     _showSearchResults = false;
                   });
+                }
+                if (_isAddPointMode) {
+                  setState(() {
+                    _pickedLocation = point;
+                    _pickedLocationAddress = null;
+                  });
+                  _fetchPickedLocationAddress(point);
+                  _showPickedLocationDetailModalCard(point);
                 }
               },
               onPositionChanged: (position, hasGesture) {
@@ -1552,6 +1755,18 @@ class _StoreCoordinatesScreenState extends ConsumerState<StoreCoordinatesScreen>
                       alignment: Alignment.center,
                       child: _MyLocationMarker(
                         onTap: _showMyLocationDetailModalCard,
+                      ),
+                    ),
+                  if (_pickedLocation != null)
+                    Marker(
+                      key: const ValueKey('picked_location_marker'),
+                      point: _pickedLocation!,
+                      width: 44,
+                      height: 50,
+                      alignment: Alignment.topCenter,
+                      child: _PickedLocationMarker(
+                        onTap: () =>
+                            _showPickedLocationDetailModalCard(_pickedLocation!),
                       ),
                     ),
                 ],
@@ -1660,17 +1875,124 @@ class _StoreCoordinatesScreenState extends ConsumerState<StoreCoordinatesScreen>
                       ],
                     ),
                   ),
+
+                  // Banner Panduan Mode Tambah Titik Kordinat Aktif
+                  if (_isAddPointMode) ...[
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.brandEspresso.withValues(alpha: 0.92),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.15),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            TablerIcons.map_pin,
+                            color: AppColors.brandHoney,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          const Expanded(
+                            child: Text(
+                              'Mode Tambah Titik Aktif: Ketuk di peta untuk menentukan lokasi baru.',
+                              style: TextStyle(
+                                fontFamily: 'PlusJakartaSans',
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _isAddPointMode = false;
+                                _pickedLocation = null;
+                                _pickedLocationAddress = null;
+                              });
+                            },
+                            child: const Icon(
+                              TablerIcons.x,
+                              color: Colors.white70,
+                              size: 18,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
 
-          // 3. Tombol Floating Kontrol Peta: Fokus Zoom Out Semua Titik & Fokus Lokasi Saya
+          // 3. Tombol Floating Kontrol Peta: Tambah Titik Kordinat, Fokus Zoom Out & Fokus Lokasi Saya
           Positioned(
             bottom: 24,
             right: 16,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // Tombol Mode Tambah Titik Kordinat di Maps (Di atas tombol zoom out)
+                Material(
+                  color:
+                      _isAddPointMode ? AppColors.brandPrimary : Colors.white,
+                  elevation: 4,
+                  borderRadius: BorderRadius.circular(12),
+                  shadowColor: Colors.black.withValues(alpha: 0.15),
+                  child: Tooltip(
+                    message: _isAddPointMode
+                        ? 'Batalkan Tambah Titik'
+                        : 'Tambah Titik Kordinat',
+                    child: InkWell(
+                      key: const ValueKey('toggle_add_point_mode_button'),
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () {
+                        setState(() {
+                          _isAddPointMode = !_isAddPointMode;
+                          if (!_isAddPointMode) {
+                            _pickedLocation = null;
+                            _pickedLocationAddress = null;
+                          }
+                        });
+                      },
+                      child: Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: _isAddPointMode
+                                ? AppColors.brandPrimary
+                                : AppColors.brandBorder,
+                          ),
+                        ),
+                        child: Icon(
+                          _isAddPointMode
+                              ? TablerIcons.x
+                              : TablerIcons.map_pin_plus,
+                          size: 22,
+                          color: _isAddPointMode
+                              ? Colors.white
+                              : AppColors.brandPrimary,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+
                 // Tombol Fokus Zoom Out Semua Titik di Maps (Di atas tombol fokus me)
                 Material(
                   color: Colors.white,
@@ -1680,6 +2002,7 @@ class _StoreCoordinatesScreenState extends ConsumerState<StoreCoordinatesScreen>
                   child: Tooltip(
                     message: 'Fokus Semua Titik',
                     child: InkWell(
+                      key: const ValueKey('zoom_fit_all_points_button'),
                       borderRadius: BorderRadius.circular(12),
                       onTap: _zoomFitAllPoints,
                       child: Container(
@@ -2046,6 +2369,63 @@ class _MyLocationMarker extends StatelessWidget {
             decoration: const BoxDecoration(
               shape: BoxShape.circle,
               color: Color(0xFF1976D2),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Widget marker titik kordinat baru yang dipilih oleh pengguna di peta
+class _PickedLocationMarker extends StatelessWidget {
+  final VoidCallback? onTap;
+
+  const _PickedLocationMarker({this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: AppColors.brandPrimary,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 2.5),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.brandPrimary.withValues(alpha: 0.4),
+                  blurRadius: 6,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: const Center(
+              child: Icon(
+                TablerIcons.plus,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+          ),
+          // Jarum penunjuk bawah (downward pointer tip)
+          CustomPaint(
+            size: const Size(10, 6),
+            painter: const _PinTipPainter(color: AppColors.brandPrimary),
+          ),
+          // Titik pusat koordinat (anchor dot)
+          Container(
+            width: 4,
+            height: 4,
+            decoration: const BoxDecoration(
+              color: AppColors.brandEspresso,
+              shape: BoxShape.circle,
             ),
           ),
         ],

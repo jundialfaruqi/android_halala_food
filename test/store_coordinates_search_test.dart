@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,6 +12,7 @@ import 'package:android_halala_food/features/store/domain/repositories/store_rep
 import 'package:android_halala_food/features/store/data/repositories/store_repository_impl.dart';
 import 'package:android_halala_food/features/store/presentation/views/store_coordinates_screen.dart';
 import 'package:android_halala_food/features/store/presentation/views/store_edit_screen.dart';
+import 'package:android_halala_food/features/store/presentation/views/store_create_screen.dart';
 
 class FakeAuthViewModel extends AuthViewModel {
   @override
@@ -313,4 +315,101 @@ void main() {
     // After bounce completes, map settles and is stable at rest
     expect(find.byType(StoreCoordinatesScreen), findsOneWidget);
   });
+
+  testWidgets(
+      'Toggle add point mode button works and tapping map shows marker & detail modal',
+      (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          storeRepositoryProvider.overrideWithValue(MockStoreRepository()),
+          authViewModelProvider.overrideWith(() => FakeAuthViewModel()),
+        ],
+        child: const MaterialApp(
+          home: StoreCoordinatesScreen(),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    // Verify toggle button exists above zoom out button
+    final toggleButtonFinder =
+        find.byKey(const ValueKey('toggle_add_point_mode_button'));
+    expect(toggleButtonFinder, findsOneWidget);
+
+    // Initial state: icon is map_pin_plus, add point mode is inactive
+    expect(find.byIcon(TablerIcons.map_pin_plus), findsOneWidget);
+    expect(find.byKey(const ValueKey('picked_location_marker')), findsNothing);
+
+    // Tap toggle button to enter add point mode
+    await tester.tap(toggleButtonFinder);
+    await tester.pumpAndSettle();
+
+    // Mode is active: icon switches to close (x)
+    expect(find.byIcon(TablerIcons.x), findsWidgets);
+    expect(find.textContaining('Mode Tambah Titik Aktif'), findsOneWidget);
+
+    // Tap on map
+    await tester.tap(find.byType(FlutterMap));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
+
+    // Marker for picked location appears
+    expect(find.byKey(const ValueKey('picked_location_marker')), findsOneWidget);
+
+    // Modal bottom sheet opens with title and CTA
+    expect(find.text('Titik Lokasi Baru'), findsOneWidget);
+    expect(find.text('Tambahkan Toko Mitra pada Titik Ini'), findsOneWidget);
+
+    // Close the modal
+    await tester.tap(find.text('Tutup'));
+    await tester.pumpAndSettle();
+
+    // Marker is still on the map while mode is active
+    expect(find.byKey(const ValueKey('picked_location_marker')), findsOneWidget);
+
+    // Tap toggle button (which is x now) to cancel mode
+    await tester.tap(toggleButtonFinder);
+    await tester.pumpAndSettle();
+
+    // Mode is cancelled: icon is back to map_pin_plus, marker is removed
+    expect(find.byIcon(TablerIcons.map_pin_plus), findsOneWidget);
+    expect(find.byKey(const ValueKey('picked_location_marker')), findsNothing);
+  });
+
+  testWidgets(
+      'Tapping CTA in picked point modal navigates to StoreCreateScreen with coordinates',
+      (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          storeRepositoryProvider.overrideWithValue(MockStoreRepository()),
+          authViewModelProvider.overrideWith(() => FakeAuthViewModel()),
+        ],
+        child: const MaterialApp(
+          home: StoreCoordinatesScreen(),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    // Activate add point mode
+    await tester.tap(find.byKey(const ValueKey('toggle_add_point_mode_button')));
+    await tester.pumpAndSettle();
+
+    // Tap map
+    await tester.tap(find.byType(FlutterMap));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
+
+    // Tap CTA Tambahkan Toko
+    await tester.tap(find.text('Tambahkan Toko Mitra pada Titik Ini'));
+    await tester.pumpAndSettle();
+
+    // StoreCreateScreen opens
+    expect(find.byType(StoreCreateScreen), findsOneWidget);
+  });
 }
+
