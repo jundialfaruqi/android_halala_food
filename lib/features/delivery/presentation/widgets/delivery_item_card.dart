@@ -100,7 +100,7 @@ class DeliveryItemCard extends StatelessWidget {
 
               const SizedBox(width: 8),
 
-              // Tombol Aksi Edit & Hapus
+              // Tombol Aksi Edit & Hapus (Ghost border grey, teks & icon berwarna)
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -114,10 +114,10 @@ class DeliveryItemCard extends StatelessWidget {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.brandSoftCream,
+                        color: Colors.transparent,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: AppColors.brandBorder,
+                          color: const Color(0xFFD1D5DB),
                           width: 1,
                         ),
                       ),
@@ -154,10 +154,10 @@ class DeliveryItemCard extends StatelessWidget {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.error.withValues(alpha: 0.08),
+                        color: Colors.transparent,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: AppColors.error.withValues(alpha: 0.25),
+                          color: const Color(0xFFD1D5DB),
                           width: 1,
                         ),
                       ),
