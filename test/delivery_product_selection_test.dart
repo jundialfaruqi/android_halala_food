@@ -1,6 +1,7 @@
 import 'package:android_halala_food/core/constants/app_colors.dart';
 import 'package:android_halala_food/core/widgets/app_empty_card.dart';
 import 'package:android_halala_food/core/widgets/app_menu_select.dart';
+import 'package:android_halala_food/core/widgets/app_text_field.dart';
 import 'package:android_halala_food/features/delivery/data/models/delivery_model.dart';
 import 'package:android_halala_food/features/delivery/presentation/models/delivery_item_form_entry.dart';
 import 'package:android_halala_food/features/delivery/presentation/widgets/delivery_item_card.dart';
@@ -335,6 +336,36 @@ void main() {
           find.text('Muatan barang jadi wajib diisi minimal 1 jenis produk.'),
           findsOneWidget);
       expect(find.byIcon(TablerIcons.alert_circle), findsOneWidget);
+    });
+
+    testWidgets('Delivery number field is disabled with lock suffix icon',
+        (tester) async {
+      final controller = TextEditingController(text: 'SJ-20261008-0001');
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: AppTextField(
+              controller: controller,
+              labelText: 'Nomor Surat Jalan',
+              hintText: 'SJ-YYYYMMDD-XXXX',
+              enabled: false,
+              suffixIcon: const Icon(
+                TablerIcons.lock,
+                size: 18,
+                color: AppColors.brandWarmGray,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final textFormField =
+          tester.widget<TextFormField>(find.byType(TextFormField));
+      expect(textFormField.enabled, isFalse);
+      expect(find.text('SJ-20261008-0001'), findsOneWidget);
+      expect(find.byIcon(TablerIcons.lock), findsOneWidget);
     });
   });
 }

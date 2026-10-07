@@ -337,11 +337,17 @@ class _DeliveryCreateScreenState extends ConsumerState<DeliveryCreateScreen> {
           ),
           const SizedBox(height: 12),
 
-          // Nomor Surat Jalan
+          // Nomor Surat Jalan (Otomatis dari sistem, disabled)
           AppTextField(
             controller: _deliveryNumberController,
             labelText: 'Nomor Surat Jalan',
             hintText: 'SJ-YYYYMMDD-XXXX',
+            enabled: false,
+            suffixIcon: const Icon(
+              TablerIcons.lock,
+              size: 18,
+              color: AppColors.brandWarmGray,
+            ),
             validator: (val) {
               if (val == null || val.trim().isEmpty) {
                 return 'Nomor surat jalan wajib diisi.';

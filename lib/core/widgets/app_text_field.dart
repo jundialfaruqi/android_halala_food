@@ -229,10 +229,13 @@ class _AppTextFieldState extends State<AppTextField> {
       textInputAction: widget.textInputAction,
       onFieldSubmitted: widget.onFieldSubmitted,
       style: widget.style ??
-          const TextStyle(
+          TextStyle(
             fontFamily: 'PlusJakartaSans',
             fontSize: 14,
-            color: AppColors.brandTextPrimary,
+            fontWeight: widget.enabled ? FontWeight.normal : FontWeight.w600,
+            color: widget.enabled
+                ? AppColors.brandTextPrimary
+                : AppColors.brandWarmGray,
           ),
       decoration: InputDecoration(
         hintText: widget.hintText,
@@ -247,8 +250,9 @@ class _AppTextFieldState extends State<AppTextField> {
         errorMaxLines: 3,
         isDense: widget.isDense,
         contentPadding: widget.contentPadding,
-        filled: widget.fillColor != null,
-        fillColor: widget.fillColor,
+        filled: widget.fillColor != null || !widget.enabled,
+        fillColor: widget.fillColor ??
+            (!widget.enabled ? const Color(0xFFF7F7F7) : null),
         border: border,
         enabledBorder: enabledBorder,
         disabledBorder: disabledBorder,
