@@ -34,8 +34,7 @@ class StoreCoordinatesScreen extends ConsumerStatefulWidget {
       _StoreCoordinatesScreenState();
 }
 
-class _StoreCoordinatesScreenState
-    extends ConsumerState<StoreCoordinatesScreen>
+class _StoreCoordinatesScreenState extends ConsumerState<StoreCoordinatesScreen>
     with WidgetsBindingObserver {
   late final MapController _mapController;
   late final TextEditingController _searchController;
@@ -72,9 +71,11 @@ class _StoreCoordinatesScreenState
       return _storesWithCoords;
     }
     return _storesWithCoords
-        .where((s) =>
-            s.route?.trim().toLowerCase() ==
-            _selectedRoute!.trim().toLowerCase())
+        .where(
+          (s) =>
+              s.route?.trim().toLowerCase() ==
+              _selectedRoute!.trim().toLowerCase(),
+        )
         .toList();
   }
 
@@ -205,10 +206,7 @@ class _StoreCoordinatesScreenState
 
     // Peta langsung menampilkan kordinat toko yang diklik tersebut
     if (store.latitude != null && store.longitude != null) {
-      _mapController.move(
-        LatLng(store.latitude!, store.longitude!),
-        16.5,
-      );
+      _mapController.move(LatLng(store.latitude!, store.longitude!), 16.5);
     }
 
     // Tampilkan modal core card detail toko
@@ -500,7 +498,10 @@ class _StoreCoordinatesScreenState
     }
   }
 
-  void _fitCameraToStores({List<StoreModel>? targetStores, bool force = false}) {
+  void _fitCameraToStores({
+    List<StoreModel>? targetStores,
+    bool force = false,
+  }) {
     // Jika GPS aktif dan lokasi saya sudah ditemukan saat initial load, jangan override kamera yang sudah fokus ke lokasi saya
     if (_myLocation != null && targetStores == null && !force) return;
 
@@ -536,8 +537,9 @@ class _StoreCoordinatesScreenState
     final points = <LatLng>[];
 
     // Masukkan seluruh titik toko yang sedang aktif / difilter di peta
-    final stores =
-        _filteredStores.isNotEmpty ? _filteredStores : _storesWithCoords;
+    final stores = _filteredStores.isNotEmpty
+        ? _filteredStores
+        : _storesWithCoords;
     for (final s in stores) {
       if (s.latitude != null && s.longitude != null) {
         points.add(LatLng(s.latitude!, s.longitude!));
@@ -676,7 +678,8 @@ class _StoreCoordinatesScreenState
           builder: (context, setModalState) {
             _modalSetState = setModalState;
 
-            final addressText = _myLocationAddress ??
+            final addressText =
+                _myLocationAddress ??
                 (_isFetchingMyLocationAddress
                     ? 'Sedang mengambil alamat lokasi...'
                     : 'Area sekitar titik koordinat');
@@ -745,10 +748,7 @@ class _StoreCoordinatesScreenState
                         'Longitude',
                         _myLocation!.longitude.toStringAsFixed(6),
                       ),
-                      _buildDetailRow(
-                        'Alamat',
-                        addressText,
-                      ),
+                      _buildDetailRow('Alamat', addressText),
 
                       const SizedBox(height: 20),
 
@@ -799,9 +799,8 @@ class _StoreCoordinatesScreenState
 
     final result = await Navigator.of(context).push<dynamic>(
       MaterialPageRoute(
-        builder: (routeContext) => StoreCreateScreen(
-          initialLocation: _myLocation,
-        ),
+        builder: (routeContext) =>
+            StoreCreateScreen(initialLocation: _myLocation),
       ),
     );
 
@@ -859,7 +858,8 @@ class _StoreCoordinatesScreenState
     if (!canEdit) {
       AppSnackBar.showError(
         context,
-        message: 'Anda tidak memiliki hak akses untuk mengubah data toko mitra.',
+        message:
+            'Anda tidak memiliki hak akses untuk mengubah data toko mitra.',
       );
       return;
     }
@@ -929,157 +929,198 @@ class _StoreCoordinatesScreenState
               backgroundColor: Colors.white,
               borderRadius: 20,
               padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Handle bar minimalis
-                  Center(
-                    child: Container(
-                      width: 36,
-                      height: 4,
-                      margin: const EdgeInsets.only(bottom: 16),
-                      decoration: BoxDecoration(
-                        color: AppColors.brandBorder,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-
-                  // Header Nama Toko & Foto Toko
-                  Row(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(modalContext).size.height * 0.85,
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (hasPhoto) ...[
-                        AppCachedImage(
-                          imageUrl: photoUrl,
-                          width: 52,
-                          height: 52,
-                          borderRadius: 10,
-                          fit: BoxFit.cover,
-                        ),
-                        const SizedBox(width: 14),
-                      ],
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              store.name,
-                              style: const TextStyle(
-                                fontFamily: 'PlusJakartaSans',
-                                fontSize: 17,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.brandEspresso,
-                                height: 1.25,
-                              ),
-                            ),
-                            if (store.route != null &&
-                                store.route!.isNotEmpty) ...[
-                              const SizedBox(height: 4),
-                              Text(
-                                store.route!,
-                                style: const TextStyle(
-                                  fontFamily: 'PlusJakartaSans',
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w500,
-                                  color: AppColors.brandWarmGray,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      // Tombol Ubah Toko Mitra: Icon with rounded circle background, border abu, ghost
-                      Tooltip(
-                        message: 'Ubah Data Toko',
-                        child: Material(
-                          color: Colors.transparent,
-                          shape: const CircleBorder(),
-                          child: InkWell(
-                            onTap: () => _navigateToEditStore(store, modalContext),
-                            customBorder: const CircleBorder(),
-                            child: Container(
-                              width: 38,
-                              height: 38,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.transparent,
-                                border: Border.all(
-                                  color: AppColors.brandBorder,
-                                  width: 1.2,
-                                ),
-                              ),
-                              alignment: Alignment.center,
-                              child: const Icon(
-                                TablerIcons.pencil,
-                                size: 18,
-                                color: AppColors.brandEspresso,
-                              ),
-                            ),
+                      // Handle bar minimalis
+                      Center(
+                        child: Container(
+                          width: 36,
+                          height: 4,
+                          margin: const EdgeInsets.only(bottom: 14),
+                          decoration: BoxDecoration(
+                            color: AppColors.brandBorder,
+                            borderRadius: BorderRadius.circular(2),
                           ),
                         ),
                       ),
-                    ],
-                  ),
 
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 14),
-                    child: Divider(
-                      height: 1,
-                      thickness: 1,
-                      color: AppColors.brandBorder,
-                    ),
-                  ),
+                      // 1. Foto Toko Mitra (Full Width, BoxFit.contain di paling atas)
+                      if (hasPhoto) ...[
+                        Container(
+                          width: double.infinity,
+                          height: 180,
+                          decoration: BoxDecoration(
+                            color: AppColors.background,
+                            borderRadius: BorderRadius.circular(14),
+                            // border: Border.all(color: AppColors.brandBorder),
+                          ),
+                          clipBehavior: Clip.antiAlias,
+                          child: AppCachedImage(
+                            imageUrl: photoUrl,
+                            width: double.infinity,
+                            height: double.infinity,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                      ],
 
-                  // Detail Informasi Lengkap (Clean: No Icons, No Badges)
-                  _buildDetailRow('Pemilik', store.ownerName?.trim().isNotEmpty == true ? store.ownerName! : '-'),
-                  _buildDetailRow(
-                    'Telepon',
-                    _formatPhoneWithPlus(store.phone),
-                    isClickable: store.phone != null && store.phone!.trim().isNotEmpty,
-                    onTap: (store.phone != null && store.phone!.trim().isNotEmpty)
-                        ? () => _openWhatsApp(store)
-                        : null,
-                  ),
-                  _buildDetailRow('Rute', store.route?.trim().isNotEmpty == true ? store.route! : '-'),
-                  _buildDetailRow('Status', store.isActive ? 'Aktif' : 'Tidak Aktif'),
-                  _buildDetailRow(
-                    'Kordinat',
-                    '${store.latitude?.toStringAsFixed(6) ?? '-'}, ${store.longitude?.toStringAsFixed(6) ?? '-'}',
-                  ),
-                  _buildDetailRow('Alamat', store.address?.trim().isNotEmpty == true ? store.address! : '-'),
-                  if (store.notes != null && store.notes!.trim().isNotEmpty)
-                    _buildDetailRow('Catatan', store.notes!),
+                      // 2. Baris Informasi Nama Toko, Rute, & Tombol Aksi Edit
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  store.name,
+                                  style: const TextStyle(
+                                    fontFamily: 'PlusJakartaSans',
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.brandEspresso,
+                                    height: 1.25,
+                                  ),
+                                ),
+                                if (store.route != null &&
+                                    store.route!.isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    store.route!,
+                                    style: const TextStyle(
+                                      fontFamily: 'PlusJakartaSans',
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w500,
+                                      color: AppColors.brandWarmGray,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          // Tombol Ubah Toko Mitra: Icon with rounded circle background, border abu, ghost
+                          Tooltip(
+                            message: 'Ubah Data Toko',
+                            child: Material(
+                              color: Colors.transparent,
+                              shape: const CircleBorder(),
+                              child: InkWell(
+                                onTap: () =>
+                                    _navigateToEditStore(store, modalContext),
+                                customBorder: const CircleBorder(),
+                                child: Container(
+                                  width: 38,
+                                  height: 38,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.transparent,
+                                    border: Border.all(
+                                      color: AppColors.brandBorder,
+                                      width: 1.2,
+                                    ),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: const Icon(
+                                    TablerIcons.pencil,
+                                    size: 18,
+                                    color: AppColors.brandEspresso,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
 
-                  const SizedBox(height: 16),
-
-                  // Tombol Aksi: Tutup & Buka Google Maps (Clean tanpa icon)
-                  Row(
-                    children: [
-                      Expanded(
-                        child: AppButton.outline(
-                          text: 'Tutup',
-                          height: 46,
-                          onPressed: () => Navigator.of(modalContext).pop(),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 14),
+                        child: Divider(
+                          height: 1,
+                          thickness: 1,
+                          color: AppColors.brandBorder,
                         ),
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        flex: 2,
-                        child: AppButton(
-                          text: 'Buka di Google Maps',
-                          height: 46,
-                          onPressed: () {
-                            Navigator.of(modalContext).pop();
-                            _openGoogleMaps(store);
-                          },
-                        ),
+
+                      // Detail Informasi Lengkap (Clean: No Icons, No Badges)
+                      _buildDetailRow(
+                        'Pemilik',
+                        store.ownerName?.trim().isNotEmpty == true
+                            ? store.ownerName!
+                            : '-',
+                      ),
+                      _buildDetailRow(
+                        'Telepon',
+                        _formatPhoneWithPlus(store.phone),
+                        isClickable:
+                            store.phone != null &&
+                            store.phone!.trim().isNotEmpty,
+                        onTap:
+                            (store.phone != null &&
+                                store.phone!.trim().isNotEmpty)
+                            ? () => _openWhatsApp(store)
+                            : null,
+                      ),
+                      _buildDetailRow(
+                        'Rute',
+                        store.route?.trim().isNotEmpty == true
+                            ? store.route!
+                            : '-',
+                      ),
+                      _buildDetailRow(
+                        'Status',
+                        store.isActive ? 'Aktif' : 'Tidak Aktif',
+                      ),
+                      _buildDetailRow(
+                        'Kordinat',
+                        '${store.latitude?.toStringAsFixed(6) ?? '-'}, ${store.longitude?.toStringAsFixed(6) ?? '-'}',
+                      ),
+                      _buildDetailRow(
+                        'Alamat',
+                        store.address?.trim().isNotEmpty == true
+                            ? store.address!
+                            : '-',
+                      ),
+                      if (store.notes != null && store.notes!.trim().isNotEmpty)
+                        _buildDetailRow('Catatan', store.notes!),
+
+                      const SizedBox(height: 16),
+
+                      // Tombol Aksi: Tutup & Buka Google Maps (Clean tanpa icon)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: AppButton.outline(
+                              text: 'Tutup',
+                              height: 46,
+                              onPressed: () => Navigator.of(modalContext).pop(),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            flex: 2,
+                            child: AppButton(
+                              text: 'Buka di Google Maps',
+                              height: 46,
+                              onPressed: () {
+                                Navigator.of(modalContext).pop();
+                                _openGoogleMaps(store);
+                              },
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
@@ -1167,10 +1208,7 @@ class _StoreCoordinatesScreenState
 
     if (digits.isEmpty) {
       if (mounted) {
-        AppSnackBar.showError(
-          context,
-          message: 'Nomor telepon tidak valid.',
-        );
+        AppSnackBar.showError(context, message: 'Nomor telepon tidak valid.');
       }
       return;
     }
@@ -1178,8 +1216,9 @@ class _StoreCoordinatesScreenState
     final message = Uri.encodeComponent(
       'Halo ${store.name}, saya dari Halala Food.',
     );
-    final whatsappUri =
-        Uri.parse('whatsapp://send?phone=$digits&text=$message');
+    final whatsappUri = Uri.parse(
+      'whatsapp://send?phone=$digits&text=$message',
+    );
     final webUri = Uri.parse('https://wa.me/$digits?text=$message');
 
     try {
@@ -1247,10 +1286,7 @@ class _StoreCoordinatesScreenState
         await launchUrl(webUri, mode: LaunchMode.externalApplication);
       } catch (_) {
         if (mounted) {
-          AppSnackBar.showError(
-            context,
-            message: 'Gagal membuka Google Maps.',
-          );
+          AppSnackBar.showError(context, message: 'Gagal membuka Google Maps.');
         }
       }
     }
@@ -1310,10 +1346,7 @@ class _StoreCoordinatesScreenState
         ];
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 14,
-          vertical: 7,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
@@ -1407,10 +1440,8 @@ class _StoreCoordinatesScreenState
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 shrinkWrap: true,
                 itemCount: _searchResults.length,
-                separatorBuilder: (_, __) => const Divider(
-                  height: 1,
-                  color: AppColors.brandBorder,
-                ),
+                separatorBuilder: (_, __) =>
+                    const Divider(height: 1, color: AppColors.brandBorder),
                 itemBuilder: (context, index) {
                   final store = _searchResults[index];
                   final photoUrl = store.photoUrl;
@@ -1513,7 +1544,8 @@ class _StoreCoordinatesScreenState
   @override
   Widget build(BuildContext context) {
     final displayStores = _filteredStores;
-    final initialCenter = _myLocation ??
+    final initialCenter =
+        _myLocation ??
         (displayStores.isNotEmpty
             ? LatLng(
                 displayStores.first.latitude!,
@@ -1526,9 +1558,7 @@ class _StoreCoordinatesScreenState
       statusBarIconBrightness: Brightness.dark,
       safeAreaBottom: false,
       unfocusOnTap: false,
-      appBar: const AppAppBar(
-        title: 'Kordinat',
-      ),
+      appBar: const AppAppBar(title: 'Kordinat'),
       body: Stack(
         children: [
           // 1. Peta Titik Kordinat Mitra Toko (Difilter sesuai rute yang dipilih)
@@ -1651,8 +1681,7 @@ class _StoreCoordinatesScreenState
                   ),
 
                   // Menu Hasil Pencarian (Muncul setelah user selesai mengetik minimal 3 huruf)
-                  if (_showSearchResults)
-                    _buildSearchResultsDropdown(),
+                  if (_showSearchResults) _buildSearchResultsDropdown(),
 
                   const SizedBox(height: 10),
 
@@ -1807,7 +1836,9 @@ class _StoreCoordinatesScreenState
                 ),
               ),
             )
-          else if (!_isLoading && _storesWithCoords.isEmpty && _myLocation == null)
+          else if (!_isLoading &&
+              _storesWithCoords.isEmpty &&
+              _myLocation == null)
             Positioned.fill(
               child: Container(
                 color: Colors.white,
@@ -1831,10 +1862,7 @@ class _StoreMapPinMarker extends StatelessWidget {
   final StoreModel store;
   final VoidCallback onTap;
 
-  const _StoreMapPinMarker({
-    required this.store,
-    required this.onTap,
-  });
+  const _StoreMapPinMarker({required this.store, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -1855,10 +1883,7 @@ class _StoreMapPinMarker extends StatelessWidget {
             decoration: BoxDecoration(
               color: Colors.white,
               shape: BoxShape.circle,
-              border: Border.all(
-                color: Colors.white,
-                width: 2,
-              ),
+              border: Border.all(color: Colors.white, width: 2),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.18),
@@ -1990,4 +2015,3 @@ class _MyLocationMarker extends StatelessWidget {
     );
   }
 }
-
