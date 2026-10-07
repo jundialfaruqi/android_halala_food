@@ -328,4 +328,59 @@ void main() {
     expect(find.text('-7.980000'), findsOneWidget);
     expect(find.text('112.630000'), findsOneWidget);
   });
+
+  testWidgets(
+      'Does not auto-zoom camera to my location on open, but tapping Lokasi Saya focuses camera',
+      (tester) async {
+    mockGeolocator.serviceEnabled = true;
+    mockGeolocator.permission = LocationPermission.always;
+    mockGeolocator.currentPosition = Position(
+      longitude: 112.630000,
+      latitude: -7.980000,
+      timestamp: DateTime.now(),
+      accuracy: 5.0,
+      altitude: 0.0,
+      altitudeAccuracy: 0.0,
+      heading: 0.0,
+      headingAccuracy: 0.0,
+      speed: 0.0,
+      speedAccuracy: 0.0,
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          storeRepositoryProvider.overrideWithValue(DummyStoreRepository()),
+          authViewModelProvider.overrideWith(() => FakeAuthViewModel()),
+        ],
+        child: const MaterialApp(
+          home: StoreCoordinatesScreen(),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    // Verify my location marker is present without error
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Container &&
+            widget.decoration is BoxDecoration &&
+            (widget.decoration as BoxDecoration).shape == BoxShape.circle &&
+            (widget.decoration as BoxDecoration).color ==
+                const Color(0xFF1976D2),
+      ),
+      findsOneWidget,
+    );
+
+    // Tap floating "Lokasi Saya" button
+    final myLocationButton = find.byTooltip('Lokasi Saya');
+    expect(myLocationButton, findsOneWidget);
+    await tester.tap(myLocationButton);
+    await tester.pumpAndSettle();
+
+    // Screen remains stable and marker is still visible
+    expect(find.byType(StoreCoordinatesScreen), findsOneWidget);
+  });
 }

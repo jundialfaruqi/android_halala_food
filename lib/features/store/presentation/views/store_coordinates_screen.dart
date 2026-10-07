@@ -89,10 +89,10 @@ class _StoreCoordinatesScreenState extends ConsumerState<StoreCoordinatesScreen>
     _searchFocusNode.addListener(_onSearchFocusChanged);
     _fetchStoreCoordinates();
 
-    // Periksa status GPS perangkat setelah build pertama
+    // Periksa status GPS perangkat setelah build pertama (tanpa memusatkan/zoom in kamera)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        _checkGpsAndFocusLocation();
+        _checkGpsAndFocusLocation(focusCamera: false);
       }
     });
   }
@@ -113,7 +113,7 @@ class _StoreCoordinatesScreenState extends ConsumerState<StoreCoordinatesScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       // Saat user kembali dari menu pengaturan HP untuk mengaktifkan GPS
-      _checkGpsAndFocusLocation(isResumed: true);
+      _checkGpsAndFocusLocation(isResumed: true, focusCamera: false);
     }
   }
 
@@ -213,8 +213,11 @@ class _StoreCoordinatesScreenState extends ConsumerState<StoreCoordinatesScreen>
     _showStoreDetailModalCard(store);
   }
 
-  /// Memeriksa status GPS dan memusatkan peta ke lokasi saya jika aktif
-  Future<void> _checkGpsAndFocusLocation({bool isResumed = false}) async {
+  /// Memeriksa status GPS dan opsional memusatkan peta ke lokasi saya (hanya jika focusCamera == true)
+  Future<void> _checkGpsAndFocusLocation({
+    bool isResumed = false,
+    bool focusCamera = false,
+  }) async {
     if (_isCheckingGps) return;
     _isCheckingGps = true;
 
@@ -295,8 +298,10 @@ class _StoreCoordinatesScreenState extends ConsumerState<StoreCoordinatesScreen>
         // Ambil data alamat reverse geocoding untuk lokasi saya
         _fetchMyLocationAddress(myLatLng);
 
-        // Overlay maps langsung fokus ke kordinat saya
-        _mapController.move(myLatLng, 16.0);
+        // Hanya fokuskan kamera ke lokasi saya jika diminta secara eksplisit (misal user klik tombol lokasi saya)
+        if (focusCamera) {
+          _mapController.move(myLatLng, 16.5);
+        }
       }
     } catch (_) {
     } finally {
@@ -502,9 +507,6 @@ class _StoreCoordinatesScreenState extends ConsumerState<StoreCoordinatesScreen>
     List<StoreModel>? targetStores,
     bool force = false,
   }) {
-    // Jika GPS aktif dan lokasi saya sudah ditemukan saat initial load, jangan override kamera yang sudah fokus ke lokasi saya
-    if (_myLocation != null && targetStores == null && !force) return;
-
     final stores = targetStores ?? _filteredStores;
     if (stores.isEmpty) return;
 
@@ -1460,14 +1462,12 @@ class _StoreCoordinatesScreenState extends ConsumerState<StoreCoordinatesScreen>
   @override
   Widget build(BuildContext context) {
     final displayStores = _filteredStores;
-    final initialCenter =
-        _myLocation ??
-        (displayStores.isNotEmpty
-            ? LatLng(
-                displayStores.first.latitude!,
-                displayStores.first.longitude!,
-              )
-            : _defaultLocation);
+    final initialCenter = displayStores.isNotEmpty
+        ? LatLng(
+            displayStores.first.latitude!,
+            displayStores.first.longitude!,
+          )
+        : (_myLocation ?? _defaultLocation);
 
     return AppScaffold(
       statusBarColor: Colors.transparent,
@@ -1697,7 +1697,7 @@ class _StoreCoordinatesScreenState extends ConsumerState<StoreCoordinatesScreen>
                         if (_myLocation != null) {
                           _mapController.move(_myLocation!, 16.5);
                         } else {
-                          _checkGpsAndFocusLocation();
+                          _checkGpsAndFocusLocation(focusCamera: true);
                         }
                       },
                       child: Container(
