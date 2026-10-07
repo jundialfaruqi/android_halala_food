@@ -484,9 +484,13 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               ShimmerLoading(width: 55, height: 13, borderRadius: 4),
-              ShimmerLoading(width: 160, height: 13, borderRadius: 4),
+              ShimmerLoading(width: 90, height: 13, borderRadius: 4),
             ],
           ),
+          SizedBox(height: 6),
+          ShimmerLoading(width: 220, height: 13, borderRadius: 4),
+          SizedBox(height: 4),
+          ShimmerLoading(width: 170, height: 13, borderRadius: 4),
         ],
       ),
     );
@@ -731,34 +735,85 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
           const SizedBox(height: 6),
 
           // Muatan Barang
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Muatan',
-                style: TextStyle(
-                  fontFamily: 'PlusJakartaSans',
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.brandWarmGray,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Muatan',
+                    style: TextStyle(
+                      fontFamily: 'PlusJakartaSans',
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.brandWarmGray,
+                    ),
+                  ),
+                  if (item.totalItems > 0)
+                    Text(
+                      'Total: ${item.totalItems} kemasan',
+                      style: const TextStyle(
+                        fontFamily: 'PlusJakartaSans',
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.brandWarmGray,
+                      ),
+                    ),
+                ],
               ),
-              const SizedBox(width: 12),
-              Flexible(
-                child: Text(
-                  '${item.totalItems} kemasan (${item.itemsSummary})',
-                  textAlign: TextAlign.end,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontFamily: 'PlusJakartaSans',
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.brandEspresso,
+              const SizedBox(height: 6),
+              if (item.items.isNotEmpty)
+                ...item.items.asMap().entries.map(
+                  (entry) {
+                    final index = entry.key + 1;
+                    final it = entry.value;
+                    final unitText = it.productUnit.isNotEmpty
+                        ? ' (${it.quantity} ${it.productUnit})'
+                        : ' (${it.quantity})';
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 3),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '$index. ',
+                            style: const TextStyle(
+                              fontFamily: 'PlusJakartaSans',
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.brandEspresso,
+                            ),
+                          ),
+                          Expanded(
+                            child: Text(
+                              '${it.productName}$unitText',
+                              style: const TextStyle(
+                                fontFamily: 'PlusJakartaSans',
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.brandEspresso,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                )
+              else
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 2),
+                  child: Text(
+                    '1. Belum ada barang muatan',
+                    style: TextStyle(
+                      fontFamily: 'PlusJakartaSans',
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.brandWarmGray,
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
           const SizedBox(height: 12),
