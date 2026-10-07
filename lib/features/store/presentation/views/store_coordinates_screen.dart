@@ -1294,98 +1294,14 @@ class _StoreCoordinatesScreenState extends ConsumerState<StoreCoordinatesScreen>
 
   /// Dropdown Filter Rute di samping badge count toko
   Widget _buildRouteFilter() {
-    final isFiltered = _selectedRoute != null;
-
-    return PopupMenuButton<String>(
+    return AppFilterDropdown<String>(
+      selectedValue: _selectedRoute,
+      items: _availableRoutes,
+      allLabel: 'Semua Rute',
+      prefixLabel: 'Rute: ',
       tooltip: 'Filter Rute',
-      offset: const Offset(0, 38),
-      elevation: 6,
-      color: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: const BorderSide(color: AppColors.brandBorder),
-      ),
+      fontSize: 12,
       onSelected: _onSelectRoute,
-      itemBuilder: (context) {
-        return [
-          PopupMenuItem<String>(
-            value: '',
-            height: 40,
-            child: Text(
-              'Semua Rute',
-              style: TextStyle(
-                fontFamily: 'PlusJakartaSans',
-                fontSize: 13,
-                fontWeight: !isFiltered ? FontWeight.w700 : FontWeight.w500,
-                color: !isFiltered
-                    ? AppColors.brandPrimary
-                    : AppColors.brandEspresso,
-              ),
-            ),
-          ),
-          const PopupMenuDivider(height: 1),
-          ..._availableRoutes.map(
-            (route) => PopupMenuItem<String>(
-              value: route,
-              height: 40,
-              child: Text(
-                route,
-                style: TextStyle(
-                  fontFamily: 'PlusJakartaSans',
-                  fontSize: 13,
-                  fontWeight: _selectedRoute == route
-                      ? FontWeight.w700
-                      : FontWeight.w500,
-                  color: _selectedRoute == route
-                      ? AppColors.brandPrimary
-                      : AppColors.brandEspresso,
-                ),
-              ),
-            ),
-          ),
-        ];
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isFiltered ? AppColors.brandPrimary : AppColors.brandBorder,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              isFiltered ? 'Rute: $_selectedRoute' : 'Semua Rute',
-              style: TextStyle(
-                fontFamily: 'PlusJakartaSans',
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: isFiltered
-                    ? AppColors.brandPrimary
-                    : AppColors.brandEspresso,
-              ),
-            ),
-            const SizedBox(width: 4),
-            Icon(
-              TablerIcons.chevron_down,
-              size: 14,
-              color: isFiltered
-                  ? AppColors.brandPrimary
-                  : AppColors.brandWarmGray,
-            ),
-          ],
-        ),
-      ),
     );
   }
 

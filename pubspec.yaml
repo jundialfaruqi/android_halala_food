@@ -21,6 +21,7 @@ dependencies:
   go_router: ^17.2.3
   image: ^4.10.1
   image_picker: ^1.2.2
+  intl: ^0.20.3
   latlong2: ^0.10.1
   package_info_plus: ^9.0.1
   shimmer: ^3.0.0

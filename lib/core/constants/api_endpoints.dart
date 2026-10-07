@@ -18,6 +18,14 @@ class ApiEndpoints {
   static const String users = '/users';
   static const String userRoles = '/users/roles';
 
+  // Deliveries (Surat Jalan & Pengantaran)
+  static const String deliveries = '/deliveries';
+  static const String deliveryOptions = '/deliveries/options';
+  static String deliveryDetail(int id) => '/deliveries/$id';
+  static String deliveryDispatch(int id) => '/deliveries/$id/dispatch';
+  static String deliveryComplete(int id) => '/deliveries/$id/complete';
+  static String deliveryCancel(int id) => '/deliveries/$id/cancel';
+
   // Dashboard & Profile
   static const String dashboard = '/dashboard';
 }
