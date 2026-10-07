@@ -373,7 +373,7 @@ class _DeliveryItemEditDialogState extends State<DeliveryItemEditDialog> {
                       fontFamily: 'PlusJakartaSans',
                       fontSize: 14.5,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.brandWarmGray,
+                      color: AppColors.brandPlaceholder,
                     ),
                     style: const TextStyle(
                       fontFamily: 'PlusJakartaSans',

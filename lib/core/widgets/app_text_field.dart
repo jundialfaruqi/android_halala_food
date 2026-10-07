@@ -239,7 +239,12 @@ class _AppTextFieldState extends State<AppTextField> {
           ),
       decoration: InputDecoration(
         hintText: widget.hintText,
-        hintStyle: widget.hintStyle,
+        hintStyle: widget.hintStyle ??
+            const TextStyle(
+              fontFamily: 'PlusJakartaSans',
+              fontSize: 14,
+              color: AppColors.brandPlaceholder,
+            ),
         prefixText: widget.prefixText,
         prefixStyle: widget.prefixStyle,
         prefixIcon: widget.prefixIcon,

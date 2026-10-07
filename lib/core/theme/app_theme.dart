@@ -83,7 +83,8 @@ class AppTheme {
         ),
         hintStyle: const TextStyle(
           fontFamily: fontFamily,
-          color: AppColors.brandWarmGray,
+          fontSize: 14,
+          color: AppColors.brandPlaceholder,
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),

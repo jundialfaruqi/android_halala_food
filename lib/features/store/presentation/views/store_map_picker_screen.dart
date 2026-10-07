@@ -299,7 +299,7 @@ class _StoreMapPickerScreenState extends State<StoreMapPickerScreen> {
                       hintStyle: const TextStyle(
                         fontFamily: 'PlusJakartaSans',
                         fontSize: 13,
-                        color: AppColors.brandWarmGray,
+                        color: AppColors.brandPlaceholder,
                       ),
                       prefixIcon: const Icon(
                         TablerIcons.search,

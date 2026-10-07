@@ -767,7 +767,7 @@ class _DeliveryProductSelectionDialogState
                       fontFamily: 'PlusJakartaSans',
                       fontSize: 12.5,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.brandWarmGray,
+                      color: AppColors.brandPlaceholder,
                     ),
                     style: const TextStyle(
                       fontFamily: 'PlusJakartaSans',
