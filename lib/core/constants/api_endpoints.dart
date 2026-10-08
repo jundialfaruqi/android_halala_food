@@ -30,6 +30,11 @@ class ApiEndpoints {
   static const String invoices = '/invoices';
   static const String invoiceCreateOptions = '/invoices/create-options';
   static String invoiceDetail(int id) => '/invoices/$id';
+  static String invoiceCancel(int id) => '/invoices/$id/cancel';
+  static String invoicePayments(int id) => '/invoices/$id/payments';
+  static String invoicePaymentDetail(int invoiceId, int paymentId) =>
+      '/invoices/$invoiceId/payments/$paymentId';
+  static String invoiceReconcile(int id) => '/invoices/$id/reconcile';
 
   // Dashboard & Profile
   static const String dashboard = '/dashboard';

@@ -15,4 +15,17 @@ abstract class InvoiceRepository {
   Future<InvoiceCreateOptionsModel> getCreateOptions({int? storeId});
 
   Future<InvoiceModel> createInvoice(Map<String, dynamic> payload);
+
+  Future<InvoiceModel> updateInvoice(int id, Map<String, dynamic> payload);
+
+  Future<InvoiceModel> cancelInvoice(int id);
+
+  Future<void> deleteInvoice(int id);
+
+  Future<InvoiceModel> recordPayment(int id, Map<String, dynamic> payload);
+
+  Future<InvoiceModel> deletePayment(int invoiceId, int paymentId);
+
+  Future<InvoiceModel> reconcileInvoice(
+      int id, List<Map<String, dynamic>> items);
 }

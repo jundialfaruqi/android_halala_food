@@ -114,6 +114,77 @@ class MockInvoiceCreateRepository implements InvoiceRepository {
       statusLabel: 'Belum Dibayar',
     );
   }
+
+  @override
+  Future<InvoiceModel> updateInvoice(
+      int id, Map<String, dynamic> payload) async {
+    return const InvoiceModel(
+      id: 99,
+      invoiceNumber: 'INV-20261009-0001',
+      totalAmount: 150000,
+      paidAmount: 0,
+      remainingBalance: 150000,
+      status: 'belum_dibayar',
+      statusLabel: 'Belum Dibayar',
+    );
+  }
+
+  @override
+  Future<InvoiceModel> cancelInvoice(int id) async {
+    return const InvoiceModel(
+      id: 99,
+      invoiceNumber: 'INV-20261009-0001',
+      totalAmount: 150000,
+      paidAmount: 0,
+      remainingBalance: 150000,
+      status: 'dibatalkan',
+      statusLabel: 'Dibatalkan',
+    );
+  }
+
+  @override
+  Future<void> deleteInvoice(int id) async {}
+
+  @override
+  Future<InvoiceModel> recordPayment(
+      int id, Map<String, dynamic> payload) async {
+    return const InvoiceModel(
+      id: 99,
+      invoiceNumber: 'INV-20261009-0001',
+      totalAmount: 150000,
+      paidAmount: 150000,
+      remainingBalance: 0,
+      status: 'lunas',
+      statusLabel: 'Lunas',
+    );
+  }
+
+  @override
+  Future<InvoiceModel> deletePayment(int invoiceId, int paymentId) async {
+    return const InvoiceModel(
+      id: 99,
+      invoiceNumber: 'INV-20261009-0001',
+      totalAmount: 150000,
+      paidAmount: 0,
+      remainingBalance: 150000,
+      status: 'belum_dibayar',
+      statusLabel: 'Belum Dibayar',
+    );
+  }
+
+  @override
+  Future<InvoiceModel> reconcileInvoice(
+      int id, List<Map<String, dynamic>> items) async {
+    return const InvoiceModel(
+      id: 99,
+      invoiceNumber: 'INV-20261009-0001',
+      totalAmount: 150000,
+      paidAmount: 0,
+      remainingBalance: 150000,
+      status: 'belum_dibayar',
+      statusLabel: 'Belum Dibayar',
+    );
+  }
 }
 
 class FakeAuthViewModelWithManagerRole extends AuthViewModel {

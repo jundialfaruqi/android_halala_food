@@ -104,6 +104,37 @@ class MockInvoiceRepository implements InvoiceRepository {
   Future<InvoiceModel> createInvoice(Map<String, dynamic> payload) async {
     return dummyInvoices.first;
   }
+
+  @override
+  Future<InvoiceModel> updateInvoice(
+      int id, Map<String, dynamic> payload) async {
+    return dummyInvoices.first;
+  }
+
+  @override
+  Future<InvoiceModel> cancelInvoice(int id) async {
+    return dummyInvoices.first;
+  }
+
+  @override
+  Future<void> deleteInvoice(int id) async {}
+
+  @override
+  Future<InvoiceModel> recordPayment(
+      int id, Map<String, dynamic> payload) async {
+    return dummyInvoices.first;
+  }
+
+  @override
+  Future<InvoiceModel> deletePayment(int invoiceId, int paymentId) async {
+    return dummyInvoices.first;
+  }
+
+  @override
+  Future<InvoiceModel> reconcileInvoice(
+      int id, List<Map<String, dynamic>> items) async {
+    return dummyInvoices.first;
+  }
 }
 
 class FakeAuthViewModelWithFakturPermissions extends AuthViewModel {

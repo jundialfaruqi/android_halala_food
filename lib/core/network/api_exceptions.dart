@@ -35,13 +35,7 @@ class ApiException implements Exception {
         }
 
         if (responseData is Map) {
-          if (responseData['message'] != null &&
-              responseData['message'].toString().trim().isNotEmpty) {
-            message = responseData['message'].toString();
-          } else if (responseData['error'] != null &&
-              responseData['error'].toString().trim().isNotEmpty) {
-            message = responseData['error'].toString();
-          } else if (responseData['errors'] is Map &&
+          if (responseData['errors'] is Map &&
               (responseData['errors'] as Map).isNotEmpty) {
             final errorsMap = responseData['errors'] as Map;
             final firstVal = errorsMap.values.first;
@@ -50,6 +44,12 @@ class ApiException implements Exception {
             } else if (firstVal != null) {
               message = firstVal.toString();
             }
+          } else if (responseData['message'] != null &&
+              responseData['message'].toString().trim().isNotEmpty) {
+            message = responseData['message'].toString();
+          } else if (responseData['error'] != null &&
+              responseData['error'].toString().trim().isNotEmpty) {
+            message = responseData['error'].toString();
           }
           return ApiException(
             message: message,

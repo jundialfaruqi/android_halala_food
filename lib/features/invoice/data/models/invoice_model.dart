@@ -185,6 +185,7 @@ class InvoiceModel {
   final int id;
   final String invoiceNumber;
   final int? deliveryId;
+  final String? deliveryNumber;
   final int? storeId;
   final int? createdBy;
   final String? invoiceDate;
@@ -206,6 +207,7 @@ class InvoiceModel {
     required this.id,
     required this.invoiceNumber,
     this.deliveryId,
+    this.deliveryNumber,
     this.storeId,
     this.createdBy,
     this.invoiceDate,
@@ -228,6 +230,12 @@ class InvoiceModel {
   bool get isSebagian => status == 'sebagian';
   bool get isLunas => status == 'lunas';
   bool get isDibatalkan => status == 'dibatalkan';
+
+  bool get isReconciled => items.any((it) =>
+      it.remainingQuantity > 0 ||
+      it.damagedQuantity > 0 ||
+      it.returnedQuantity > 0 ||
+      (it.deliveredQuantity > 0 && it.deliveredQuantity != it.quantity));
 
   static String formatIndonesianDate(String? dateStr) {
     if (dateStr == null || dateStr.trim().isEmpty || dateStr == '-') return '-';
@@ -258,6 +266,39 @@ class InvoiceModel {
 
   String get formattedInvoiceDate => formatIndonesianDate(invoiceDate);
   String get formattedDueDate => formatIndonesianDate(dueDate);
+
+  static DateTime? parseDate(String? dateStr) {
+    if (dateStr == null || dateStr.trim().isEmpty || dateStr == '-') return null;
+    final trimmed = dateStr.trim();
+    try {
+      final normalized = trimmed.contains('T')
+          ? trimmed
+          : trimmed.replaceFirst(' ', 'T');
+      return DateTime.parse(normalized);
+    } catch (_) {
+      try {
+        final dateOnly = trimmed.split('T')[0].split(' ')[0];
+        return DateTime.parse(dateOnly);
+      } catch (_) {
+        return null;
+      }
+    }
+  }
+
+  DateTime? get parsedInvoiceDate => parseDate(invoiceDate);
+  DateTime? get parsedDueDate => parseDate(dueDate);
+
+  String get simpleInvoiceDate {
+    final dt = parsedInvoiceDate;
+    if (dt == null) return '';
+    return '${dt.year.toString().padLeft(4, '0')}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
+  }
+
+  String get simpleDueDate {
+    final dt = parsedDueDate;
+    if (dt == null) return '';
+    return '${dt.year.toString().padLeft(4, '0')}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
+  }
 
   String get formattedTotalAmount {
     return NumberFormat.currency(
@@ -316,10 +357,15 @@ class InvoiceModel {
                     ? 'Lunas'
                     : (rawStatus == 'dibatalkan' ? 'Dibatalkan' : rawStatus))));
 
+    final deliveryMap = json['delivery'] as Map<String, dynamic>?;
+    final deliveryNum = json['delivery_number'] as String? ??
+        deliveryMap?['delivery_number'] as String?;
+
     return InvoiceModel(
       id: json['id'] as int? ?? 0,
       invoiceNumber: json['invoice_number'] as String? ?? '-',
       deliveryId: json['delivery_id'] as int?,
+      deliveryNumber: deliveryNum,
       storeId: json['store_id'] as int?,
       createdBy: json['created_by'] as int?,
       invoiceDate: json['invoice_date'] as String?,

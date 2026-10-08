@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../../auth/presentation/viewmodels/auth_viewmodel.dart';
+import '../../../delivery/data/models/delivery_model.dart';
 import '../../../delivery/presentation/models/delivery_item_form_entry.dart';
 import '../../../delivery/presentation/widgets/delivery_item_card.dart';
 import '../../../delivery/presentation/widgets/delivery_item_edit_dialog.dart';
@@ -16,32 +17,26 @@ import '../../data/models/invoice_model.dart';
 import '../../data/repositories/invoice_repository_impl.dart';
 import '../viewmodels/invoice_viewmodel.dart';
 
-/// Halaman Buat Faktur Tagihan Baru Halala Food.
+/// Halaman Edit Faktur Tagihan Halala Food.
 ///
 /// Karakteristik UI & Desain:
 /// - Menggunakan Skeleton Shimmer App saat loading awal form (`ShimmerLoading`).
 /// - Tanpa Card pembungkus di setiap sub form, digantikan judul sub form dengan border bottom.
-/// - UI/UX "Rincian Produk Tertagih" menggunakan alur "Muatan Barang Jadi" persis layar surat jalan:
-///   - Menampilkan `AppEmptyCard.inline` dengan tombol CTA jika kosong.
-///   - Modal seleksi produk 2-kolom (`DeliveryProductSelectionDialog`).
-///   - Modal ubah kuantitas & harga satuan (`DeliveryItemEditDialog`).
-///   - Kartu item produk terisi (`DeliveryItemCard`) dengan thumbnail, kuantitas, harga, dan subtotal.
-///   - Tombol outline tambah baris produk.
-/// - Kepatuhan aturan UI: tanpa badge, tanpa dot indikator, warna netral/brand Halala Food, hemat icon.
-class InvoiceCreateScreen extends ConsumerStatefulWidget {
-  final int? preselectedDeliveryId;
+/// - UI/UX "Rincian Produk Tertagih" selaras dengan halaman muatan surat jalan.
+/// - Kepatuhan aturan UI: tanpa badge, tanpa dot indikator, warna netral Halala Food, hemat icon.
+class InvoiceEditScreen extends ConsumerStatefulWidget {
+  final InvoiceModel invoice;
 
-  const InvoiceCreateScreen({
+  const InvoiceEditScreen({
     super.key,
-    this.preselectedDeliveryId,
+    required this.invoice,
   });
 
   @override
-  ConsumerState<InvoiceCreateScreen> createState() =>
-      _InvoiceCreateScreenState();
+  ConsumerState<InvoiceEditScreen> createState() => _InvoiceEditScreenState();
 }
 
-class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
+class _InvoiceEditScreenState extends ConsumerState<InvoiceEditScreen> {
   final _formKey = GlobalKey<AppDynamicValidationFormState>();
 
   late final TextEditingController _invoiceNumberController;
@@ -51,7 +46,6 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
   late final TextEditingController _notesController;
 
   int? _selectedStoreId;
-  int? _selectedDeliveryId;
   DateTime? _invoiceDate;
   DateTime? _dueDate;
 
@@ -72,11 +66,33 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
   @override
   void initState() {
     super.initState();
-    _invoiceNumberController = TextEditingController();
-    _invoiceDateController = TextEditingController();
-    _dueDateController = TextEditingController();
-    _discountController = TextEditingController(text: '0');
-    _notesController = TextEditingController();
+    _selectedStoreId = widget.invoice.storeId;
+    _invoiceNumberController = TextEditingController(
+      text: widget.invoice.invoiceNumber,
+    );
+    final initialInvDate = widget.invoice.parsedInvoiceDate ?? DateTime.now();
+    final initialDueDate = widget.invoice.parsedDueDate ??
+        initialInvDate.add(const Duration(days: 14));
+
+    _invoiceDate = initialInvDate;
+    _dueDate = initialDueDate;
+
+    _invoiceDateController = TextEditingController(
+      text: widget.invoice.simpleInvoiceDate.isNotEmpty
+          ? widget.invoice.simpleInvoiceDate
+          : DateFormat('yyyy-MM-dd').format(initialInvDate),
+    );
+    _dueDateController = TextEditingController(
+      text: widget.invoice.simpleDueDate.isNotEmpty
+          ? widget.invoice.simpleDueDate
+          : DateFormat('yyyy-MM-dd').format(initialDueDate),
+    );
+    _discountController = TextEditingController(
+      text: widget.invoice.discount.toInt().toString(),
+    );
+    _notesController = TextEditingController(
+      text: widget.invoice.notes ?? '',
+    );
 
     _loadOptions();
   }
@@ -101,48 +117,38 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
       final repository = ref.read(invoiceRepositoryProvider);
       final options = await repository.getCreateOptions();
 
-      final now = DateTime.now();
-      final defaultDue = now.add(const Duration(days: 14));
-
-      final invoiceDateStr = options.defaultInvoiceDate.isNotEmpty
-          ? options.defaultInvoiceDate
-          : DateFormat('yyyy-MM-dd').format(now);
-
-      final dueDateStr = options.defaultDueDate.isNotEmpty
-          ? options.defaultDueDate
-          : DateFormat('yyyy-MM-dd').format(defaultDue);
-
-      DateTime parsedInvoiceDate = now;
-      DateTime parsedDueDate = defaultDue;
-      try {
-        parsedInvoiceDate = DateTime.parse(invoiceDateStr);
-      } catch (_) {
-        parsedInvoiceDate = now;
-      }
-      try {
-        parsedDueDate = DateTime.parse(dueDateStr);
-      } catch (_) {
-        parsedDueDate = defaultDue;
-      }
-
       if (mounted) {
+        _options = options;
+        _items.clear();
+
+        for (final item in widget.invoice.items) {
+          final matchingProduct = options.products
+              .where((p) => p.id == item.productId)
+              .firstOrNull;
+
+          final product = matchingProduct ??
+              ProductOptionModel(
+                id: item.productId,
+                name: item.productName,
+                unit: item.productUnit,
+                stockReady: 0,
+                consignmentPrice: item.unitPrice,
+                depositPrice: item.unitPrice,
+              );
+
+          _items.add(
+            DeliveryItemFormEntry(
+              productId: item.productId,
+              product: product,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+            ),
+          );
+        }
+
         setState(() {
-          _options = options;
-          _invoiceNumberController.text = options.nextInvoiceNumber;
-          _invoiceDate = parsedInvoiceDate;
-          _dueDate = parsedDueDate;
-          _invoiceDateController.text =
-              DateFormat('yyyy-MM-dd').format(parsedInvoiceDate);
-          _dueDateController.text =
-              DateFormat('yyyy-MM-dd').format(parsedDueDate);
-          _items.clear();
           _isLoadingOptions = false;
         });
-
-        // Tangani jika ada surat jalan terpilih dari parameter
-        if (widget.preselectedDeliveryId != null) {
-          _onDeliverySelected(widget.preselectedDeliveryId);
-        }
       }
     } catch (e) {
       if (mounted) {
@@ -154,7 +160,6 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
     }
   }
 
-  /// Membuka dialog seleksi produk jadi format grid 2 kolom (sama seperti di surat jalan)
   Future<void> _openAddProductsDialog() async {
     if (_options == null || _options!.products.isEmpty) {
       AppSnackBar.showError(
@@ -164,22 +169,35 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
       return;
     }
 
-    final currentIds = _items.map((i) => i.productId).toSet();
-    final newItems = await DeliveryProductSelectionDialog.show(
+    final selectedProductIds = _items.map((i) => i.productId).toSet();
+    final availableProducts = _options!.products.where((p) {
+      return !selectedProductIds.contains(p.id);
+    }).toList();
+
+    if (availableProducts.isEmpty) {
+      AppSnackBar.showInfo(
+        context,
+        message: 'Semua jenis produk jadi sudah ditambahkan ke faktur.',
+      );
+      return;
+    }
+
+    final selectedList = await DeliveryProductSelectionDialog.show(
       context: context,
-      products: _options!.products,
-      alreadyAddedProductIds: currentIds,
+      products: availableProducts,
+      alreadyAddedProductIds: selectedProductIds,
     );
 
-    if (newItems != null && newItems.isNotEmpty) {
+    if (selectedList != null && selectedList.isNotEmpty) {
       setState(() {
-        _items.addAll(newItems);
+        for (final entry in selectedList) {
+          _items.add(entry);
+        }
         _itemsErrorMessage = null;
       });
     }
   }
 
-  /// Membuka dialog edit kuantitas dan harga satuan item produk
   Future<void> _editItem(int index) async {
     final item = _items[index];
     final updated = await DeliveryItemEditDialog.show(
@@ -187,64 +205,27 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
       item: item,
     );
 
-    if (updated == true) {
+    if (updated == true && mounted) {
       setState(() {});
     }
   }
 
-  /// Menghapus item dari daftar muatan
   void _removeItem(int index) {
     setState(() {
       _items.removeAt(index);
     });
   }
 
-  /// Tangani pemilihan surat jalan acuan (opsional)
-  void _onDeliverySelected(int? deliveryId) {
-    _selectedDeliveryId = deliveryId;
-    if (deliveryId != null && _options != null) {
-      final delivery =
-          _options!.deliveries.where((d) => d.id == deliveryId).firstOrNull;
-      if (delivery != null) {
-        _selectedStoreId = delivery.storeId;
-        _items.clear();
-
-        for (final delItem in delivery.items) {
-          final prod = _options!.products
-              .where((p) => p.id == delItem.productId)
-              .firstOrNull;
-          if (prod != null) {
-            _items.add(
-              DeliveryItemFormEntry(
-                productId: delItem.productId,
-                product: prod,
-                quantity: delItem.quantity,
-                unitPrice: delItem.unitPrice,
-              ),
-            );
-          }
-        }
-        _itemsErrorMessage = null;
-      }
-    }
-    setState(() {});
-  }
-
   Future<void> _selectDate({required bool isInvoiceDate}) async {
-    final now = DateTime.now();
-    final initial = isInvoiceDate
-        ? (_invoiceDate ?? now)
-        : (_dueDate ?? (_invoiceDate ?? now).add(const Duration(days: 14)));
-
-    final firstDate = isInvoiceDate
-        ? DateTime(2020)
-        : (_invoiceDate ?? DateTime(2020));
+    final initialDate = isInvoiceDate
+        ? (_invoiceDate ?? DateTime.now())
+        : (_dueDate ?? DateTime.now().add(const Duration(days: 14)));
 
     final picked = await showDatePicker(
       context: context,
-      initialDate: initial.isBefore(firstDate) ? firstDate : initial,
-      firstDate: firstDate,
-      lastDate: DateTime(2035),
+      initialDate: initialDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -261,120 +242,89 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
 
     if (picked != null) {
       setState(() {
-        final formatted = DateFormat('yyyy-MM-dd').format(picked);
+        final formattedDate = DateFormat('yyyy-MM-dd').format(picked);
         if (isInvoiceDate) {
           _invoiceDate = picked;
-          _invoiceDateController.text = formatted;
-          if (_dueDate != null && _dueDate!.isBefore(picked)) {
-            _dueDate = picked.add(const Duration(days: 14));
-            _dueDateController.text =
-                DateFormat('yyyy-MM-dd').format(_dueDate!);
-          }
+          _invoiceDateController.text = formattedDate;
         } else {
           _dueDate = picked;
-          _dueDateController.text = formatted;
+          _dueDateController.text = formattedDate;
         }
       });
     }
   }
 
   double get _subtotal {
-    return _items.fold(0.0, (sum, item) => sum + item.subtotal);
+    double total = 0;
+    for (final item in _items) {
+      total += item.subtotal;
+    }
+    return total;
   }
 
   double get _discount {
-    final text = _discountController.text
-        .trim()
-        .replaceAll('.', '')
-        .replaceAll(',', '.');
-    return double.tryParse(text) ?? 0.0;
+    final text = _discountController.text.trim();
+    if (text.isEmpty) return 0;
+    return double.tryParse(text) ?? 0;
   }
 
   double get _totalAmount {
-    final result = _subtotal - _discount;
-    return result > 0 ? result : 0.0;
+    final total = _subtotal - _discount;
+    return total > 0 ? total : 0;
+  }
+
+  double get _remainingBalance {
+    final rem = _totalAmount - widget.invoice.paidAmount;
+    return rem > 0 ? rem : 0.0;
   }
 
   Future<void> _submitInvoice() async {
-    final formState = _formKey.currentState;
-    bool hasInlineErrors = false;
-
-    if (formState == null || !formState.validate()) {
-      hasInlineErrors = true;
-    }
-
-    if (_selectedStoreId == null) {
-      hasInlineErrors = true;
-    }
+    FocusScope.of(context).unfocus();
 
     if (_items.isEmpty) {
       setState(() {
-        _itemsErrorMessage =
-            'Daftar rincian faktur wajib diisi minimal 1 jenis produk.';
+        _itemsErrorMessage = 'Daftar produk yang ditagihkan wajib diisi minimal 1.';
       });
-      hasInlineErrors = true;
-    } else {
-      if (_itemsErrorMessage != null) {
-        setState(() {
-          _itemsErrorMessage = null;
-        });
-      }
-    }
-
-    if (hasInlineErrors) {
       AppSnackBar.showError(
         context,
-        message: 'Mohon periksa kembali form yang belum lengkap.',
+        message: 'Daftar rincian produk tidak boleh kosong.',
       );
       return;
     }
 
-    // Validasi produk tidak boleh ganda pada faktur yang sama
-    final productIds = _items.map((i) => i.productId).toList();
-    if (productIds.toSet().length != productIds.length) {
+    if (_totalAmount < widget.invoice.paidAmount - 0.01) {
       AppSnackBar.showError(
         context,
         message:
-            'Terdapat produk yang dipilih lebih dari 1 kali. Mohon gabungkan kuantitasnya.',
+            'Total tagihan baru (${_currencyFormat.format(_totalAmount)}) tidak boleh lebih kecil dari pembayaran yang sudah diterima (${_currencyFormat.format(widget.invoice.paidAmount)}).',
       );
       return;
     }
 
-    // Validasi tanggal jatuh tempo tidak boleh sebelum tanggal faktur
-    if (_invoiceDate != null && _dueDate != null) {
-      if (_dueDate!.isBefore(_invoiceDate!)) {
-        AppSnackBar.showError(
-          context,
-          message:
-              'Tanggal jatuh tempo harus sama atau setelah tanggal faktur.',
-        );
-        return;
-      }
+    if (_selectedStoreId == null) {
+      AppSnackBar.showError(
+        context,
+        message: 'Pilih toko mitra tujuan penagihan.',
+      );
+      return;
     }
 
     setState(() {
       _isSubmitting = true;
+      _itemsErrorMessage = null;
     });
 
     try {
-      final repository = ref.read(invoiceRepositoryProvider);
-
-      final itemsPayload = _items.map((item) {
+      final itemsPayload = _items.map((i) {
         return {
-          'product_id': item.productId,
-          'quantity': item.quantity,
-          'unit_price': item.unitPrice,
-          'delivered_quantity': item.quantity,
-          'remaining_quantity': 0,
-          'damaged_quantity': 0,
-          'returned_quantity': 0,
+          'product_id': i.productId,
+          'quantity': i.quantity,
+          'unit_price': i.unitPrice,
         };
       }).toList();
 
-      final payload = <String, dynamic>{
-        'invoice_number': _invoiceNumberController.text.trim(),
+      final payload = {
         'store_id': _selectedStoreId,
-        'delivery_id': _selectedDeliveryId,
         'invoice_date': _invoiceDateController.text.trim(),
         'due_date': _dueDateController.text.trim(),
         'discount': _discount,
@@ -382,18 +332,16 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
         'items': itemsPayload,
       };
 
-      final createdInvoice = await repository.createInvoice(payload);
-
-      // Refresh data list faktur
-      ref.read(invoiceViewModelProvider.notifier).loadInvoices(refresh: true);
+      final updated = await ref
+          .read(invoiceViewModelProvider.notifier)
+          .updateInvoice(widget.invoice.id, payload);
 
       if (mounted) {
         AppSnackBar.showSuccess(
           context,
-          message:
-              'Faktur tagihan ${createdInvoice.invoiceNumber} berhasil dibuat.',
+          message: 'Faktur tagihan ${updated.invoiceNumber} berhasil diperbarui.',
         );
-        Navigator.pop(context, true);
+        Navigator.pop(context, updated);
       }
     } catch (e) {
       if (mounted) {
@@ -411,36 +359,36 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
   @override
   Widget build(BuildContext context) {
     final currentUser = ref.watch(authViewModelProvider).user;
-    final canCreate = currentUser != null &&
+    final canEdit = currentUser != null &&
         (currentUser.roles.contains('dev') ||
             currentUser.roles.contains('manager') ||
-            currentUser.permissions.contains('faktur-create'));
+            currentUser.permissions.contains('faktur-edit'));
 
     return AppStatusBar(
       child: AppScaffold(
         appBar: AppAppBar(
-          title: 'Buat Faktur Baru',
+          title: 'Edit Faktur Tagihan',
           leading: IconButton(
             icon: const Icon(TablerIcons.arrow_left, size: 20),
             color: AppColors.brandEspresso,
             onPressed: () => Navigator.pop(context),
           ),
         ),
-        bottomNavigationBar: canCreate
+        bottomNavigationBar: canEdit
             ? AppBottomActionBar(
-                confirmText: 'Simpan Faktur',
+                confirmText: 'Simpan Perubahan',
                 cancelText: 'Batal',
                 isLoading: _isSubmitting,
                 onCancel: () => Navigator.pop(context),
                 onConfirm: _isSubmitting ? null : _submitInvoice,
               )
             : null,
-        body: !canCreate
+        body: !canEdit
             ? const Center(
                 child: Padding(
                   padding: EdgeInsets.all(24.0),
                   child: Text(
-                    'Anda tidak memiliki hak akses (faktur-create) untuk membuat faktur tagihan baru.',
+                    'Anda tidak memiliki hak akses (faktur-edit) untuk mengubah faktur tagihan ini.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontFamily: 'PlusJakartaSans',
@@ -456,7 +404,6 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
   }
 
   Widget _buildContent() {
-    // 1. Loading State menggunakan Skeleton Shimmer App
     if (_isLoadingOptions) {
       return _buildShimmerLoading();
     }
@@ -492,30 +439,87 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
     }
 
     final stores = _options?.stores ?? [];
-    final availableDeliveries = (_options?.deliveries ?? []).where((d) {
-      if (_selectedStoreId == null) return true;
-      return d.storeId == _selectedStoreId;
-    }).toList();
 
     return AppDynamicValidationForm(
       key: _formKey,
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
-          // SUB FORM 1: INFORMASI FAKTUR (Title dengan border bottom, tanpa card)
-          _buildSectionHeader('Informasi Faktur'),
+          // SUB FORM 1: INFORMASI DOKUMEN & PENAGIHAN
+          _buildSectionHeader('Informasi Dokumen & Penagihan'),
+
+          // Nomor Faktur (Readonly)
           AppTextField(
             controller: _invoiceNumberController,
             labelText: 'Nomor Faktur',
-            hintText: 'INV-YYYYMMDD-XXXX',
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Nomor faktur wajib diisi.';
+            enabled: false,
+          ),
+          const SizedBox(height: 14),
+
+          // Tautan Surat Jalan
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Terkait Surat Jalan',
+                style: TextStyle(
+                  fontFamily: 'PlusJakartaSans',
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.brandEspresso,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppColors.brandBorder),
+                ),
+                child: Text(
+                  widget.invoice.deliveryNumber != null &&
+                          widget.invoice.deliveryNumber!.isNotEmpty
+                      ? widget.invoice.deliveryNumber!
+                      : 'Faktur Dibuat Manual (Tanpa Tautan SJ)',
+                  style: TextStyle(
+                    fontFamily: 'PlusJakartaSans',
+                    fontSize: 13,
+                    fontWeight: widget.invoice.deliveryNumber != null
+                        ? FontWeight.w700
+                        : FontWeight.w500,
+                    color: widget.invoice.deliveryNumber != null
+                        ? AppColors.brandEspresso
+                        : AppColors.brandWarmGray,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // Toko Mitra Tujuan
+          StoreDropdownSearchField(
+            labelText: 'Toko Mitra Tujuan *',
+            hintText: 'Pilih Toko Mitra...',
+            initialValue: _selectedStoreId,
+            initialStores: stores,
+            onSelected: (option) {
+              setState(() {
+                _selectedStoreId = option?.id;
+              });
+            },
+            validator: (val) {
+              if (val == null) {
+                return 'Pilih toko mitra tujuan penagihan.';
               }
               return null;
             },
           ),
           const SizedBox(height: 14),
+
+          // Tanggal Faktur & Jatuh Tempo
           Row(
             children: [
               Expanded(
@@ -569,60 +573,7 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
           ),
           const SizedBox(height: 24),
 
-          // SUB FORM 2: TUJUAN PENAGIHAN (Title dengan border bottom, tanpa card)
-          _buildSectionHeader('Tujuan Penagihan'),
-          StoreDropdownSearchField(
-            labelText: 'Toko Mitra Tujuan *',
-            hintText: 'Pilih Toko Mitra...',
-            initialValue: _selectedStoreId,
-            initialStores: stores,
-            onSelected: (option) {
-              setState(() {
-                _selectedStoreId = option?.id;
-                if (_selectedDeliveryId != null) {
-                  final currentDel = _options?.deliveries
-                      .where((d) => d.id == _selectedDeliveryId)
-                      .firstOrNull;
-                  if (currentDel != null && currentDel.storeId != _selectedStoreId) {
-                    _selectedDeliveryId = null;
-                  }
-                }
-              });
-            },
-            validator: (val) {
-              if (val == null) {
-                return 'Pilih toko mitra tujuan penagihan.';
-              }
-              return null;
-            },
-          ),
-          const SizedBox(height: 14),
-          AppMenuSelect<int?>(
-            labelText: 'Berdasarkan Surat Jalan (Opsional)',
-            hintText: 'Tanpa Surat Jalan (Mandiri)',
-            initialSelection: _selectedDeliveryId,
-            entries: [
-              const AppMenuSelectEntry<int?>(
-                value: null,
-                label: 'Tanpa Surat Jalan (Mandiri)',
-              ),
-              ...availableDeliveries.map((d) {
-                final formattedDate = d.formattedDeliveryDate;
-                final dateLabel =
-                    formattedDate.isNotEmpty ? ' ($formattedDate)' : '';
-                return AppMenuSelectEntry<int?>(
-                  value: d.id,
-                  label: '${d.deliveryNumber}$dateLabel',
-                );
-              }),
-            ],
-            onSelected: (val) {
-              _onDeliverySelected(val);
-            },
-          ),
-          const SizedBox(height: 24),
-
-          // SUB FORM 3: RINCIAN PRODUK TERTAGIH (UI/UX Muatan Barang Jadi Surat Jalan)
+          // SUB FORM 2: RINCIAN PRODUK TERTAGIH
           _buildSectionHeader(
             'Rincian Produk Tertagih',
             trailing: _items.isNotEmpty
@@ -638,7 +589,6 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
                 : null,
           ),
 
-          // Tampilan Kosong: AppEmptyCard.inline
           if (_items.isEmpty) ...[
             AppEmptyCard.inline(
               icon: TablerIcons.box_off,
@@ -689,7 +639,6 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
               ),
             ],
           ] else ...[
-            // Tampilan Terisi: DeliveryItemCard
             ..._items.asMap().entries.map((entry) {
               final index = entry.key;
               final item = entry.value;
@@ -712,7 +661,7 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
           ],
           const SizedBox(height: 24),
 
-          // SUB FORM 4: RINGKASAN KEUANGAN & CATATAN (Title dengan border bottom, tanpa card)
+          // SUB FORM 3: RINGKASAN KEUANGAN & CATATAN
           _buildSectionHeader('Ringkasan Keuangan & Catatan'),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -737,6 +686,7 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
             ],
           ),
           const SizedBox(height: 14),
+
           AppTextField(
             controller: _discountController,
             labelText: 'Potongan Harga / Diskon (Rp)',
@@ -752,11 +702,12 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
           const SizedBox(height: 14),
           const Divider(height: 1, color: AppColors.brandBorder),
           const SizedBox(height: 14),
+
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'Total Tagihan Faktur',
+                'Total Tagihan Baru',
                 style: TextStyle(
                   fontFamily: 'PlusJakartaSans',
                   fontSize: 14.5,
@@ -775,19 +726,69 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
               ),
             ],
           ),
+
+          if (widget.invoice.paidAmount > 0) ...[
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Sudah Dibayar',
+                  style: TextStyle(
+                    fontFamily: 'PlusJakartaSans',
+                    fontSize: 13.5,
+                    color: AppColors.brandWarmGray,
+                  ),
+                ),
+                Text(
+                  _currencyFormat.format(widget.invoice.paidAmount),
+                  style: const TextStyle(
+                    fontFamily: 'PlusJakartaSans',
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.success,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Sisa Piutang Setelah Diedit',
+                  style: TextStyle(
+                    fontFamily: 'PlusJakartaSans',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.brandEspresso,
+                  ),
+                ),
+                Text(
+                  _currencyFormat.format(_remainingBalance),
+                  style: const TextStyle(
+                    fontFamily: 'PlusJakartaSans',
+                    fontSize: 15.5,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.brandEspresso,
+                  ),
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: 16),
+
           AppTextField(
             controller: _notesController,
-            labelText: 'Catatan Faktur (Opsional)',
+            labelText: 'Catatan Penagihan (Opsional)',
             hintText: 'Tuliskan catatan tambahan jika ada...',
-            maxLines: 3,
+            maxLines: 2,
           ),
         ],
       ),
     );
   }
 
-  /// Header judul sub form dengan border bottom (tanpa pembungkus card)
   Widget _buildSectionHeader(String title, {Widget? trailing}) {
     return Container(
       padding: const EdgeInsets.only(bottom: 8),
@@ -818,70 +819,23 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
     );
   }
 
-  /// Skeleton Shimmer Loading App saat pertama kali memuat opsi formulir
   Widget _buildShimmerLoading() {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
       children: [
-        // Skeleton Sub Form 1: Informasi Faktur
-        _buildShimmerSectionHeader(width: 140),
-        const SizedBox(height: 6),
-        const ShimmerLoading(width: double.infinity, height: 48, borderRadius: 12),
-        const SizedBox(height: 14),
-        const Row(
-          children: [
-            Expanded(
-              child: ShimmerLoading(
-                  width: double.infinity, height: 48, borderRadius: 12),
-            ),
-            SizedBox(width: 12),
-            Expanded(
-              child: ShimmerLoading(
-                  width: double.infinity, height: 48, borderRadius: 12),
-            ),
-          ],
-        ),
-        const SizedBox(height: 24),
-
-        // Skeleton Sub Form 2: Tujuan Penagihan
-        _buildShimmerSectionHeader(width: 150),
-        const SizedBox(height: 6),
-        const ShimmerLoading(width: double.infinity, height: 48, borderRadius: 12),
-        const SizedBox(height: 14),
-        const ShimmerLoading(width: double.infinity, height: 48, borderRadius: 12),
-        const SizedBox(height: 24),
-
-        // Skeleton Sub Form 3: Rincian Produk
         _buildShimmerSectionHeader(width: 180),
         const SizedBox(height: 6),
-        const ShimmerLoading(
-            width: double.infinity, height: 110, borderRadius: 12),
-        const SizedBox(height: 12),
-        const ShimmerLoading(width: double.infinity, height: 44, borderRadius: 12),
-        const SizedBox(height: 24),
-
-        // Skeleton Sub Form 4: Ringkasan Keuangan
-        _buildShimmerSectionHeader(width: 160),
-        const SizedBox(height: 6),
-        const Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            ShimmerLoading(width: 120, height: 16, borderRadius: 4),
-            ShimmerLoading(width: 100, height: 16, borderRadius: 4),
-          ],
-        ),
+        const ShimmerLoading(width: double.infinity, height: 48, borderRadius: 12),
         const SizedBox(height: 14),
         const ShimmerLoading(width: double.infinity, height: 48, borderRadius: 12),
         const SizedBox(height: 14),
-        const Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            ShimmerLoading(width: 140, height: 18, borderRadius: 4),
-            ShimmerLoading(width: 120, height: 20, borderRadius: 4),
-          ],
-        ),
-        const SizedBox(height: 14),
-        const ShimmerLoading(width: double.infinity, height: 80, borderRadius: 12),
+        const ShimmerLoading(width: double.infinity, height: 48, borderRadius: 12),
+        const SizedBox(height: 24),
+        _buildShimmerSectionHeader(width: 180),
+        const SizedBox(height: 6),
+        const ShimmerLoading(width: double.infinity, height: 110, borderRadius: 12),
+        const SizedBox(height: 12),
+        const ShimmerLoading(width: double.infinity, height: 44, borderRadius: 12),
       ],
     );
   }
@@ -892,17 +846,10 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
       margin: const EdgeInsets.only(bottom: 14),
       decoration: const BoxDecoration(
         border: Border(
-          bottom: BorderSide(
-            color: AppColors.brandBorder,
-            width: 1.2,
-          ),
+          bottom: BorderSide(color: AppColors.brandBorder, width: 1.2),
         ),
       ),
-      child: ShimmerLoading(
-        width: width,
-        height: 18,
-        borderRadius: 4,
-      ),
+      child: ShimmerLoading(width: width, height: 16, borderRadius: 4),
     );
   }
 }

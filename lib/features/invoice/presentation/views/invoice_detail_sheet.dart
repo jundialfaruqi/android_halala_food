@@ -1,10 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
+
+
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/widgets.dart';
+import '../../../auth/presentation/viewmodels/auth_viewmodel.dart';
 import '../../data/models/invoice_model.dart';
+import '../utils/invoice_share_helper.dart';
+import '../viewmodels/invoice_viewmodel.dart';
+import '../widgets/invoice_payment_dialog.dart';
+import '../widgets/invoice_reconciliation_dialog.dart';
+import 'invoice_edit_screen.dart';
 
-class InvoiceDetailSheet extends StatelessWidget {
+class InvoiceDetailSheet extends ConsumerStatefulWidget {
   final InvoiceModel invoice;
 
   const InvoiceDetailSheet({
@@ -21,24 +30,198 @@ class InvoiceDetailSheet extends StatelessWidget {
     );
   }
 
+  @override
+  ConsumerState<InvoiceDetailSheet> createState() => _InvoiceDetailSheetState();
+}
+
+class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
+  late InvoiceModel _invoice;
+
+  @override
+  void initState() {
+    super.initState();
+    _invoice = widget.invoice;
+  }
+
   Color _getStatusColor() {
-    if (invoice.isLunas) return AppColors.success;
-    if (invoice.isOverdue) return AppColors.error;
-    if (invoice.isSebagian) return AppColors.info;
-    if (invoice.isBelumDibayar) return AppColors.warning;
+    if (_invoice.isLunas) return AppColors.success;
+    if (_invoice.isOverdue) return AppColors.error;
+    if (_invoice.isSebagian) return AppColors.info;
+    if (_invoice.isBelumDibayar) return AppColors.warning;
     return AppColors.brandWarmGray;
+  }
+
+  Future<void> _handleRecordPayment() async {
+    final result = await InvoicePaymentDialog.show(
+      context: context,
+      invoice: _invoice,
+    );
+    if (result == true && mounted) {
+      final updatedList = ref.read(invoiceViewModelProvider).invoices;
+      final found = updatedList.where((i) => i.id == _invoice.id).firstOrNull;
+      if (found != null) {
+        setState(() => _invoice = found);
+      }
+    }
+  }
+
+  Future<void> _handleReconcile() async {
+    final result = await InvoiceReconciliationDialog.show(
+      context: context,
+      invoice: _invoice,
+    );
+    if (result == true && mounted) {
+      final updatedList = ref.read(invoiceViewModelProvider).invoices;
+      final found = updatedList.where((i) => i.id == _invoice.id).firstOrNull;
+      if (found != null) {
+        setState(() => _invoice = found);
+      }
+    }
+  }
+
+  Future<void> _handleEditInvoice() async {
+    final updated = await Navigator.push<InvoiceModel>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => InvoiceEditScreen(invoice: _invoice),
+      ),
+    );
+
+    if (updated != null && mounted) {
+      setState(() => _invoice = updated);
+    }
+  }
+
+  Future<void> _handleDeletePayment(InvoicePaymentModel payment) async {
+    AppConfirmDialog.show(
+      context,
+      title: 'Hapus Pembayaran',
+      message:
+          'Hapus catatan pembayaran ini? Saldo faktur akan dihitung ulang secara otomatis.',
+      confirmText: 'Hapus',
+      cancelText: 'Batal',
+      isDanger: true,
+      onConfirm: () async {
+        try {
+          final updated = await ref
+              .read(invoiceViewModelProvider.notifier)
+              .deletePayment(_invoice.id, payment.id);
+          if (mounted) {
+            setState(() => _invoice = updated);
+            AppSnackBar.showSuccess(
+              context,
+              message: 'Catatan pembayaran berhasil dihapus.',
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            AppSnackBar.showError(
+              context,
+              message: e.toString().replaceFirst('Exception: ', ''),
+            );
+          }
+        }
+      },
+    );
+  }
+
+  Future<void> _handleCancelInvoice() async {
+    AppConfirmDialog.show(
+      context,
+      title: 'Batalkan Faktur Tagihan',
+      message:
+          'Apakah Anda yakin ingin membatalkan faktur ini? Faktur yang dibatalkan tidak dapat ditagih kembali.',
+      confirmText: 'Ya, Batalkan',
+      cancelText: 'Kembali',
+      isDanger: true,
+      onConfirm: () async {
+        try {
+          final updated = await ref
+              .read(invoiceViewModelProvider.notifier)
+              .cancelInvoice(_invoice.id);
+          if (mounted) {
+            setState(() => _invoice = updated);
+            AppSnackBar.showSuccess(
+              context,
+              message:
+                  'Faktur tagihan ${_invoice.invoiceNumber} telah dibatalkan.',
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            AppSnackBar.showError(
+              context,
+              message: e.toString().replaceFirst('Exception: ', ''),
+            );
+          }
+        }
+      },
+    );
+  }
+
+  Future<void> _handleDeleteInvoice() async {
+    AppConfirmDialog.show(
+      context,
+      title: 'Hapus Faktur Tagihan',
+      message:
+          'Apakah Anda yakin ingin menghapus faktur ini secara permanen? Tindakan ini tidak dapat dibatalkan.',
+      confirmText: 'Hapus Permanen',
+      cancelText: 'Batal',
+      isDanger: true,
+      onConfirm: () async {
+        try {
+          await ref
+              .read(invoiceViewModelProvider.notifier)
+              .deleteInvoice(_invoice.id);
+          if (mounted) {
+            Navigator.pop(context);
+            AppSnackBar.showSuccess(
+              context,
+              message: 'Faktur tagihan telah dihapus permanen.',
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            AppSnackBar.showError(
+              context,
+              message: e.toString().replaceFirst('Exception: ', ''),
+            );
+          }
+        }
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    // Keep local invoice in sync if provider updated
+    final latestInState = ref
+        .watch(invoiceViewModelProvider)
+        .invoices
+        .where((i) => i.id == _invoice.id)
+        .firstOrNull;
+    if (latestInState != null && latestInState != _invoice) {
+      _invoice = latestInState;
+    }
+
+    final currentUser = ref.watch(authViewModelProvider).user;
+    final canEdit = currentUser != null &&
+        (currentUser.roles.contains('dev') ||
+            currentUser.roles.contains('manager') ||
+            currentUser.permissions.contains('faktur-edit'));
+    final canDelete = currentUser != null &&
+        (currentUser.roles.contains('dev') ||
+            currentUser.roles.contains('manager') ||
+            currentUser.permissions.contains('faktur-delete'));
+
     final statusColor = _getStatusColor();
-    final displayStatusLabel = invoice.isOverdue && !invoice.isLunas
+    final displayStatusLabel = _invoice.isOverdue && !_invoice.isLunas
         ? 'Jatuh Tempo'
-        : invoice.statusLabel;
+        : _invoice.statusLabel;
 
     return Container(
       constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.88,
+        maxHeight: MediaQuery.of(context).size.height * 0.90,
       ),
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -81,7 +264,7 @@ class InvoiceDetailSheet extends StatelessWidget {
                           const SizedBox(width: 8),
                           Flexible(
                             child: Text(
-                              invoice.invoiceNumber,
+                              _invoice.invoiceNumber,
                               style: const TextStyle(
                                 fontFamily: 'PlusJakartaSans',
                                 fontSize: 18,
@@ -117,7 +300,84 @@ class InvoiceDetailSheet extends StatelessWidget {
           ),
           const Divider(height: 1, color: AppColors.brandBorder),
 
-          // Scrollable content
+          // Action Toolbar (Buttons: WhatsApp, Catat Bayar, Rekonsiliasi, Ubah)
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Row(
+              children: [
+                // 1. WhatsApp Button
+                _buildActionButton(
+                  icon: TablerIcons.brand_whatsapp,
+                  label: 'Kirim WA',
+                  onTap: () =>
+                      InvoiceShareHelper.shareToWhatsApp(context, _invoice),
+                ),
+                const SizedBox(width: 8),
+
+                // 2. Catat Pembayaran Button
+                if (canEdit &&
+                    !_invoice.isLunas &&
+                    !_invoice.isDibatalkan &&
+                    _invoice.remainingBalance > 0) ...[
+                  _buildActionButton(
+                    icon: TablerIcons.credit_card,
+                    label: 'Catat Pembayaran',
+                    isPrimary: true,
+                    onTap: _handleRecordPayment,
+                  ),
+                  const SizedBox(width: 8),
+                ],
+
+                // 3. Rekonsiliasi Button
+                if (canEdit && !_invoice.isDibatalkan) ...[
+                  _buildActionButton(
+                    icon: TablerIcons.arrows_exchange,
+                    label: _invoice.isReconciled
+                        ? 'Ubah Rekonsiliasi'
+                        : 'Rekonsiliasi',
+                    onTap: _handleReconcile,
+                  ),
+                  const SizedBox(width: 8),
+                ],
+
+                // 4. Ubah Faktur Button
+                if (canEdit && !_invoice.isLunas && !_invoice.isDibatalkan) ...[
+                  _buildActionButton(
+                    icon: TablerIcons.edit,
+                    label: 'Ubah Faktur',
+                    onTap: _handleEditInvoice,
+                  ),
+                  const SizedBox(width: 8),
+                ],
+
+                // 5. Batalkan Faktur Button (if unpaid)
+                if (canEdit &&
+                    _invoice.paidAmount == 0 &&
+                    !_invoice.isDibatalkan) ...[
+                  _buildActionButton(
+                    icon: TablerIcons.circle_x,
+                    label: 'Batalkan',
+                    onTap: _handleCancelInvoice,
+                  ),
+                  const SizedBox(width: 8),
+                ],
+
+                // 6. Hapus Faktur Button (if unpaid & has delete permission)
+                if (canDelete && _invoice.paidAmount == 0) ...[
+                  _buildActionButton(
+                    icon: TablerIcons.trash,
+                    label: 'Hapus',
+                    isDanger: true,
+                    onTap: _handleDeleteInvoice,
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const Divider(height: 1, color: AppColors.brandBorder),
+
+          // Scrollable Content
           Flexible(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
@@ -140,7 +400,7 @@ class InvoiceDetailSheet extends StatelessWidget {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                invoice.store?.name ?? 'Toko Mitra',
+                                _invoice.store?.name ?? 'Toko Mitra',
                                 style: const TextStyle(
                                   fontFamily: 'PlusJakartaSans',
                                   fontSize: 15,
@@ -149,34 +409,24 @@ class InvoiceDetailSheet extends StatelessWidget {
                                 ),
                               ),
                             ),
-                            if (invoice.store?.route != null &&
-                                invoice.store!.route!.isNotEmpty)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 3,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.brandSoftCream,
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  invoice.store!.route!,
-                                  style: const TextStyle(
-                                    fontFamily: 'PlusJakartaSans',
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.brandPrimary,
-                                  ),
+                            if (_invoice.store?.route != null &&
+                                _invoice.store!.route!.isNotEmpty)
+                              Text(
+                                _invoice.store!.route!,
+                                style: const TextStyle(
+                                  fontFamily: 'PlusJakartaSans',
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.brandWarmGray,
                                 ),
                               ),
                           ],
                         ),
-                        if (invoice.store?.address != null &&
-                            invoice.store!.address!.isNotEmpty) ...[
+                        if (_invoice.store?.address != null &&
+                            _invoice.store!.address!.isNotEmpty) ...[
                           const SizedBox(height: 6),
                           Text(
-                            invoice.store!.address!,
+                            _invoice.store!.address!,
                             style: const TextStyle(
                               fontFamily: 'PlusJakartaSans',
                               fontSize: 12.5,
@@ -185,11 +435,11 @@ class InvoiceDetailSheet extends StatelessWidget {
                             ),
                           ),
                         ],
-                        if (invoice.store?.ownerName != null ||
-                            invoice.store?.phone != null) ...[
+                        if (_invoice.store?.ownerName != null ||
+                            _invoice.store?.phone != null) ...[
                           const SizedBox(height: 4),
                           Text(
-                            'Pemilik: ${invoice.store?.ownerName ?? "-"} | Telp: ${invoice.store?.phone ?? "-"}',
+                            'Pemilik: ${_invoice.store?.ownerName ?? "-"} | Telp: ${_invoice.store?.phone ?? "-"}',
                             style: const TextStyle(
                               fontFamily: 'PlusJakartaSans',
                               fontSize: 12,
@@ -202,13 +452,13 @@ class InvoiceDetailSheet extends StatelessWidget {
                   ),
                   const SizedBox(height: 14),
 
-                  // Dates Info
+                  // Dates & Reference Info
                   Row(
                     children: [
                       Expanded(
                         child: _buildInfoItem(
                           label: 'Tanggal Faktur',
-                          value: invoice.formattedInvoiceDate,
+                          value: _invoice.formattedInvoiceDate,
                           icon: TablerIcons.calendar_event,
                         ),
                       ),
@@ -216,17 +466,64 @@ class InvoiceDetailSheet extends StatelessWidget {
                       Expanded(
                         child: _buildInfoItem(
                           label: 'Jatuh Tempo',
-                          value: invoice.formattedDueDate,
+                          value: _invoice.formattedDueDate,
                           icon: TablerIcons.clock,
-                          isHighlight: invoice.isOverdue && !invoice.isLunas,
+                          isHighlight: _invoice.isOverdue && !_invoice.isLunas,
                         ),
                       ),
                     ],
                   ),
+
+                  if (_invoice.deliveryNumber != null &&
+                      _invoice.deliveryNumber!.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[50],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppColors.brandBorder),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            TablerIcons.truck_delivery,
+                            size: 16,
+                            color: AppColors.brandWarmGray,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Terkait Surat Jalan: ',
+                            style: const TextStyle(
+                              fontFamily: 'PlusJakartaSans',
+                              fontSize: 12,
+                              color: AppColors.brandWarmGray,
+                            ),
+                          ),
+                          Text(
+                            _invoice.deliveryNumber!,
+                            style: const TextStyle(
+                              fontFamily: 'PlusJakartaSans',
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.brandEspresso,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 16),
 
-                  // Rincian Item Produk (jika ada)
-                  if (invoice.items.isNotEmpty) ...[
+                  // Rekonsiliasi Summary Bar (if reconciled)
+                  if (_invoice.isReconciled) ...[
+                    _buildReconciliationSummary(),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // Rincian Item Produk
+                  if (_invoice.items.isNotEmpty) ...[
                     const Text(
                       'Rincian Produk',
                       style: TextStyle(
@@ -237,7 +534,7 @@ class InvoiceDetailSheet extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    ...invoice.items.map((item) => _buildItemRow(item)),
+                    ..._invoice.items.map((item) => _buildItemRow(item)),
                     const SizedBox(height: 16),
                   ],
 
@@ -263,29 +560,29 @@ class InvoiceDetailSheet extends StatelessWidget {
                       children: [
                         _buildSummaryRow(
                           label: 'Subtotal Tagihan',
-                          value: invoice.formattedTotalAmount,
+                          value: _invoice.formattedTotalAmount,
                         ),
-                        if (invoice.discount > 0) ...[
+                        if (_invoice.discount > 0) ...[
                           const SizedBox(height: 6),
                           _buildSummaryRow(
                             label: 'Diskon',
-                            value: '- ${invoice.formattedDiscount}',
+                            value: '- ${_invoice.formattedDiscount}',
                             valueColor: AppColors.success,
                           ),
                         ],
                         const SizedBox(height: 6),
                         _buildSummaryRow(
                           label: 'Sudah Dibayar',
-                          value: invoice.formattedPaidAmount,
+                          value: _invoice.formattedPaidAmount,
                           valueColor: AppColors.success,
                         ),
                         const Divider(height: 16, color: AppColors.brandBorder),
                         _buildSummaryRow(
                           label: 'Sisa Piutang',
-                          value: invoice.formattedRemainingBalance,
+                          value: _invoice.formattedRemainingBalance,
                           isTotal: true,
-                          valueColor: invoice.remainingBalance > 0
-                              ? (invoice.isOverdue
+                          valueColor: _invoice.remainingBalance > 0
+                              ? (_invoice.isOverdue
                                   ? AppColors.error
                                   : AppColors.warning)
                               : AppColors.success,
@@ -295,10 +592,11 @@ class InvoiceDetailSheet extends StatelessWidget {
                   ),
 
                   // Catatan (jika ada)
-                  if (invoice.notes != null && invoice.notes!.isNotEmpty) ...[
+                  if (_invoice.notes != null &&
+                      _invoice.notes!.isNotEmpty) ...[
                     const SizedBox(height: 14),
                     Text(
-                      'Catatan: ${invoice.notes}',
+                      'Catatan: ${_invoice.notes}',
                       style: const TextStyle(
                         fontFamily: 'PlusJakartaSans',
                         fontSize: 12.5,
@@ -308,9 +606,9 @@ class InvoiceDetailSheet extends StatelessWidget {
                     ),
                   ],
 
-                  // Riwayat Pembayaran (jika ada)
-                  if (invoice.payments.isNotEmpty) ...[
-                    const SizedBox(height: 16),
+                  // Riwayat Pembayaran
+                  if (_invoice.payments.isNotEmpty) ...[
+                    const SizedBox(height: 18),
                     const Text(
                       'Riwayat Pembayaran',
                       style: TextStyle(
@@ -321,7 +619,9 @@ class InvoiceDetailSheet extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    ...invoice.payments.map((p) => _buildPaymentRow(p)),
+                    ..._invoice.payments.map(
+                      (p) => _buildPaymentRow(p, canDelete: canEdit),
+                    ),
                   ],
                 ],
               ),
@@ -329,6 +629,134 @@ class InvoiceDetailSheet extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    bool isPrimary = false,
+    bool isDanger = false,
+  }) {
+    final textColor = isDanger
+        ? AppColors.error
+        : (isPrimary ? Colors.white : AppColors.brandEspresso);
+    final bgColor = isPrimary
+        ? AppColors.brandPrimary
+        : (isDanger ? Colors.white : Colors.white);
+    final borderColor = isDanger
+        ? AppColors.error.withValues(alpha: 0.4)
+        : (isPrimary ? AppColors.brandPrimary : AppColors.brandBorder);
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: borderColor),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 15,
+              color: textColor,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontFamily: 'PlusJakartaSans',
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: textColor,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReconciliationSummary() {
+    int totalDelivered = 0;
+    int totalRemaining = 0;
+    int totalDamaged = 0;
+    int totalReturned = 0;
+    int totalSold = 0;
+
+    for (final it in _invoice.items) {
+      totalDelivered +=
+          it.deliveredQuantity > 0 ? it.deliveredQuantity : it.quantity;
+      totalRemaining += it.remainingQuantity;
+      totalDamaged += it.damagedQuantity;
+      totalReturned += it.returnedQuantity;
+      totalSold += it.quantity;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.brandBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Hasil Rekonsiliasi Titip Jual',
+            style: TextStyle(
+              fontFamily: 'PlusJakartaSans',
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: AppColors.brandEspresso,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 12,
+            runSpacing: 4,
+            children: [
+              _buildReconcileStat('Terkirim', totalDelivered),
+              _buildReconcileStat('Sisa', totalRemaining),
+              _buildReconcileStat('Rusak', totalDamaged),
+              _buildReconcileStat('Retur', totalReturned),
+              _buildReconcileStat('Laku', totalSold, isBold: true),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReconcileStat(String label, int value, {bool isBold = false}) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          '$label: ',
+          style: const TextStyle(
+            fontFamily: 'PlusJakartaSans',
+            fontSize: 11.5,
+            color: AppColors.brandWarmGray,
+          ),
+        ),
+        Text(
+          value.toString(),
+          style: TextStyle(
+            fontFamily: 'PlusJakartaSans',
+            fontSize: 12,
+            fontWeight: isBold ? FontWeight.w800 : FontWeight.w600,
+            color: AppColors.brandEspresso,
+          ),
+        ),
+      ],
     );
   }
 
@@ -394,6 +822,11 @@ class InvoiceDetailSheet extends StatelessWidget {
   }
 
   Widget _buildItemRow(InvoiceItemModel item) {
+    final hasReconcileDetails = _invoice.isReconciled &&
+        (item.remainingQuantity > 0 ||
+            item.damagedQuantity > 0 ||
+            item.returnedQuantity > 0);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -426,6 +859,17 @@ class InvoiceDetailSheet extends StatelessWidget {
                     color: AppColors.brandWarmGray,
                   ),
                 ),
+                if (hasReconcileDetails) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    'Sisa: ${item.remainingQuantity} • Rusak: ${item.damagedQuantity} • Retur: ${item.returnedQuantity}',
+                    style: const TextStyle(
+                      fontFamily: 'PlusJakartaSans',
+                      fontSize: 11,
+                      color: AppColors.brandWarmGray,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -474,7 +918,10 @@ class InvoiceDetailSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildPaymentRow(InvoicePaymentModel payment) {
+  Widget _buildPaymentRow(
+    InvoicePaymentModel payment, {
+    required bool canDelete,
+  }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -552,14 +999,33 @@ class InvoiceDetailSheet extends StatelessWidget {
               ],
             ),
           ),
-          Text(
-            payment.formattedAmount,
-            style: const TextStyle(
-              fontFamily: 'PlusJakartaSans',
-              fontSize: 13.5,
-              fontWeight: FontWeight.w700,
-              color: AppColors.success,
-            ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                payment.formattedAmount,
+                style: const TextStyle(
+                  fontFamily: 'PlusJakartaSans',
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.success,
+                ),
+              ),
+              if (canDelete) ...[
+                const SizedBox(width: 8),
+                IconButton(
+                  onPressed: () => _handleDeletePayment(payment),
+                  icon: const Icon(TablerIcons.trash, size: 16),
+                  color: AppColors.error,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 28,
+                    minHeight: 28,
+                  ),
+                  tooltip: 'Hapus pembayaran',
+                ),
+              ],
+            ],
           ),
         ],
       ),

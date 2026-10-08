@@ -47,4 +47,35 @@ class InvoiceRepositoryImpl implements InvoiceRepository {
   Future<InvoiceModel> createInvoice(Map<String, dynamic> payload) {
     return _remoteDataSource.createInvoice(payload);
   }
+
+  @override
+  Future<InvoiceModel> updateInvoice(int id, Map<String, dynamic> payload) {
+    return _remoteDataSource.updateInvoice(id, payload);
+  }
+
+  @override
+  Future<InvoiceModel> cancelInvoice(int id) {
+    return _remoteDataSource.cancelInvoice(id);
+  }
+
+  @override
+  Future<void> deleteInvoice(int id) {
+    return _remoteDataSource.deleteInvoice(id);
+  }
+
+  @override
+  Future<InvoiceModel> recordPayment(int id, Map<String, dynamic> payload) {
+    return _remoteDataSource.recordPayment(id, payload);
+  }
+
+  @override
+  Future<InvoiceModel> deletePayment(int invoiceId, int paymentId) {
+    return _remoteDataSource.deletePayment(invoiceId, paymentId);
+  }
+
+  @override
+  Future<InvoiceModel> reconcileInvoice(
+      int id, List<Map<String, dynamic>> items) {
+    return _remoteDataSource.reconcileInvoice(id, items);
+  }
 }

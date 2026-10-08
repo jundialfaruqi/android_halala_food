@@ -184,4 +184,63 @@ class InvoiceViewModel extends Notifier<InvoiceState> {
     );
     loadInvoices(refresh: true);
   }
+
+  void _updateInvoiceInList(InvoiceModel updated) {
+    final list = state.invoices.map((inv) {
+      return inv.id == updated.id ? updated : inv;
+    }).toList();
+    state = state.copyWith(invoices: list);
+  }
+
+  void _removeInvoiceFromList(int id) {
+    final list = state.invoices.where((inv) => inv.id != id).toList();
+    state = state.copyWith(
+      invoices: list,
+      total: state.total > 0 ? state.total - 1 : 0,
+    );
+  }
+
+  Future<InvoiceModel> recordPayment(
+      int invoiceId, Map<String, dynamic> payload) async {
+    final updated = await _repository.recordPayment(invoiceId, payload);
+    _updateInvoiceInList(updated);
+    loadInvoices(refresh: false);
+    return updated;
+  }
+
+  Future<InvoiceModel> deletePayment(int invoiceId, int paymentId) async {
+    final updated = await _repository.deletePayment(invoiceId, paymentId);
+    _updateInvoiceInList(updated);
+    loadInvoices(refresh: false);
+    return updated;
+  }
+
+  Future<InvoiceModel> reconcileInvoice(
+      int invoiceId, List<Map<String, dynamic>> items) async {
+    final updated = await _repository.reconcileInvoice(invoiceId, items);
+    _updateInvoiceInList(updated);
+    loadInvoices(refresh: false);
+    return updated;
+  }
+
+  Future<InvoiceModel> updateInvoice(
+      int invoiceId, Map<String, dynamic> payload) async {
+    final updated = await _repository.updateInvoice(invoiceId, payload);
+    _updateInvoiceInList(updated);
+    loadInvoices(refresh: false);
+    return updated;
+  }
+
+  Future<InvoiceModel> cancelInvoice(int invoiceId) async {
+    final updated = await _repository.cancelInvoice(invoiceId);
+    _updateInvoiceInList(updated);
+    loadInvoices(refresh: false);
+    return updated;
+  }
+
+  Future<void> deleteInvoice(int invoiceId) async {
+    await _repository.deleteInvoice(invoiceId);
+    _removeInvoiceFromList(invoiceId);
+    loadInvoices(refresh: false);
+  }
 }

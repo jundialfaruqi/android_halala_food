@@ -24,6 +24,19 @@ abstract class InvoiceRemoteDataSource {
   Future<InvoiceCreateOptionsModel> getCreateOptions({int? storeId});
 
   Future<InvoiceModel> createInvoice(Map<String, dynamic> payload);
+
+  Future<InvoiceModel> updateInvoice(int id, Map<String, dynamic> payload);
+
+  Future<InvoiceModel> cancelInvoice(int id);
+
+  Future<void> deleteInvoice(int id);
+
+  Future<InvoiceModel> recordPayment(int id, Map<String, dynamic> payload);
+
+  Future<InvoiceModel> deletePayment(int invoiceId, int paymentId);
+
+  Future<InvoiceModel> reconcileInvoice(
+      int id, List<Map<String, dynamic>> items);
 }
 
 class InvoiceRemoteDataSourceImpl implements InvoiceRemoteDataSource {
@@ -173,5 +186,80 @@ class InvoiceRemoteDataSourceImpl implements InvoiceRemoteDataSource {
     }
 
     throw Exception('Gagal membuat faktur tagihan baru');
+  }
+
+  @override
+  Future<InvoiceModel> updateInvoice(int id, Map<String, dynamic> payload) async {
+    final response = await _dioClient.put(
+      ApiEndpoints.invoiceDetail(id),
+      data: payload,
+    );
+
+    if (response is Map<String, dynamic> && response.containsKey('data')) {
+      return InvoiceModel.fromJson(response['data'] as Map<String, dynamic>);
+    }
+
+    throw Exception('Gagal memperbarui faktur tagihan');
+  }
+
+  @override
+  Future<InvoiceModel> cancelInvoice(int id) async {
+    final response = await _dioClient.post(ApiEndpoints.invoiceCancel(id));
+    if (response is Map<String, dynamic> && response.containsKey('data')) {
+      return InvoiceModel.fromJson(response['data'] as Map<String, dynamic>);
+    }
+    return getInvoiceDetail(id);
+  }
+
+  @override
+  Future<void> deleteInvoice(int id) async {
+    await _dioClient.delete(ApiEndpoints.invoiceDetail(id));
+  }
+
+  @override
+  Future<InvoiceModel> recordPayment(
+      int id, Map<String, dynamic> payload) async {
+    final response = await _dioClient.post(
+      ApiEndpoints.invoicePayments(id),
+      data: payload,
+    );
+
+    if (response is Map<String, dynamic> && response.containsKey('data')) {
+      final data = response['data'] as Map<String, dynamic>;
+      if (data.containsKey('invoice')) {
+        return InvoiceModel.fromJson(data['invoice'] as Map<String, dynamic>);
+      }
+      return InvoiceModel.fromJson(data);
+    }
+
+    throw Exception('Gagal mencatat pembayaran faktur');
+  }
+
+  @override
+  Future<InvoiceModel> deletePayment(int invoiceId, int paymentId) async {
+    final response = await _dioClient.delete(
+      ApiEndpoints.invoicePaymentDetail(invoiceId, paymentId),
+    );
+
+    if (response is Map<String, dynamic> && response.containsKey('data')) {
+      return InvoiceModel.fromJson(response['data'] as Map<String, dynamic>);
+    }
+
+    throw Exception('Gagal menghapus pembayaran faktur');
+  }
+
+  @override
+  Future<InvoiceModel> reconcileInvoice(
+      int id, List<Map<String, dynamic>> items) async {
+    final response = await _dioClient.post(
+      ApiEndpoints.invoiceReconcile(id),
+      data: {'items': items},
+    );
+
+    if (response is Map<String, dynamic> && response.containsKey('data')) {
+      return InvoiceModel.fromJson(response['data'] as Map<String, dynamic>);
+    }
+
+    throw Exception('Gagal menyimpan rekonsiliasi faktur');
   }
 }
