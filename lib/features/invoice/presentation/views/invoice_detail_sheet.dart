@@ -452,42 +452,36 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
                   ),
                   const SizedBox(height: 14),
 
-                  // Dates & Reference Info (1 card dengan divider vertikal)
+                  // Dates & Reference Info (between dengan divider vertikal, tanpa border card)
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 11),
-                    decoration: BoxDecoration(
+                        horizontal: 8, vertical: 8),
+                    decoration: const BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.brandBorder),
                     ),
-                    child: IntrinsicHeight(
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: _buildDateInfoSection(
-                              label: 'Tanggal Faktur',
-                              value: _invoice.formattedInvoiceDate,
-                              icon: TablerIcons.calendar_event,
-                            ),
-                          ),
-                          Container(
-                            width: 1,
-                            margin: const EdgeInsets.symmetric(horizontal: 12),
-                            color: AppColors.brandBorder,
-                          ),
-                          Expanded(
-                            child: _buildDateInfoSection(
-                              label: 'Jatuh Tempo',
-                              value: _invoice.formattedDueDate,
-                              icon: TablerIcons.clock,
-                              isHighlight:
-                                  _invoice.isOverdue && !_invoice.isLunas,
-                            ),
-                          ),
-                        ],
-                      ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        _buildDateInfoSection(
+                          label: 'Tanggal Faktur',
+                          value: _invoice.formattedInvoiceDate,
+                          icon: TablerIcons.calendar_event,
+                        ),
+                        Container(
+                          width: 1,
+                          height: 32,
+                          color: AppColors.brandBorder,
+                        ),
+                        _buildDateInfoSection(
+                          label: 'Jatuh Tempo',
+                          value: _invoice.formattedDueDate,
+                          icon: TablerIcons.clock,
+                          isHighlight:
+                              _invoice.isOverdue && !_invoice.isLunas,
+                        ),
+                      ],
                     ),
                   ),
 
@@ -798,6 +792,7 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
     bool isHighlight = false,
   }) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Icon(
@@ -806,36 +801,34 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
           color: isHighlight ? AppColors.error : AppColors.brandWarmGray,
         ),
         const SizedBox(width: 8),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontFamily: 'PlusJakartaSans',
-                  fontSize: 11,
-                  color: isHighlight
-                      ? AppColors.error
-                      : AppColors.brandWarmGray,
-                ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontFamily: 'PlusJakartaSans',
+                fontSize: 11,
+                color: isHighlight
+                    ? AppColors.error
+                    : AppColors.brandWarmGray,
               ),
-              const SizedBox(height: 2),
-              Text(
-                value,
-                style: TextStyle(
-                  fontFamily: 'PlusJakartaSans',
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w700,
-                  color: isHighlight
-                      ? AppColors.error
-                      : AppColors.brandEspresso,
-                ),
-                overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              value,
+              style: TextStyle(
+                fontFamily: 'PlusJakartaSans',
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+                color: isHighlight
+                    ? AppColors.error
+                    : AppColors.brandEspresso,
               ),
-            ],
-          ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
         ),
       ],
     );
