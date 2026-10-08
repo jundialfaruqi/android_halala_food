@@ -269,7 +269,7 @@ class InvoiceDetailSheet extends StatelessWidget {
                           const SizedBox(height: 6),
                           _buildSummaryRow(
                             label: 'Diskon',
-                            value: '- Rp ${invoice.discount.toStringAsFixed(0)}',
+                            value: '- ${invoice.formattedDiscount}',
                             valueColor: AppColors.success,
                           ),
                         ],
@@ -419,7 +419,7 @@ class InvoiceDetailSheet extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '${item.quantity} ${item.productUnit} @ Rp ${item.unitPrice.toStringAsFixed(0)}',
+                  '${item.quantity} ${item.productUnit} @ ${item.formattedUnitPrice}',
                   style: const TextStyle(
                     fontFamily: 'PlusJakartaSans',
                     fontSize: 11.5,
@@ -430,7 +430,7 @@ class InvoiceDetailSheet extends StatelessWidget {
             ),
           ),
           Text(
-            'Rp ${item.subtotal.toStringAsFixed(0)}',
+            item.formattedSubtotal,
             style: const TextStyle(
               fontFamily: 'PlusJakartaSans',
               fontSize: 13,

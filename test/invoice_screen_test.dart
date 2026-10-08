@@ -227,5 +227,11 @@ void main() {
     expect(find.text('Tunai (Cash)'), findsOneWidget);
     expect(find.text('8 Okt 2026'), findsWidgets);
     expect(find.text('2026-10-08T00:00:00.000000Z'), findsNothing);
+
+    // Verify thousand separator on product item prices
+    expect(find.text('100 pcs @ Rp 15.000'), findsOneWidget);
+    expect(find.text('Rp 1.500.000'), findsWidgets);
+    expect(find.text('100 pcs @ Rp 15000'), findsNothing);
+    expect(find.text('Rp 1500000'), findsNothing);
   });
 }

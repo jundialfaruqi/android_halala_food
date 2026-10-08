@@ -89,6 +89,22 @@ class InvoiceItemModel {
       notes: json['notes'] as String?,
     );
   }
+
+  String get formattedUnitPrice {
+    return NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    ).format(unitPrice);
+  }
+
+  String get formattedSubtotal {
+    return NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    ).format(subtotal);
+  }
 }
 
 class InvoicePaymentModel {
@@ -264,6 +280,14 @@ class InvoiceModel {
       symbol: 'Rp ',
       decimalDigits: 0,
     ).format(paidAmount);
+  }
+
+  String get formattedDiscount {
+    return NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    ).format(discount);
   }
 
   factory InvoiceModel.fromJson(Map<String, dynamic> json) {
