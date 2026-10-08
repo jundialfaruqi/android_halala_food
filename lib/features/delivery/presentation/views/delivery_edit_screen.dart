@@ -11,6 +11,7 @@ import '../models/delivery_item_form_entry.dart';
 import '../widgets/delivery_item_card.dart';
 import '../widgets/delivery_item_edit_dialog.dart';
 import '../widgets/delivery_product_selection_dialog.dart';
+import '../../../store/presentation/widgets/store_dropdown_search_field.dart';
 
 class DeliveryEditScreen extends ConsumerStatefulWidget {
   final int deliveryId;
@@ -426,28 +427,20 @@ class _DeliveryEditScreenState extends ConsumerState<DeliveryEditScreen> {
           const SizedBox(height: 14),
 
           // Toko Mitra
-          AppMenuSelect<int>(
+          StoreDropdownSearchField(
             labelText: 'Toko Mitra Tujuan',
             hintText: 'Pilih Toko Mitra...',
-            initialSelection: _selectedStoreId,
-            entries: opts.stores.map((s) {
-              final routeText = s.route != null && s.route!.isNotEmpty
-                  ? ' (${s.route})'
-                  : '';
-              return AppMenuSelectEntry<int>(
-                value: s.id,
-                label: '${s.name}$routeText',
-              );
-            }).toList(),
+            initialValue: _selectedStoreId,
+            initialStores: opts.stores,
             validator: (val) {
               if (val == null) {
                 return 'Pilih toko mitra tujuan pengantaran.';
               }
               return null;
             },
-            onSelected: (val) {
+            onSelected: (option) {
               setState(() {
-                _selectedStoreId = val;
+                _selectedStoreId = option?.id;
               });
             },
           ),

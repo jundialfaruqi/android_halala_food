@@ -11,6 +11,7 @@ import '../../../delivery/presentation/models/delivery_item_form_entry.dart';
 import '../../../delivery/presentation/widgets/delivery_item_card.dart';
 import '../../../delivery/presentation/widgets/delivery_item_edit_dialog.dart';
 import '../../../delivery/presentation/widgets/delivery_product_selection_dialog.dart';
+import '../../../store/presentation/widgets/store_dropdown_search_field.dart';
 import '../../data/models/invoice_model.dart';
 import '../../data/repositories/invoice_repository_impl.dart';
 import '../viewmodels/invoice_viewmodel.dart';
@@ -568,26 +569,19 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
 
           // SUB FORM 2: TUJUAN PENAGIHAN (Title dengan border bottom, tanpa card)
           _buildSectionHeader('Tujuan Penagihan'),
-          AppMenuSelect<int>(
+          StoreDropdownSearchField(
             labelText: 'Toko Mitra Tujuan *',
             hintText: 'Pilih Toko Mitra...',
-            initialSelection: _selectedStoreId,
-            entries: stores.map((s) {
-              final routeLabel =
-                  s.route != null && s.route!.isNotEmpty ? ' (${s.route})' : '';
-              return AppMenuSelectEntry<int>(
-                value: s.id,
-                label: '${s.name}$routeLabel',
-              );
-            }).toList(),
-            onSelected: (val) {
+            initialValue: _selectedStoreId,
+            initialStores: stores,
+            onSelected: (option) {
               setState(() {
-                _selectedStoreId = val;
+                _selectedStoreId = option?.id;
                 if (_selectedDeliveryId != null) {
                   final currentDel = _options?.deliveries
                       .where((d) => d.id == _selectedDeliveryId)
                       .firstOrNull;
-                  if (currentDel != null && currentDel.storeId != val) {
+                  if (currentDel != null && currentDel.storeId != _selectedStoreId) {
                     _selectedDeliveryId = null;
                   }
                 }

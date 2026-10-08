@@ -12,6 +12,7 @@ abstract class StoreRemoteDataSource {
   Future<StoreListResult> getStores({
     String? search,
     String? route,
+    bool? isActive,
     int page = 1,
     int perPage = 15,
   });
@@ -37,6 +38,7 @@ class StoreRemoteDataSourceImpl implements StoreRemoteDataSource {
   Future<StoreListResult> getStores({
     String? search,
     String? route,
+    bool? isActive,
     int page = 1,
     int perPage = 15,
   }) async {
@@ -51,6 +53,10 @@ class StoreRemoteDataSourceImpl implements StoreRemoteDataSource {
 
     if (route != null && route.trim().isNotEmpty) {
       queryParams['route'] = route.trim();
+    }
+
+    if (isActive != null) {
+      queryParams['is_active'] = isActive;
     }
 
     final response = await _dioClient.get(

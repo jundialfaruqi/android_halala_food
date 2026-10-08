@@ -72,6 +72,7 @@ class DummyStoreRepository implements StoreRepository {
   Future<StoreListResult> getStores({
     String? search,
     String? route,
+    bool? isActive,
     int page = 1,
     int perPage = 15,
   }) async {

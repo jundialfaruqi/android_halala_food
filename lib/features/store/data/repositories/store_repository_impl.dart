@@ -18,12 +18,14 @@ class StoreRepositoryImpl implements StoreRepository {
   Future<StoreListResult> getStores({
     String? search,
     String? route,
+    bool? isActive,
     int page = 1,
     int perPage = 15,
   }) {
     return _remoteDataSource.getStores(
       search: search,
       route: route,
+      isActive: isActive,
       page: page,
       perPage: perPage,
     );
