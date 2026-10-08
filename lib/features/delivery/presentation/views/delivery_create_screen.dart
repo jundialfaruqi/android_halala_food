@@ -30,7 +30,7 @@ class _DeliveryCreateScreenState extends ConsumerState<DeliveryCreateScreen> {
 
   int? _selectedStoreId;
   int? _selectedCourierId;
-  DateTime _selectedDate = DateTime.now();
+  DateTime? _selectedDate;
 
   bool _isLoadingOptions = true;
   bool _isSubmitting = false;
@@ -49,8 +49,6 @@ class _DeliveryCreateScreenState extends ConsumerState<DeliveryCreateScreen> {
   @override
   void initState() {
     super.initState();
-    _deliveryDateController.text =
-        DateFormat('yyyy-MM-dd').format(_selectedDate);
     _loadOptions();
   }
 
@@ -141,9 +139,10 @@ class _DeliveryCreateScreenState extends ConsumerState<DeliveryCreateScreen> {
   }
 
   Future<void> _selectDate() async {
+    final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
-      initialDate: _selectedDate,
+      initialDate: _selectedDate ?? now,
       firstDate: DateTime(2020),
       lastDate: DateTime(2035),
       builder: (context, child) {
@@ -410,19 +409,25 @@ class _DeliveryCreateScreenState extends ConsumerState<DeliveryCreateScreen> {
           ),
           const SizedBox(height: 14),
 
-          // Tanggal Pengantaran
+          // Tanggal Pengantaran (Wajib dipilih)
           GestureDetector(
             onTap: _selectDate,
             child: AbsorbPointer(
               child: AppTextField(
                 controller: _deliveryDateController,
-                labelText: 'Tanggal Pengantaran',
-                hintText: 'YYYY-MM-DD',
+                labelText: 'Tanggal Pengantaran *',
+                hintText: 'Pilih Tanggal',
                 suffixIcon: const Icon(
                   TablerIcons.calendar,
                   size: 20,
                   color: AppColors.brandWarmGray,
                 ),
+                validator: (val) {
+                  if (val == null || val.trim().isEmpty) {
+                    return 'Tanggal pengantaran wajib dipilih.';
+                  }
+                  return null;
+                },
               ),
             ),
           ),
