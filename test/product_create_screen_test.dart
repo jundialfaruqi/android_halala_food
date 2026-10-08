@@ -235,4 +235,45 @@ void main() {
 
     expect(find.text('Nama produk kemasan wajib diisi.'), findsNothing);
   });
+
+  testWidgets('ProductCreateScreen shows "Pilih satuan kemasan" placeholder and requires unit selection', (tester) async {
+    final mockRepo = MockProductRepoForCreateTest();
+    final authVm = FakeAuthViewModelWithPermission();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          productRepositoryProvider.overrideWithValue(mockRepo),
+          authViewModelProvider.overrideWith(() => authVm),
+        ],
+        child: const MaterialApp(
+          home: ProductCreateScreen(),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    // Verify placeholder text is "Pilih satuan kemasan"
+    expect(find.text('Pilih satuan kemasan'), findsOneWidget);
+
+    // Try saving without selecting unit
+    await tester.tap(find.text('Simpan Produk'));
+    await tester.pumpAndSettle();
+
+    // Verify required unit error message
+    expect(find.text('Pilih satuan kemasan produk.'), findsOneWidget);
+
+    // Tap to open unit picker
+    await tester.tap(find.text('Pilih satuan kemasan'));
+    await tester.pumpAndSettle();
+
+    // Select 'Pouch'
+    await tester.tap(find.text('Pouch'));
+    await tester.pumpAndSettle();
+
+    // Verify error is cleared and 'Pouch' is displayed
+    expect(find.text('Pilih satuan kemasan produk.'), findsNothing);
+    expect(find.text('Pouch (Pch)'), findsOneWidget);
+  });
 }

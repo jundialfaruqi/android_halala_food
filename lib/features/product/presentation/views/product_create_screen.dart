@@ -55,25 +55,11 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
     _stockReadyController = TextEditingController(text: '0');
     _descriptionController = TextEditingController();
 
-    // Pastikan daftar satuan tersedia
+    // Pastikan daftar satuan tersedia di viewmodel jika belum dimuat
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final units = ref.read(productViewModelProvider).availableUnits;
       if (units.isEmpty) {
-        ref.read(productViewModelProvider.notifier).fetchUnits().then((_) {
-          if (mounted && _selectedUnit == null) {
-            final loadedUnits =
-                ref.read(productViewModelProvider).availableUnits;
-            if (loadedUnits.isNotEmpty) {
-              setState(() {
-                _selectedUnit = loadedUnits.first;
-              });
-            }
-          }
-        });
-      } else if (_selectedUnit == null && units.isNotEmpty) {
-        setState(() {
-          _selectedUnit = units.first;
-        });
+        ref.read(productViewModelProvider.notifier).fetchUnits();
       }
     });
   }
@@ -578,7 +564,7 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
                             child: Text(
                               _selectedUnit != null
                                   ? _selectedUnit!.displayName
-                                  : 'Pilih Satuan Kemasan...',
+                                  : 'Pilih satuan kemasan',
                               style: TextStyle(
                                 fontFamily: 'PlusJakartaSans',
                                 fontSize: 14,
