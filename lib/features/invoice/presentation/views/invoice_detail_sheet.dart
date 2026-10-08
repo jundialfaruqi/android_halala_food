@@ -713,10 +713,11 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
     }
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(10),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.brandBorder),
       ),
       child: Column(
@@ -841,7 +842,8 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
             item.returnedQuantity > 0);
 
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10),
+      margin: const EdgeInsets.symmetric(horizontal: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
       decoration: BoxDecoration(
         color: Colors.white,
         border: isLast
