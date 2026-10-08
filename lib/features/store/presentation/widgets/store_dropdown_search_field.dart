@@ -85,6 +85,7 @@ class StoreDropdownSearchField extends ConsumerStatefulWidget {
 class _StoreDropdownSearchFieldState
     extends ConsumerState<StoreDropdownSearchField> {
   final LayerLink _layerLink = LayerLink();
+  final GlobalKey _fieldKey = GlobalKey();
   final TextEditingController _textController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
 
@@ -178,17 +179,21 @@ class _StoreDropdownSearchFieldState
     _hideOverlay();
 
     final overlay = Overlay.of(context);
-    final renderBox = context.findRenderObject() as RenderBox?;
+    final renderBox = _fieldKey.currentContext?.findRenderObject() as RenderBox? ??
+        context.findRenderObject() as RenderBox?;
     if (renderBox == null) return;
+
+    final fieldHeight = renderBox.size.height;
+    final fieldWidth = renderBox.size.width;
 
     _overlayEntry = OverlayEntry(
       builder: (context) {
         return Positioned(
-          width: renderBox.size.width,
+          width: fieldWidth,
           child: CompositedTransformFollower(
             link: _layerLink,
             showWhenUnlinked: false,
-            offset: Offset(0, renderBox.size.height + 4),
+            offset: Offset(0, fieldHeight + 4),
             child: TapRegion(
               onTapOutside: (_) {
                 _focusNode.unfocus();
@@ -553,6 +558,7 @@ class _StoreDropdownSearchFieldState
               const SizedBox(height: 6),
             ],
             CompositedTransformTarget(
+              key: _fieldKey,
               link: _layerLink,
               child: TextField(
                 controller: _textController,
