@@ -533,14 +533,11 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
                         color: AppColors.brandEspresso,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     Container(
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.brandBorder),
                       ),
-                      clipBehavior: Clip.antiAlias,
                       child: Column(
                         children: [
                           for (int i = 0; i < _invoice.items.length; i++)
@@ -844,7 +841,7 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
             item.returnedQuantity > 0);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+      padding: const EdgeInsets.symmetric(vertical: 10),
       decoration: BoxDecoration(
         color: Colors.white,
         border: isLast
