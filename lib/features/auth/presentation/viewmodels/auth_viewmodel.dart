@@ -30,6 +30,13 @@ class AuthViewModel extends Notifier<AuthState> {
           user: user,
           errorMessage: null,
         );
+
+        // Sinkronisasi data user & permissions terbaru dari API di latar belakang
+        _repository.fetchUserProfile().then((freshUser) {
+          state = state.copyWith(user: freshUser);
+        }).catchError((_) {
+          // Abaikan error jaringan saat background sync
+        });
       } else {
         state = state.copyWith(
           status: AuthStatus.unauthenticated,

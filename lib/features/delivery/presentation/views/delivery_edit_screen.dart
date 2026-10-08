@@ -4,6 +4,7 @@ import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/widgets.dart';
+import '../../../auth/presentation/viewmodels/auth_viewmodel.dart';
 import '../../data/models/delivery_model.dart';
 import '../../data/repositories/delivery_repository_impl.dart';
 import '../models/delivery_item_form_entry.dart';
@@ -53,6 +54,19 @@ class _DeliveryEditScreenState extends ConsumerState<DeliveryEditScreen> {
   @override
   void initState() {
     super.initState();
+    final canEdit = ref.read(authViewModelProvider).user?.hasPermission('pengantaran-edit') ?? false;
+    if (!canEdit) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          AppSnackBar.showError(
+            context,
+            message: 'Anda tidak memiliki hak akses untuk mengubah surat jalan.',
+          );
+          Navigator.pop(context);
+        }
+      });
+      return;
+    }
     _loadData();
   }
 
@@ -304,6 +318,26 @@ class _DeliveryEditScreenState extends ConsumerState<DeliveryEditScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final user = ref.watch(authViewModelProvider).user;
+    final canEdit = user?.hasPermission('pengantaran-edit') ?? false;
+
+    if (!canEdit) {
+      return const AppStatusBar(
+        child: AppScaffold(
+          appBar: AppAppBar(
+            title: 'Edit Surat Jalan',
+          ),
+          body: Center(
+            child: AppEmptyCard(
+              title: 'Akses Ditolak',
+              message:
+                  'Anda tidak memiliki hak akses untuk mengubah surat jalan.',
+            ),
+          ),
+        ),
+      );
+    }
+
     return AppStatusBar(
       child: AppScaffold(
         appBar: AppAppBar(
