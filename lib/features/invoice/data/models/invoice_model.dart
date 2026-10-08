@@ -1,4 +1,5 @@
 import 'package:intl/intl.dart';
+import '../../../../core/config/app_config.dart';
 import '../../../delivery/data/models/delivery_model.dart';
 
 class InvoiceStoreModel {
@@ -53,6 +54,7 @@ class InvoiceItemModel {
   final double unitPrice;
   final double subtotal;
   final String? notes;
+  final String? productPhotoUrl;
 
   const InvoiceItemModel({
     required this.id,
@@ -68,11 +70,18 @@ class InvoiceItemModel {
     required this.unitPrice,
     required this.subtotal,
     this.notes,
+    this.productPhotoUrl,
   });
 
   factory InvoiceItemModel.fromJson(Map<String, dynamic> json) {
     final productMap = json['product'] as Map<String, dynamic>?;
     final unitModelMap = productMap?['unit_model'] as Map<String, dynamic>?;
+
+    final rawPhoto = productMap?['photo_url']?.toString() ??
+        productMap?['photo']?.toString() ??
+        json['product_photo_url']?.toString() ??
+        json['photo_url']?.toString() ??
+        json['photo']?.toString();
 
     return InvoiceItemModel(
       id: json['id'] as int? ?? 0,
@@ -88,7 +97,21 @@ class InvoiceItemModel {
       unitPrice: json['unit_price'] != null ? double.tryParse(json['unit_price'].toString()) ?? 0.0 : 0.0,
       subtotal: json['subtotal'] != null ? double.tryParse(json['subtotal'].toString()) ?? 0.0 : 0.0,
       notes: json['notes'] as String?,
+      productPhotoUrl: rawPhoto,
     );
+  }
+
+  String? get resolvedPhotoUrl {
+    if (productPhotoUrl == null || productPhotoUrl!.trim().isEmpty) return null;
+    final trimmed = productPhotoUrl!.trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return trimmed;
+    }
+    final base = AppConfig.baseUrl.replaceAll(RegExp(r'/api/?$'), '');
+    if (trimmed.startsWith('/')) {
+      return '$base$trimmed';
+    }
+    return '$base/storage/$trimmed';
   }
 
   String get formattedUnitPrice {

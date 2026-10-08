@@ -283,5 +283,20 @@ void main() {
     final invoiceIcon =
         tester.widget<Icon>(find.byIcon(TablerIcons.file_invoice));
     expect(invoiceIcon.color, equals(Colors.black));
+
+    // Tap on the product item to open photo dialog
+    await tester.tap(find.text('Keripik Tempe Pcs'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    // Verify photo preview dialog is displayed with header product name on black canvas
+    expect(find.byType(Dialog), findsOneWidget);
+    expect(find.text('Keripik Tempe Pcs'), findsWidgets);
+
+    // Tap close button on dialog
+    await tester.tap(find.byIcon(TablerIcons.x).last);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.byType(Dialog), findsNothing);
   });
 }

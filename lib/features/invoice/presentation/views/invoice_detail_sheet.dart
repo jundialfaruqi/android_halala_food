@@ -452,26 +452,43 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
                   ),
                   const SizedBox(height: 14),
 
-                  // Dates & Reference Info
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildInfoItem(
-                          label: 'Tanggal Faktur',
-                          value: _invoice.formattedInvoiceDate,
-                          icon: TablerIcons.calendar_event,
-                        ),
+                  // Dates & Reference Info (1 card dengan divider vertikal)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 11),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.brandBorder),
+                    ),
+                    child: IntrinsicHeight(
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: _buildDateInfoSection(
+                              label: 'Tanggal Faktur',
+                              value: _invoice.formattedInvoiceDate,
+                              icon: TablerIcons.calendar_event,
+                            ),
+                          ),
+                          Container(
+                            width: 1,
+                            margin: const EdgeInsets.symmetric(horizontal: 12),
+                            color: AppColors.brandBorder,
+                          ),
+                          Expanded(
+                            child: _buildDateInfoSection(
+                              label: 'Jatuh Tempo',
+                              value: _invoice.formattedDueDate,
+                              icon: TablerIcons.clock,
+                              isHighlight:
+                                  _invoice.isOverdue && !_invoice.isLunas,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildInfoItem(
-                          label: 'Jatuh Tempo',
-                          value: _invoice.formattedDueDate,
-                          icon: TablerIcons.clock,
-                          isHighlight: _invoice.isOverdue && !_invoice.isLunas,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
 
                   if (_invoice.deliveryNumber != null &&
@@ -774,64 +791,53 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
     );
   }
 
-  Widget _buildInfoItem({
+  Widget _buildDateInfoSection({
     required String label,
     required String value,
     required IconData icon,
     bool isHighlight = false,
   }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: isHighlight
-            ? AppColors.error.withValues(alpha: 0.08)
-            : Colors.grey[50],
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: isHighlight
-              ? AppColors.error.withValues(alpha: 0.3)
-              : AppColors.brandBorder,
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Icon(
+          icon,
+          size: 18,
+          color: isHighlight ? AppColors.error : AppColors.brandWarmGray,
         ),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            icon,
-            size: 16,
-            color: isHighlight ? AppColors.error : AppColors.brandWarmGray,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontFamily: 'PlusJakartaSans',
-                    fontSize: 11,
-                    color: isHighlight
-                        ? AppColors.error
-                        : AppColors.brandWarmGray,
-                  ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontFamily: 'PlusJakartaSans',
+                  fontSize: 11,
+                  color: isHighlight
+                      ? AppColors.error
+                      : AppColors.brandWarmGray,
                 ),
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontFamily: 'PlusJakartaSans',
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
-                    color: isHighlight
-                        ? AppColors.error
-                        : AppColors.brandEspresso,
-                  ),
-                  overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: TextStyle(
+                  fontFamily: 'PlusJakartaSans',
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  color: isHighlight
+                      ? AppColors.error
+                      : AppColors.brandEspresso,
                 ),
-              ],
-            ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -841,71 +847,235 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
             item.damagedQuantity > 0 ||
             item.returnedQuantity > 0);
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: isLast
-            ? null
-            : const Border(
-                bottom: BorderSide(
-                  color: AppColors.brandBorder,
-                  width: 1.0,
-                ),
-              ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.productName,
-                  style: const TextStyle(
-                    fontFamily: 'PlusJakartaSans',
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.brandEspresso,
+    return InkWell(
+      onTap: () => _showProductPhotoDialog(item),
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: isLast
+              ? null
+              : const Border(
+                  bottom: BorderSide(
+                    color: AppColors.brandBorder,
+                    width: 1.0,
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  '${item.quantity} ${item.productUnit} @ ${item.formattedUnitPrice}',
-                  style: const TextStyle(
-                    fontFamily: 'PlusJakartaSans',
-                    fontSize: 11.5,
-                    color: AppColors.brandWarmGray,
-                  ),
-                ),
-                if (hasReconcileDetails) ...[
-                  const SizedBox(height: 2),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Avatar rounded circle foto produk
+            _buildProductAvatar(item),
+            const SizedBox(width: 12),
+
+            // Rincian Teks Produk
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    'Sisa: ${item.remainingQuantity} • Rusak: ${item.damagedQuantity} • Retur: ${item.returnedQuantity}',
+                    item.productName,
                     style: const TextStyle(
                       fontFamily: 'PlusJakartaSans',
-                      fontSize: 11,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.brandEspresso,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${item.quantity} ${item.productUnit} @ ${item.formattedUnitPrice}',
+                    style: const TextStyle(
+                      fontFamily: 'PlusJakartaSans',
+                      fontSize: 11.5,
                       color: AppColors.brandWarmGray,
                     ),
                   ),
+                  if (hasReconcileDetails) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      'Sisa: ${item.remainingQuantity} • Rusak: ${item.damagedQuantity} • Retur: ${item.returnedQuantity}',
+                      style: const TextStyle(
+                        fontFamily: 'PlusJakartaSans',
+                        fontSize: 11,
+                        color: AppColors.brandWarmGray,
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Text(
-            item.formattedSubtotal,
-            style: const TextStyle(
-              fontFamily: 'PlusJakartaSans',
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: AppColors.brandEspresso,
+            const SizedBox(width: 12),
+            Text(
+              item.formattedSubtotal,
+              style: const TextStyle(
+                fontFamily: 'PlusJakartaSans',
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: AppColors.brandEspresso,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildProductAvatar(InvoiceItemModel item) {
+    const double size = 38.0;
+    final photoUrl = item.resolvedPhotoUrl;
+    final hasPhoto = photoUrl != null && photoUrl.trim().isNotEmpty;
+
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: AppColors.brandSoftCream,
+        border: Border.all(
+          color: AppColors.brandBorder,
+          width: 1.0,
+        ),
+      ),
+      child: ClipOval(
+        child: hasPhoto
+            ? AppCachedImage(
+                imageUrl: photoUrl,
+                width: size,
+                height: size,
+                fit: BoxFit.cover,
+                errorWidget: _buildProductInitial(item.productName, size),
+              )
+            : _buildProductInitial(item.productName, size),
+      ),
+    );
+  }
+
+  Widget _buildProductInitial(String name, double size) {
+    final initial = name.trim().isNotEmpty ? name.trim()[0].toUpperCase() : 'P';
+    return Container(
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      color: AppColors.brandSoftCream,
+      child: Text(
+        initial,
+        style: const TextStyle(
+          fontFamily: 'PlusJakartaSans',
+          fontSize: 14,
+          fontWeight: FontWeight.w700,
+          color: AppColors.brandEspresso,
+        ),
+      ),
+    );
+  }
+
+  void _showProductPhotoDialog(InvoiceItemModel item) {
+    final photoUrl = item.resolvedPhotoUrl;
+    final hasPhoto = photoUrl != null && photoUrl.trim().isNotEmpty;
+
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.95),
+      builder: (dialogContext) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: EdgeInsets.zero,
+          child: Container(
+            width: double.infinity,
+            height: double.infinity,
+            color: Colors.black,
+            child: SafeArea(
+              child: Column(
+                children: [
+                  // Header: Nama Produk & Tombol Tutup
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            item.productName,
+                            style: const TextStyle(
+                              fontFamily: 'PlusJakartaSans',
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        IconButton(
+                          onPressed: () => Navigator.of(dialogContext).pop(),
+                          icon: const Icon(TablerIcons.x, color: Colors.white, size: 24),
+                          splashRadius: 22,
+                          tooltip: 'Tutup',
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1, color: Colors.white24),
+
+                  // Area Foto Produk (contain pada canvas black)
+                  Expanded(
+                    child: InteractiveViewer(
+                      minScale: 0.8,
+                      maxScale: 4.0,
+                      child: Center(
+                        child: hasPhoto
+                            ? AppCachedImage(
+                                imageUrl: photoUrl,
+                                fit: BoxFit.contain,
+                                width: double.infinity,
+                                height: double.infinity,
+                                placeholder: const Center(
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2.5,
+                                  ),
+                                ),
+                                errorWidget: _buildPhotoEmptyState(),
+                              )
+                            : _buildPhotoEmptyState(),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPhotoEmptyState() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: const [
+        Icon(
+          TablerIcons.photo_off,
+          size: 64,
+          color: Colors.white38,
+        ),
+        SizedBox(height: 12),
+        Text(
+          'Foto produk tidak tersedia',
+          style: TextStyle(
+            fontFamily: 'PlusJakartaSans',
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Colors.white60,
+          ),
+        ),
+      ],
     );
   }
 
