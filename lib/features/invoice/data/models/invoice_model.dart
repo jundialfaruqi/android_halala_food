@@ -358,3 +358,203 @@ class InvoiceListResult {
     required this.stores,
   });
 }
+
+class InvoiceProductOptionModel {
+  final int id;
+  final String name;
+  final String unit;
+  final int stockReady;
+  final double consignmentPrice;
+  final double retailPrice;
+
+  const InvoiceProductOptionModel({
+    required this.id,
+    required this.name,
+    required this.unit,
+    this.stockReady = 0,
+    required this.consignmentPrice,
+    required this.retailPrice,
+  });
+
+  factory InvoiceProductOptionModel.fromJson(Map<String, dynamic> json) {
+    final unitModel = json['unit_model'] as Map<String, dynamic>?;
+    final unitName = unitModel?['short_name'] as String? ??
+        unitModel?['name'] as String? ??
+        json['unit'] as String? ??
+        'pcs';
+
+    return InvoiceProductOptionModel(
+      id: json['id'] as int? ?? 0,
+      name: json['name'] as String? ?? '-',
+      unit: unitName,
+      stockReady: json['stock_ready'] as int? ?? 0,
+      consignmentPrice: json['consignment_price'] != null
+          ? double.tryParse(json['consignment_price'].toString()) ?? 0.0
+          : 0.0,
+      retailPrice: json['retail_price'] != null
+          ? double.tryParse(json['retail_price'].toString()) ?? 0.0
+          : 0.0,
+    );
+  }
+}
+
+class InvoiceDeliveryItemOptionModel {
+  final int productId;
+  final String productName;
+  final String productUnit;
+  final int quantity;
+  final double unitPrice;
+  final double subtotal;
+
+  const InvoiceDeliveryItemOptionModel({
+    required this.productId,
+    required this.productName,
+    required this.productUnit,
+    required this.quantity,
+    required this.unitPrice,
+    required this.subtotal,
+  });
+
+  factory InvoiceDeliveryItemOptionModel.fromJson(Map<String, dynamic> json) {
+    final productMap = json['product'] as Map<String, dynamic>?;
+    final unitModelMap = productMap?['unit_model'] as Map<String, dynamic>?;
+    final unitName = unitModelMap?['short_name'] as String? ??
+        productMap?['unit'] as String? ??
+        'pcs';
+
+    return InvoiceDeliveryItemOptionModel(
+      productId: json['product_id'] as int? ?? 0,
+      productName: productMap?['name'] as String? ?? 'Produk',
+      productUnit: unitName,
+      quantity: json['quantity'] as int? ?? 0,
+      unitPrice: json['unit_price'] != null
+          ? double.tryParse(json['unit_price'].toString()) ?? 0.0
+          : 0.0,
+      subtotal: json['subtotal'] != null
+          ? double.tryParse(json['subtotal'].toString()) ?? 0.0
+          : 0.0,
+    );
+  }
+}
+
+class InvoiceDeliveryOptionModel {
+  final int id;
+  final String deliveryNumber;
+  final int storeId;
+  final String? deliveryDate;
+  final String? deliveryDateFormatted;
+  final List<InvoiceDeliveryItemOptionModel> items;
+
+  const InvoiceDeliveryOptionModel({
+    required this.id,
+    required this.deliveryNumber,
+    required this.storeId,
+    this.deliveryDate,
+    this.deliveryDateFormatted,
+    this.items = const [],
+  });
+
+  factory InvoiceDeliveryOptionModel.fromJson(Map<String, dynamic> json) {
+    List<InvoiceDeliveryItemOptionModel> parsedItems = [];
+    if (json['items'] is List) {
+      parsedItems = (json['items'] as List)
+          .map((i) =>
+              InvoiceDeliveryItemOptionModel.fromJson(i as Map<String, dynamic>))
+          .toList();
+    }
+
+    return InvoiceDeliveryOptionModel(
+      id: json['id'] as int? ?? 0,
+      deliveryNumber: json['delivery_number'] as String? ?? '-',
+      storeId: json['store_id'] as int? ?? 0,
+      deliveryDate: json['delivery_date'] as String?,
+      deliveryDateFormatted: json['delivery_date_formatted'] as String?,
+      items: parsedItems,
+    );
+  }
+
+  String get formattedDeliveryDate {
+    if (deliveryDateFormatted != null &&
+        deliveryDateFormatted!.trim().isNotEmpty) {
+      return deliveryDateFormatted!;
+    }
+    if (deliveryDate == null || deliveryDate!.trim().isEmpty) {
+      return '';
+    }
+
+    final str = deliveryDate!.trim();
+    try {
+      final normalized =
+          str.contains('T') ? str : str.replaceFirst(' ', 'T');
+      final dt = DateTime.parse(normalized).toLocal();
+      const months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'Mei',
+        'Jun',
+        'Jul',
+        'Agu',
+        'Sep',
+        'Okt',
+        'Nov',
+        'Des',
+      ];
+      final day = dt.day;
+      final month = months[dt.month - 1];
+      final year = dt.year;
+
+      final hasTime = str.contains(':') && (dt.hour != 0 || dt.minute != 0);
+      if (hasTime) {
+        final hour = dt.hour.toString().padLeft(2, '0');
+        final minute = dt.minute.toString().padLeft(2, '0');
+        return '$day $month $year, $hour:$minute';
+      }
+      return '$day $month $year';
+    } catch (_) {
+      return str;
+    }
+  }
+}
+
+class InvoiceCreateOptionsModel {
+  final List<InvoiceStoreModel> stores;
+  final List<InvoiceProductOptionModel> products;
+  final List<InvoiceDeliveryOptionModel> deliveries;
+  final String nextInvoiceNumber;
+  final String defaultInvoiceDate;
+  final String defaultDueDate;
+
+  const InvoiceCreateOptionsModel({
+    this.stores = const [],
+    this.products = const [],
+    this.deliveries = const [],
+    this.nextInvoiceNumber = '',
+    this.defaultInvoiceDate = '',
+    this.defaultDueDate = '',
+  });
+
+  factory InvoiceCreateOptionsModel.fromJson(Map<String, dynamic> json) {
+    final rawStores = json['stores'] as List? ?? [];
+    final rawProducts = json['products'] as List? ?? [];
+    final rawDeliveries = json['deliveries'] as List? ?? [];
+
+    return InvoiceCreateOptionsModel(
+      stores: rawStores
+          .map((s) => InvoiceStoreModel.fromJson(s as Map<String, dynamic>))
+          .toList(),
+      products: rawProducts
+          .map((p) =>
+              InvoiceProductOptionModel.fromJson(p as Map<String, dynamic>))
+          .toList(),
+      deliveries: rawDeliveries
+          .map((d) =>
+              InvoiceDeliveryOptionModel.fromJson(d as Map<String, dynamic>))
+          .toList(),
+      nextInvoiceNumber: json['next_invoice_number'] as String? ?? '',
+      defaultInvoiceDate: json['default_invoice_date'] as String? ?? '',
+      defaultDueDate: json['default_due_date'] as String? ?? '',
+    );
+  }
+}

@@ -37,4 +37,14 @@ class InvoiceRepositoryImpl implements InvoiceRepository {
   Future<InvoiceModel> getInvoiceDetail(int id) {
     return _remoteDataSource.getInvoiceDetail(id);
   }
+
+  @override
+  Future<InvoiceCreateOptionsModel> getCreateOptions({int? storeId}) {
+    return _remoteDataSource.getCreateOptions(storeId: storeId);
+  }
+
+  @override
+  Future<InvoiceModel> createInvoice(Map<String, dynamic> payload) {
+    return _remoteDataSource.createInvoice(payload);
+  }
 }

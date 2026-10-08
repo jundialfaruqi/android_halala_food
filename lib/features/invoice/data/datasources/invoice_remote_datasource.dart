@@ -20,6 +20,10 @@ abstract class InvoiceRemoteDataSource {
   });
 
   Future<InvoiceModel> getInvoiceDetail(int id);
+
+  Future<InvoiceCreateOptionsModel> getCreateOptions({int? storeId});
+
+  Future<InvoiceModel> createInvoice(Map<String, dynamic> payload);
 }
 
 class InvoiceRemoteDataSourceImpl implements InvoiceRemoteDataSource {
@@ -134,5 +138,40 @@ class InvoiceRemoteDataSourceImpl implements InvoiceRemoteDataSource {
     }
 
     throw Exception('Gagal memuat rincian faktur');
+  }
+
+  @override
+  Future<InvoiceCreateOptionsModel> getCreateOptions({int? storeId}) async {
+    final queryParams = <String, dynamic>{};
+    if (storeId != null && storeId > 0) {
+      queryParams['store_id'] = storeId;
+    }
+
+    final response = await _dioClient.get(
+      ApiEndpoints.invoiceCreateOptions,
+      queryParameters: queryParams.isNotEmpty ? queryParams : null,
+    );
+
+    if (response is Map<String, dynamic> && response.containsKey('data')) {
+      return InvoiceCreateOptionsModel.fromJson(
+        response['data'] as Map<String, dynamic>,
+      );
+    }
+
+    throw Exception('Gagal memuat opsi pembuatan faktur tagihan');
+  }
+
+  @override
+  Future<InvoiceModel> createInvoice(Map<String, dynamic> payload) async {
+    final response = await _dioClient.post(
+      ApiEndpoints.invoices,
+      data: payload,
+    );
+
+    if (response is Map<String, dynamic> && response.containsKey('data')) {
+      return InvoiceModel.fromJson(response['data'] as Map<String, dynamic>);
+    }
+
+    throw Exception('Gagal membuat faktur tagihan baru');
   }
 }

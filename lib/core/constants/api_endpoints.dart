@@ -28,6 +28,7 @@ class ApiEndpoints {
 
   // Invoices (Faktur & Piutang)
   static const String invoices = '/invoices';
+  static const String invoiceCreateOptions = '/invoices/create-options';
   static String invoiceDetail(int id) => '/invoices/$id';
 
   // Dashboard & Profile

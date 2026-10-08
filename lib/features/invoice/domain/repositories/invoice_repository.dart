@@ -11,4 +11,8 @@ abstract class InvoiceRepository {
   });
 
   Future<InvoiceModel> getInvoiceDetail(int id);
+
+  Future<InvoiceCreateOptionsModel> getCreateOptions({int? storeId});
+
+  Future<InvoiceModel> createInvoice(Map<String, dynamic> payload);
 }

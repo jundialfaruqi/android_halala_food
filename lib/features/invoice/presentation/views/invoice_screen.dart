@@ -6,6 +6,7 @@ import '../../../../core/widgets/widgets.dart';
 import '../../../auth/presentation/viewmodels/auth_viewmodel.dart';
 import '../../data/models/invoice_model.dart';
 import '../viewmodels/invoice_viewmodel.dart';
+import 'invoice_create_screen.dart';
 import 'invoice_detail_sheet.dart';
 
 class InvoiceScreen extends ConsumerStatefulWidget {
@@ -75,12 +76,18 @@ class _InvoiceScreenState extends ConsumerState<InvoiceScreen> {
             ? AppFloatingActionButton.extended(
                 label: 'Buat Faktur',
                 icon: const Icon(TablerIcons.plus, size: 19),
-                onPressed: () {
-                  AppSnackBar.showInfo(
+                onPressed: () async {
+                  final created = await Navigator.push<bool>(
                     context,
-                    message:
-                        'Fitur pembuatan faktur manual akan segera hadir. Faktur tagihan saat ini otomatis dibuat saat Pengantaran selesai.',
+                    MaterialPageRoute(
+                      builder: (context) => const InvoiceCreateScreen(),
+                    ),
                   );
+                  if (created == true) {
+                    ref
+                        .read(invoiceViewModelProvider.notifier)
+                        .loadInvoices(refresh: true);
+                  }
                 },
               )
             : null,
