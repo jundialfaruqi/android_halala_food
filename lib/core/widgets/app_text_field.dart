@@ -255,9 +255,9 @@ class _AppTextFieldState extends State<AppTextField> {
         errorMaxLines: 3,
         isDense: widget.isDense,
         contentPadding: widget.contentPadding,
-        filled: widget.fillColor != null || !widget.enabled,
+        filled: true,
         fillColor: widget.fillColor ??
-            (!widget.enabled ? const Color(0xFFF7F7F7) : null),
+            (!widget.enabled ? const Color(0xFFF7F7F7) : Colors.white),
         border: border,
         enabledBorder: enabledBorder,
         disabledBorder: disabledBorder,
