@@ -534,7 +534,23 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    ..._invoice.items.map((item) => _buildItemRow(item)),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.brandBorder),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: Column(
+                        children: [
+                          for (int i = 0; i < _invoice.items.length; i++)
+                            _buildItemRow(
+                              _invoice.items[i],
+                              isLast: i == _invoice.items.length - 1,
+                            ),
+                        ],
+                      ),
+                    ),
                     const SizedBox(height: 16),
                   ],
 
@@ -821,19 +837,24 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
     );
   }
 
-  Widget _buildItemRow(InvoiceItemModel item) {
+  Widget _buildItemRow(InvoiceItemModel item, {bool isLast = false}) {
     final hasReconcileDetails = _invoice.isReconciled &&
         (item.remainingQuantity > 0 ||
             item.damagedQuantity > 0 ||
             item.returnedQuantity > 0);
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.brandBorder),
+        border: isLast
+            ? null
+            : const Border(
+                bottom: BorderSide(
+                  color: AppColors.brandBorder,
+                  width: 1.0,
+                ),
+              ),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -851,6 +872,7 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
                     color: AppColors.brandEspresso,
                   ),
                 ),
+                const SizedBox(height: 2),
                 Text(
                   '${item.quantity} ${item.productUnit} @ ${item.formattedUnitPrice}',
                   style: const TextStyle(
@@ -873,6 +895,7 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
               ],
             ),
           ),
+          const SizedBox(width: 12),
           Text(
             item.formattedSubtotal,
             style: const TextStyle(
