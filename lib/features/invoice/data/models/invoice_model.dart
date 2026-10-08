@@ -1,4 +1,5 @@
 import 'package:intl/intl.dart';
+import '../../../delivery/data/models/delivery_model.dart';
 
 class InvoiceStoreModel {
   final int id;
@@ -359,44 +360,7 @@ class InvoiceListResult {
   });
 }
 
-class InvoiceProductOptionModel {
-  final int id;
-  final String name;
-  final String unit;
-  final int stockReady;
-  final double consignmentPrice;
-  final double retailPrice;
-
-  const InvoiceProductOptionModel({
-    required this.id,
-    required this.name,
-    required this.unit,
-    this.stockReady = 0,
-    required this.consignmentPrice,
-    required this.retailPrice,
-  });
-
-  factory InvoiceProductOptionModel.fromJson(Map<String, dynamic> json) {
-    final unitModel = json['unit_model'] as Map<String, dynamic>?;
-    final unitName = unitModel?['short_name'] as String? ??
-        unitModel?['name'] as String? ??
-        json['unit'] as String? ??
-        'pcs';
-
-    return InvoiceProductOptionModel(
-      id: json['id'] as int? ?? 0,
-      name: json['name'] as String? ?? '-',
-      unit: unitName,
-      stockReady: json['stock_ready'] as int? ?? 0,
-      consignmentPrice: json['consignment_price'] != null
-          ? double.tryParse(json['consignment_price'].toString()) ?? 0.0
-          : 0.0,
-      retailPrice: json['retail_price'] != null
-          ? double.tryParse(json['retail_price'].toString()) ?? 0.0
-          : 0.0,
-    );
-  }
-}
+typedef InvoiceProductOptionModel = ProductOptionModel;
 
 class InvoiceDeliveryItemOptionModel {
   final int productId;
@@ -546,7 +510,7 @@ class InvoiceCreateOptionsModel {
           .toList(),
       products: rawProducts
           .map((p) =>
-              InvoiceProductOptionModel.fromJson(p as Map<String, dynamic>))
+              ProductOptionModel.fromJson(p as Map<String, dynamic>))
           .toList(),
       deliveries: rawDeliveries
           .map((d) =>

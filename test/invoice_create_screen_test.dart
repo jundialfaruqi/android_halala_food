@@ -5,6 +5,7 @@ import 'package:android_halala_food/core/widgets/widgets.dart';
 import 'package:android_halala_food/features/auth/data/models/user_model.dart';
 import 'package:android_halala_food/features/auth/presentation/viewmodels/auth_state.dart';
 import 'package:android_halala_food/features/auth/presentation/viewmodels/auth_viewmodel.dart';
+import 'package:android_halala_food/features/delivery/data/models/delivery_model.dart';
 import 'package:android_halala_food/features/invoice/data/models/invoice_model.dart';
 import 'package:android_halala_food/features/invoice/data/repositories/invoice_repository_impl.dart';
 import 'package:android_halala_food/features/invoice/domain/repositories/invoice_repository.dart';
@@ -31,19 +32,21 @@ class MockInvoiceCreateRepository implements InvoiceRepository {
       ),
     ],
     products: [
-      InvoiceProductOptionModel(
+      ProductOptionModel(
         id: 101,
         name: 'Keripik Tempe Pcs',
         unit: 'pcs',
+        stockReady: 50,
         consignmentPrice: 15000,
-        retailPrice: 20000,
+        depositPrice: 20000,
       ),
-      InvoiceProductOptionModel(
+      ProductOptionModel(
         id: 102,
         name: 'Kue Kacang Halala',
         unit: 'box',
+        stockReady: 30,
         consignmentPrice: 25000,
-        retailPrice: 30000,
+        depositPrice: 30000,
       ),
     ],
     deliveries: [
@@ -159,31 +162,39 @@ void main() {
       ),
     );
 
+    // 1. Verifikasi ShimmerLoading muncul saat awal sebelum data selesai dimuat
+    expect(find.byType(ShimmerLoading), findsWidgets);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+
     // Tunggu asynchronous loadOptions selesai
     await tester.pumpAndSettle();
 
-    // 1. Verifikasi AppStatusBar
+    // 2. Verifikasi AppStatusBar & AppScaffold & AppAppBar
     expect(find.byType(AppStatusBar), findsWidgets);
-
-    // 2. Verifikasi AppScaffold
     expect(find.byType(AppScaffold), findsOneWidget);
-
-    // 3. Verifikasi AppAppBar
     expect(find.byType(AppAppBar), findsOneWidget);
     expect(find.text('Buat Faktur Baru'), findsOneWidget);
 
-    // 4. Verifikasi AppDynamicValidationForm
+    // 3. Verifikasi AppDynamicValidationForm
     expect(find.byType(AppDynamicValidationForm), findsOneWidget);
 
-    // 5. Verifikasi AppCard (Minimal 4 bagian form card)
-    expect(find.byType(AppCard), findsAtLeastNWidgets(4));
+    // 4. Verifikasi Sub Form Titles tanpa wrapper card
+    expect(find.text('Informasi Faktur'), findsOneWidget);
+    expect(find.text('Tujuan Penagihan'), findsOneWidget);
+    expect(find.text('Rincian Produk Tertagih'), findsOneWidget);
+    expect(find.text('Ringkasan Keuangan & Catatan'), findsOneWidget);
 
-    // 6. Verifikasi AppTextField (Nomor Faktur, Tanggal Faktur, Jatuh Tempo, Diskon, dsb)
+    // 5. Verifikasi UI/UX Muatan Barang Jadi (Empty State saat awal)
+    expect(find.byType(AppEmptyCard), findsOneWidget);
+    expect(find.text('Belum Ada Muatan Produk'), findsOneWidget);
+    expect(find.text('Tambahkan Produk Jadi'), findsOneWidget);
+
+    // 6. Verifikasi AppTextField (Nomor Faktur, Tanggal Faktur, Jatuh Tempo, Diskon, Catatan)
     expect(find.byType(AppTextField), findsWidgets);
     expect(find.text('INV-20261009-0001'), findsOneWidget);
     expect(find.text('2026-10-09'), findsWidgets);
 
-    // 7. Verifikasi AppMenuSelect (Dropdown Menu untuk Toko Mitra, Surat Jalan, dan Produk)
+    // 7. Verifikasi AppMenuSelect (Dropdown Menu untuk Toko Mitra dan Surat Jalan)
     expect(find.byType(AppMenuSelect<int>), findsWidgets);
 
     // 8. Verifikasi AppBottomActionBar dengan tombol Batal dan Simpan Faktur

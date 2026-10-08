@@ -7,27 +7,26 @@ import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../../auth/presentation/viewmodels/auth_viewmodel.dart';
+import '../../../delivery/presentation/models/delivery_item_form_entry.dart';
+import '../../../delivery/presentation/widgets/delivery_item_card.dart';
+import '../../../delivery/presentation/widgets/delivery_item_edit_dialog.dart';
+import '../../../delivery/presentation/widgets/delivery_product_selection_dialog.dart';
 import '../../data/models/invoice_model.dart';
 import '../../data/repositories/invoice_repository_impl.dart';
 import '../viewmodels/invoice_viewmodel.dart';
 
 /// Halaman Buat Faktur Tagihan Baru Halala Food.
-/// Menggunakan seluruh Core Widget komponen:
-/// - AppStatusBar: Menjaga warna status bar perangkat tetap konsisten dan rapi
-/// - AppScaffold: Kerangka halaman dengan latar belakang bersih dan safe area
-/// - AppAppBar: Header judul navigasi minimalis tanpa elemen ramai
-/// - AppCard: Pembungkus grup formulir bersih tanpa shadow berlebihan
-/// - AppTextField: Input field teks, angka, catatan, dan tanggal
-/// - AppMenuSelect: Dropdown menu seleksi toko, surat jalan, dan produk (Material 3)
-/// - AppDynamicValidationForm: Form dengan dynamic validation clearing otomatis
-/// - AppBottomActionBar: Navigasi tombol Batal dan Simpan Faktur di bagian bawah
-/// - AppSnackBar: Notifikasi respon aksi (sukses atau gagal)
 ///
-/// Aturan UI ketat:
-/// - Tidak ada dot (titik status / lingkaran dekoratif)
-/// - Tidak ada badge (tag / chip berwarna)
-/// - Tidak banyak warna (monokrom elegan krem, putih, dan espresso brand Halala Food)
-/// - Tidak banyak icon (hanya icon fungsional minimal)
+/// Karakteristik UI & Desain:
+/// - Menggunakan Skeleton Shimmer App saat loading awal form (`ShimmerLoading`).
+/// - Tanpa Card pembungkus di setiap sub form, digantikan judul sub form dengan border bottom.
+/// - UI/UX "Rincian Produk Tertagih" menggunakan alur "Muatan Barang Jadi" persis layar surat jalan:
+///   - Menampilkan `AppEmptyCard.inline` dengan tombol CTA jika kosong.
+///   - Modal seleksi produk 2-kolom (`DeliveryProductSelectionDialog`).
+///   - Modal ubah kuantitas & harga satuan (`DeliveryItemEditDialog`).
+///   - Kartu item produk terisi (`DeliveryItemCard`) dengan thumbnail, kuantitas, harga, dan subtotal.
+///   - Tombol outline tambah baris produk.
+/// - Kepatuhan aturan UI: tanpa badge, tanpa dot indikator, warna netral/brand Halala Food, hemat icon.
 class InvoiceCreateScreen extends ConsumerStatefulWidget {
   final int? preselectedDeliveryId;
 
@@ -58,9 +57,10 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
   bool _isLoadingOptions = true;
   bool _isSubmitting = false;
   String? _errorMessage;
+  String? _itemsErrorMessage;
 
   InvoiceCreateOptionsModel? _options;
-  final List<_InvoiceFormItemRow> _items = [];
+  final List<DeliveryItemFormEntry> _items = [];
 
   final NumberFormat _currencyFormat = NumberFormat.currency(
     locale: 'id_ID',
@@ -87,9 +87,6 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
     _dueDateController.dispose();
     _discountController.dispose();
     _notesController.dispose();
-    for (final item in _items) {
-      item.dispose();
-    }
     super.dispose();
   }
 
@@ -135,17 +132,13 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
           _dueDate = parsedDueDate;
           _invoiceDateController.text = invoiceDateStr;
           _dueDateController.text = dueDateStr;
+          _items.clear();
           _isLoadingOptions = false;
         });
 
         // Tangani jika ada surat jalan terpilih dari parameter
         if (widget.preselectedDeliveryId != null) {
           _onDeliverySelected(widget.preselectedDeliveryId);
-        } else {
-          // Tambahkan 1 baris produk kosong pertama jika opsi produk tersedia
-          if (_items.isEmpty) {
-            _addNewItem();
-          }
         }
       }
     } catch (e) {
@@ -158,75 +151,77 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
     }
   }
 
-  void _addNewItem() {
-    setState(() {
-      int? defaultProductId;
-      double defaultPrice = 0.0;
-
-      if (_options != null && _options!.products.isNotEmpty) {
-        final existingIds = _items.map((i) => i.productId).toSet();
-        final firstAvailable = _options!.products.where((p) => !existingIds.contains(p.id)).firstOrNull;
-        if (firstAvailable != null) {
-          defaultProductId = firstAvailable.id;
-          defaultPrice = firstAvailable.consignmentPrice;
-        } else {
-          defaultProductId = _options!.products.first.id;
-          defaultPrice = _options!.products.first.consignmentPrice;
-        }
-      }
-
-      final row = _InvoiceFormItemRow(
-        productId: defaultProductId,
-        quantity: 1,
-        unitPrice: defaultPrice,
-        onChanged: () => setState(() {}),
-      );
-      _items.add(row);
-    });
-  }
-
-  void _removeItem(int index) {
-    if (_items.length <= 1) {
+  /// Membuka dialog seleksi produk jadi format grid 2 kolom (sama seperti di surat jalan)
+  Future<void> _openAddProductsDialog() async {
+    if (_options == null || _options!.products.isEmpty) {
       AppSnackBar.showError(
         context,
-        message: 'Faktur harus memiliki minimal 1 baris rincian produk.',
+        message: 'Belum ada daftar produk jadi yang tersedia.',
       );
       return;
     }
+
+    final currentIds = _items.map((i) => i.productId).toSet();
+    final newItems = await DeliveryProductSelectionDialog.show(
+      context: context,
+      products: _options!.products,
+      alreadyAddedProductIds: currentIds,
+    );
+
+    if (newItems != null && newItems.isNotEmpty) {
+      setState(() {
+        _items.addAll(newItems);
+        _itemsErrorMessage = null;
+      });
+    }
+  }
+
+  /// Membuka dialog edit kuantitas dan harga satuan item produk
+  Future<void> _editItem(int index) async {
+    final item = _items[index];
+    final updated = await DeliveryItemEditDialog.show(
+      context: context,
+      item: item,
+    );
+
+    if (updated == true) {
+      setState(() {});
+    }
+  }
+
+  /// Menghapus item dari daftar muatan
+  void _removeItem(int index) {
     setState(() {
-      final removed = _items.removeAt(index);
-      removed.dispose();
+      _items.removeAt(index);
     });
   }
 
+  /// Tangani pemilihan surat jalan acuan (opsional)
   void _onDeliverySelected(int? deliveryId) {
     _selectedDeliveryId = deliveryId;
     if (deliveryId != null && _options != null) {
-      final delivery = _options!.deliveries.where((d) => d.id == deliveryId).firstOrNull;
+      final delivery =
+          _options!.deliveries.where((d) => d.id == deliveryId).firstOrNull;
       if (delivery != null) {
         _selectedStoreId = delivery.storeId;
-
-        // Kosongkan dan isi ulang dari daftar item surat jalan
-        for (final item in _items) {
-          item.dispose();
-        }
         _items.clear();
 
-        for (final item in delivery.items) {
-          _items.add(
-            _InvoiceFormItemRow(
-              productId: item.productId,
-              quantity: item.quantity,
-              unitPrice: item.unitPrice,
-              deliveredQuantity: item.quantity,
-              onChanged: () => setState(() {}),
-            ),
-          );
+        for (final delItem in delivery.items) {
+          final prod = _options!.products
+              .where((p) => p.id == delItem.productId)
+              .firstOrNull;
+          if (prod != null) {
+            _items.add(
+              DeliveryItemFormEntry(
+                productId: delItem.productId,
+                product: prod,
+                quantity: delItem.quantity,
+                unitPrice: delItem.unitPrice,
+              ),
+            );
+          }
         }
-
-        if (_items.isEmpty) {
-          _addNewItem();
-        }
+        _itemsErrorMessage = null;
       }
     }
     setState(() {});
@@ -267,7 +262,6 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
         if (isInvoiceDate) {
           _invoiceDate = picked;
           _invoiceDateController.text = formatted;
-          // Jika due date sebelum invoice date, sesuaikan
           if (_dueDate != null && _dueDate!.isBefore(picked)) {
             _dueDate = picked.add(const Duration(days: 14));
             _dueDateController.text =
@@ -286,7 +280,10 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
   }
 
   double get _discount {
-    final text = _discountController.text.trim().replaceAll('.', '').replaceAll(',', '.');
+    final text = _discountController.text
+        .trim()
+        .replaceAll('.', '')
+        .replaceAll(',', '.');
     return double.tryParse(text) ?? 0.0;
   }
 
@@ -308,30 +305,34 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
     }
 
     if (_items.isEmpty) {
+      setState(() {
+        _itemsErrorMessage =
+            'Daftar rincian faktur wajib diisi minimal 1 jenis produk.';
+      });
+      hasInlineErrors = true;
+    } else {
+      if (_itemsErrorMessage != null) {
+        setState(() {
+          _itemsErrorMessage = null;
+        });
+      }
+    }
+
+    if (hasInlineErrors) {
       AppSnackBar.showError(
         context,
-        message: 'Daftar rincian faktur wajib diisi minimal 1 jenis produk.',
+        message: 'Mohon periksa kembali form yang belum lengkap.',
       );
       return;
     }
 
-    // Validasi pemilihan produk pada setiap baris
-    for (int i = 0; i < _items.length; i++) {
-      if (_items[i].productId == null) {
-        AppSnackBar.showError(
-          context,
-          message: 'Pilih produk untuk baris ke-${i + 1}.',
-        );
-        return;
-      }
-    }
-
-    // Validasi produk tidak boleh duplikat (sama seperti di web)
-    final productIds = _items.map((i) => i.productId!).toList();
+    // Validasi produk tidak boleh ganda pada faktur yang sama
+    final productIds = _items.map((i) => i.productId).toList();
     if (productIds.toSet().length != productIds.length) {
       AppSnackBar.showError(
         context,
-        message: 'Produk tidak boleh ganda pada faktur yang sama.',
+        message:
+            'Terdapat produk yang dipilih lebih dari 1 kali. Mohon gabungkan kuantitasnya.',
       );
       return;
     }
@@ -348,14 +349,6 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
       }
     }
 
-    if (hasInlineErrors) {
-      AppSnackBar.showError(
-        context,
-        message: 'Mohon periksa kembali kolom formulir yang belum lengkap.',
-      );
-      return;
-    }
-
     setState(() {
       _isSubmitting = true;
     });
@@ -368,10 +361,10 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
           'product_id': item.productId,
           'quantity': item.quantity,
           'unit_price': item.unitPrice,
-          'delivered_quantity': item.deliveredQuantity,
-          'remaining_quantity': item.remainingQuantity,
-          'damaged_quantity': item.damagedQuantity,
-          'returned_quantity': item.returnedQuantity,
+          'delivered_quantity': item.quantity,
+          'remaining_quantity': 0,
+          'damaged_quantity': 0,
+          'returned_quantity': 0,
         };
       }).toList();
 
@@ -388,7 +381,7 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
 
       final createdInvoice = await repository.createInvoice(payload);
 
-      // Refresh list faktur
+      // Refresh data list faktur
       ref.read(invoiceViewModelProvider.notifier).loadInvoices(refresh: true);
 
       if (mounted) {
@@ -460,13 +453,9 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
   }
 
   Widget _buildContent() {
+    // 1. Loading State menggunakan Skeleton Shimmer App
     if (_isLoadingOptions) {
-      return const Center(
-        child: CircularProgressIndicator(
-          strokeWidth: 2.5,
-          valueColor: AlwaysStoppedAnimation<Color>(AppColors.brandPrimary),
-        ),
-      );
+      return _buildShimmerLoading();
     }
 
     if (_errorMessage != null) {
@@ -510,558 +499,414 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
-          // CARD 1: INFORMASI FAKTUR
-          AppCard(
-            backgroundColor: Colors.white,
-            borderColor: AppColors.brandBorder,
-            borderWidth: 1.0,
-            borderRadius: 12.0,
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Informasi Faktur',
-                  style: TextStyle(
-                    fontFamily: 'PlusJakartaSans',
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.brandEspresso,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                AppTextField(
-                  controller: _invoiceNumberController,
-                  labelText: 'Nomor Faktur',
-                  hintText: 'INV-YYYYMMDD-XXXX',
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Nomor faktur wajib diisi.';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => _selectDate(isInvoiceDate: true),
-                        child: AbsorbPointer(
-                          child: AppTextField(
-                            controller: _invoiceDateController,
-                            labelText: 'Tanggal Faktur',
-                            hintText: 'Pilih Tanggal',
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'Wajib diisi.';
-                              }
-                              return null;
-                            },
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => _selectDate(isInvoiceDate: false),
-                        child: AbsorbPointer(
-                          child: AppTextField(
-                            controller: _dueDateController,
-                            labelText: 'Jatuh Tempo',
-                            hintText: 'Pilih Tanggal',
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'Wajib diisi.';
-                              }
-                              return null;
-                            },
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // CARD 2: TOKO MITRA & SUMBER PENGANTARAN
-          AppCard(
-            backgroundColor: Colors.white,
-            borderColor: AppColors.brandBorder,
-            borderWidth: 1.0,
-            borderRadius: 12.0,
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Tujuan Penagihan',
-                  style: TextStyle(
-                    fontFamily: 'PlusJakartaSans',
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.brandEspresso,
-                  ),
-                ),
-                const SizedBox(height: 14),
-
-                // DROPDOWN MENU 1: TOKO MITRA
-                AppMenuSelect<int>(
-                  labelText: 'Toko Mitra',
-                  hintText: 'Pilih Toko Mitra...',
-                  initialSelection: _selectedStoreId,
-                  entries: stores.map((s) {
-                    final routeLabel = s.route != null && s.route!.isNotEmpty
-                        ? ' (${s.route})'
-                        : '';
-                    return AppMenuSelectEntry<int>(
-                      value: s.id,
-                      label: '${s.name}$routeLabel',
-                    );
-                  }).toList(),
-                  onSelected: (val) {
-                    setState(() {
-                      _selectedStoreId = val;
-                      // Jika surat jalan terpilih sebelumnya bukan milik toko ini, reset
-                      if (_selectedDeliveryId != null) {
-                        final currentDel = _options?.deliveries
-                            .where((d) => d.id == _selectedDeliveryId)
-                            .firstOrNull;
-                        if (currentDel != null && currentDel.storeId != val) {
-                          _selectedDeliveryId = null;
-                        }
-                      }
-                    });
-                  },
-                  validator: (val) {
-                    if (val == null) {
-                      return 'Pilih toko mitra tujuan penagihan.';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 14),
-
-                // DROPDOWN MENU 2: SURAT JALAN (OPSIONAL)
-                AppMenuSelect<int?>(
-                  labelText: 'Berdasarkan Surat Jalan (Opsional)',
-                  hintText: 'Tanpa Surat Jalan (Mandiri)',
-                  initialSelection: _selectedDeliveryId,
-                  entries: [
-                    const AppMenuSelectEntry<int?>(
-                      value: null,
-                      label: 'Tanpa Surat Jalan (Mandiri)',
-                    ),
-                    ...availableDeliveries.map((d) {
-                      final formattedDate = d.formattedDeliveryDate;
-                      final dateLabel = formattedDate.isNotEmpty
-                          ? ' ($formattedDate)'
-                          : '';
-                      return AppMenuSelectEntry<int?>(
-                        value: d.id,
-                        label: '${d.deliveryNumber}$dateLabel',
-                      );
-                    }),
-                  ],
-                  onSelected: (val) {
-                    _onDeliverySelected(val);
-                  },
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // CARD 3: RINCIAN BARANG TERCATAT
-          AppCard(
-            backgroundColor: Colors.white,
-            borderColor: AppColors.brandBorder,
-            borderWidth: 1.0,
-            borderRadius: 12.0,
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Rincian Produk Tertagih',
-                      style: TextStyle(
-                        fontFamily: 'PlusJakartaSans',
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.brandEspresso,
-                      ),
-                    ),
-                    InkWell(
-                      onTap: _addNewItem,
-                      borderRadius: BorderRadius.circular(6),
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              TablerIcons.plus,
-                              size: 16,
-                              color: AppColors.brandPrimary,
-                            ),
-                            SizedBox(width: 4),
-                            Text(
-                              'Tambah',
-                              style: TextStyle(
-                                fontFamily: 'PlusJakartaSans',
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.brandPrimary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-
-                // DAFTAR ITEM PRODUK
-                ..._items.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final item = entry.value;
-                  return _buildItemRowCard(index, item);
-                }),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // CARD 4: RINGKASAN PEMBAYARAN & CATATAN
-          AppCard(
-            backgroundColor: Colors.white,
-            borderColor: AppColors.brandBorder,
-            borderWidth: 1.0,
-            borderRadius: 12.0,
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Ringkasan Keuangan',
-                  style: TextStyle(
-                    fontFamily: 'PlusJakartaSans',
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.brandEspresso,
-                  ),
-                ),
-                const SizedBox(height: 14),
-
-                // Subtotal
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Subtotal Barang',
-                      style: TextStyle(
-                        fontFamily: 'PlusJakartaSans',
-                        fontSize: 13.5,
-                        color: AppColors.brandWarmGray,
-                      ),
-                    ),
-                    Text(
-                      _currencyFormat.format(_subtotal),
-                      style: const TextStyle(
-                        fontFamily: 'PlusJakartaSans',
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.brandEspresso,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-
-                // Diskon
-                AppTextField(
-                  controller: _discountController,
-                  labelText: 'Potongan Harga / Diskon (Rp)',
-                  hintText: '0',
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                  ],
-                  onChanged: (_) {
-                    setState(() {});
-                  },
-                ),
-                const SizedBox(height: 14),
-                const Divider(height: 1, color: AppColors.brandBorder),
-                const SizedBox(height: 14),
-
-                // Total Tagihan
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Total Tagihan Faktur',
-                      style: TextStyle(
-                        fontFamily: 'PlusJakartaSans',
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.brandEspresso,
-                      ),
-                    ),
-                    Text(
-                      _currencyFormat.format(_totalAmount),
-                      style: const TextStyle(
-                        fontFamily: 'PlusJakartaSans',
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.brandPrimary,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-
-                // Catatan Faktur
-                AppTextField(
-                  controller: _notesController,
-                  labelText: 'Catatan Faktur (Opsional)',
-                  hintText: 'Tuliskan catatan tambahan jika ada...',
-                  maxLines: 3,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildItemRowCard(int index, _InvoiceFormItemRow item) {
-    final products = _options?.products ?? [];
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: AppColors.brandBorder,
-          width: 0.8,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                'Baris #${index + 1}',
-                style: const TextStyle(
-                  fontFamily: 'PlusJakartaSans',
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.brandWarmGray,
-                ),
-              ),
-              const Spacer(),
-              if (_items.length > 1)
-                InkWell(
-                  onTap: () => _removeItem(index),
-                  borderRadius: BorderRadius.circular(4),
-                  child: const Padding(
-                    padding: EdgeInsets.all(4),
-                    child: Icon(
-                      TablerIcons.trash,
-                      size: 16,
-                      color: AppColors.brandWarmGray,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 8),
-
-          // PILIH PRODUK (DROPDOWN MENU 3)
-          AppMenuSelect<int>(
-            labelText: 'Produk',
-            hintText: 'Pilih Produk...',
-            initialSelection: item.productId,
-            entries: products.map((p) {
-              return AppMenuSelectEntry<int>(
-                value: p.id,
-                label: '${p.name} (${_currencyFormat.format(p.consignmentPrice)})',
-              );
-            }).toList(),
-            onSelected: (selectedId) {
-              item.productId = selectedId;
-              if (selectedId != null) {
-                final prod = products.where((p) => p.id == selectedId).firstOrNull;
-                if (prod != null) {
-                  item.unitPriceController.text =
-                      prod.consignmentPrice.toStringAsFixed(0);
-                }
-              }
-              setState(() {});
-            },
-            validator: (val) {
-              if (val == null) {
-                return 'Pilih produk.';
+          // SUB FORM 1: INFORMASI FAKTUR (Title dengan border bottom, tanpa card)
+          _buildSectionHeader('Informasi Faktur'),
+          AppTextField(
+            controller: _invoiceNumberController,
+            labelText: 'Nomor Faktur',
+            hintText: 'INV-YYYYMMDD-XXXX',
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Nomor faktur wajib diisi.';
               }
               return null;
             },
           ),
-          const SizedBox(height: 10),
-
-          // KUANTITAS & HARGA SATUAN
+          const SizedBox(height: 14),
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                flex: 2,
-                child: AppTextField(
-                  controller: item.quantityController,
-                  labelText: 'Jumlah',
-                  hintText: '1',
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                  ],
-                  validator: (val) {
-                    if (val == null || val.trim().isEmpty) {
-                      return 'Wajib.';
-                    }
-                    final num = int.tryParse(val.trim());
-                    if (num == null || num < 0) {
-                      return '>= 0';
-                    }
-                    return null;
-                  },
-                  onChanged: (_) {
-                    setState(() {});
-                  },
+                child: GestureDetector(
+                  onTap: () => _selectDate(isInvoiceDate: true),
+                  child: AbsorbPointer(
+                    child: AppTextField(
+                      controller: _invoiceDateController,
+                      labelText: 'Tanggal Faktur *',
+                      hintText: 'Pilih Tanggal',
+                      suffixIcon: const Icon(
+                        TablerIcons.calendar,
+                        size: 18,
+                        color: AppColors.brandWarmGray,
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Wajib diisi.';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 12),
               Expanded(
-                flex: 3,
-                child: AppTextField(
-                  controller: item.unitPriceController,
-                  labelText: 'Harga Satuan (Rp)',
-                  hintText: '0',
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                  ],
-                  validator: (val) {
-                    if (val == null || val.trim().isEmpty) {
-                      return 'Wajib.';
-                    }
-                    return null;
-                  },
-                  onChanged: (_) {
-                    setState(() {});
-                  },
+                child: GestureDetector(
+                  onTap: () => _selectDate(isInvoiceDate: false),
+                  child: AbsorbPointer(
+                    child: AppTextField(
+                      controller: _dueDateController,
+                      labelText: 'Jatuh Tempo *',
+                      hintText: 'Pilih Tanggal',
+                      suffixIcon: const Icon(
+                        TablerIcons.calendar,
+                        size: 18,
+                        color: AppColors.brandWarmGray,
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Wajib diisi.';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 24),
 
-          // SUB-INFO RINCIAN KONSINYASI (RETUR & TITIP OPSIONAL)
+          // SUB FORM 2: TUJUAN PENAGIHAN (Title dengan border bottom, tanpa card)
+          _buildSectionHeader('Tujuan Penagihan'),
+          AppMenuSelect<int>(
+            labelText: 'Toko Mitra Tujuan *',
+            hintText: 'Pilih Toko Mitra...',
+            initialSelection: _selectedStoreId,
+            entries: stores.map((s) {
+              final routeLabel =
+                  s.route != null && s.route!.isNotEmpty ? ' (${s.route})' : '';
+              return AppMenuSelectEntry<int>(
+                value: s.id,
+                label: '${s.name}$routeLabel',
+              );
+            }).toList(),
+            onSelected: (val) {
+              setState(() {
+                _selectedStoreId = val;
+                if (_selectedDeliveryId != null) {
+                  final currentDel = _options?.deliveries
+                      .where((d) => d.id == _selectedDeliveryId)
+                      .firstOrNull;
+                  if (currentDel != null && currentDel.storeId != val) {
+                    _selectedDeliveryId = null;
+                  }
+                }
+              });
+            },
+            validator: (val) {
+              if (val == null) {
+                return 'Pilih toko mitra tujuan penagihan.';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 14),
+          AppMenuSelect<int?>(
+            labelText: 'Berdasarkan Surat Jalan (Opsional)',
+            hintText: 'Tanpa Surat Jalan (Mandiri)',
+            initialSelection: _selectedDeliveryId,
+            entries: [
+              const AppMenuSelectEntry<int?>(
+                value: null,
+                label: 'Tanpa Surat Jalan (Mandiri)',
+              ),
+              ...availableDeliveries.map((d) {
+                final formattedDate = d.formattedDeliveryDate;
+                final dateLabel =
+                    formattedDate.isNotEmpty ? ' ($formattedDate)' : '';
+                return AppMenuSelectEntry<int?>(
+                  value: d.id,
+                  label: '${d.deliveryNumber}$dateLabel',
+                );
+              }),
+            ],
+            onSelected: (val) {
+              _onDeliverySelected(val);
+            },
+          ),
+          const SizedBox(height: 24),
+
+          // SUB FORM 3: RINCIAN PRODUK TERTAGIH (UI/UX Muatan Barang Jadi Surat Jalan)
+          _buildSectionHeader(
+            'Rincian Produk Tertagih',
+            trailing: _items.isNotEmpty
+                ? Text(
+                    '${_items.length} Baris Produk',
+                    style: const TextStyle(
+                      fontFamily: 'PlusJakartaSans',
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.brandWarmGray,
+                    ),
+                  )
+                : null,
+          ),
+
+          // Tampilan Kosong: AppEmptyCard.inline
+          if (_items.isEmpty) ...[
+            AppEmptyCard.inline(
+              icon: TablerIcons.box_off,
+              title: 'Belum Ada Muatan Produk',
+              message: 'Tambahkan produk yang ditagihkan dalam faktur ini.',
+              actionText: 'Tambahkan Produk Jadi',
+              actionIcon: TablerIcons.plus,
+              hasBorder: true,
+              borderColor: _itemsErrorMessage != null
+                  ? AppColors.error
+                  : AppColors.brandBorder,
+              backgroundColor: Colors.white,
+              onAction: _openAddProductsDialog,
+            ),
+            if (_itemsErrorMessage != null) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.error.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: AppColors.error.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      TablerIcons.alert_circle,
+                      size: 16,
+                      color: AppColors.error,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _itemsErrorMessage!,
+                        style: const TextStyle(
+                          fontFamily: 'PlusJakartaSans',
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.error,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ] else ...[
+            // Tampilan Terisi: DeliveryItemCard
+            ..._items.asMap().entries.map((entry) {
+              final index = entry.key;
+              final item = entry.value;
+
+              return DeliveryItemCard(
+                index: index,
+                item: item,
+                onEdit: () => _editItem(index),
+                onDelete: () => _removeItem(index),
+              );
+            }),
+            const SizedBox(height: 6),
+            AppButton.outline(
+              text: 'Tambah Baris Produk',
+              icon: const Icon(TablerIcons.plus, size: 18),
+              height: 44,
+              borderRadius: 12,
+              onPressed: _openAddProductsDialog,
+            ),
+          ],
+          const SizedBox(height: 24),
+
+          // SUB FORM 4: RINGKASAN KEUANGAN & CATATAN (Title dengan border bottom, tanpa card)
+          _buildSectionHeader('Ringkasan Keuangan & Catatan'),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'Subtotal:',
+                'Subtotal Barang',
                 style: TextStyle(
                   fontFamily: 'PlusJakartaSans',
-                  fontSize: 12.5,
+                  fontSize: 13.5,
                   color: AppColors.brandWarmGray,
                 ),
               ),
               Text(
-                _currencyFormat.format(item.subtotal),
+                _currencyFormat.format(_subtotal),
                 style: const TextStyle(
                   fontFamily: 'PlusJakartaSans',
-                  fontSize: 13,
+                  fontSize: 14.5,
                   fontWeight: FontWeight.w600,
                   color: AppColors.brandEspresso,
                 ),
               ),
             ],
           ),
+          const SizedBox(height: 14),
+          AppTextField(
+            controller: _discountController,
+            labelText: 'Potongan Harga / Diskon (Rp)',
+            hintText: '0',
+            keyboardType: TextInputType.number,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+            ],
+            onChanged: (_) {
+              setState(() {});
+            },
+          ),
+          const SizedBox(height: 14),
+          const Divider(height: 1, color: AppColors.brandBorder),
+          const SizedBox(height: 14),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Total Tagihan Faktur',
+                style: TextStyle(
+                  fontFamily: 'PlusJakartaSans',
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.brandEspresso,
+                ),
+              ),
+              Text(
+                _currencyFormat.format(_totalAmount),
+                style: const TextStyle(
+                  fontFamily: 'PlusJakartaSans',
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.brandPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          AppTextField(
+            controller: _notesController,
+            labelText: 'Catatan Faktur (Opsional)',
+            hintText: 'Tuliskan catatan tambahan jika ada...',
+            maxLines: 3,
+          ),
         ],
       ),
     );
   }
-}
 
-class _InvoiceFormItemRow {
-  int? productId;
-  final TextEditingController quantityController;
-  final TextEditingController unitPriceController;
-  final TextEditingController deliveredController;
-  final TextEditingController remainingController;
-  final TextEditingController damagedController;
-  final TextEditingController returnedController;
+  /// Header judul sub form dengan border bottom (tanpa pembungkus card)
+  Widget _buildSectionHeader(String title, {Widget? trailing}) {
+    return Container(
+      padding: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 14),
+      decoration: const BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: AppColors.brandBorder,
+            width: 1.2,
+          ),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontFamily: 'PlusJakartaSans',
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: AppColors.brandEspresso,
+            ),
+          ),
+          if (trailing != null) trailing,
+        ],
+      ),
+    );
+  }
 
-  _InvoiceFormItemRow({
-    this.productId,
-    int quantity = 1,
-    double unitPrice = 0.0,
-    int deliveredQuantity = 0,
-    int remainingQuantity = 0,
-    int damagedQuantity = 0,
-    int returnedQuantity = 0,
-    VoidCallback? onChanged,
-  })  : quantityController = TextEditingController(text: quantity.toString()),
-        unitPriceController = TextEditingController(
-          text: unitPrice > 0 ? unitPrice.toStringAsFixed(0) : '0',
+  /// Skeleton Shimmer Loading App saat pertama kali memuat opsi formulir
+  Widget _buildShimmerLoading() {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+      children: [
+        // Skeleton Sub Form 1: Informasi Faktur
+        _buildShimmerSectionHeader(width: 140),
+        const SizedBox(height: 6),
+        const ShimmerLoading(width: double.infinity, height: 48, borderRadius: 12),
+        const SizedBox(height: 14),
+        const Row(
+          children: [
+            Expanded(
+              child: ShimmerLoading(
+                  width: double.infinity, height: 48, borderRadius: 12),
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: ShimmerLoading(
+                  width: double.infinity, height: 48, borderRadius: 12),
+            ),
+          ],
         ),
-        deliveredController = TextEditingController(
-          text: deliveredQuantity > 0 ? deliveredQuantity.toString() : '',
-        ),
-        remainingController = TextEditingController(
-          text: remainingQuantity > 0 ? remainingQuantity.toString() : '0',
-        ),
-        damagedController = TextEditingController(
-          text: damagedQuantity > 0 ? damagedQuantity.toString() : '0',
-        ),
-        returnedController = TextEditingController(
-          text: returnedQuantity > 0 ? returnedQuantity.toString() : '0',
-        );
+        const SizedBox(height: 24),
 
-  int get quantity => int.tryParse(quantityController.text.trim()) ?? 0;
-  double get unitPrice =>
-      double.tryParse(unitPriceController.text.trim()) ?? 0.0;
-  int get deliveredQuantity =>
-      int.tryParse(deliveredController.text.trim()) ?? quantity;
-  int get remainingQuantity =>
-      int.tryParse(remainingController.text.trim()) ?? 0;
-  int get damagedQuantity =>
-      int.tryParse(damagedController.text.trim()) ?? 0;
-  int get returnedQuantity =>
-      int.tryParse(returnedController.text.trim()) ?? 0;
-  double get subtotal => quantity * unitPrice;
+        // Skeleton Sub Form 2: Tujuan Penagihan
+        _buildShimmerSectionHeader(width: 150),
+        const SizedBox(height: 6),
+        const ShimmerLoading(width: double.infinity, height: 48, borderRadius: 12),
+        const SizedBox(height: 14),
+        const ShimmerLoading(width: double.infinity, height: 48, borderRadius: 12),
+        const SizedBox(height: 24),
 
-  void dispose() {
-    quantityController.dispose();
-    unitPriceController.dispose();
-    deliveredController.dispose();
-    remainingController.dispose();
-    damagedController.dispose();
-    returnedController.dispose();
+        // Skeleton Sub Form 3: Rincian Produk
+        _buildShimmerSectionHeader(width: 180),
+        const SizedBox(height: 6),
+        const ShimmerLoading(
+            width: double.infinity, height: 110, borderRadius: 12),
+        const SizedBox(height: 12),
+        const ShimmerLoading(width: double.infinity, height: 44, borderRadius: 12),
+        const SizedBox(height: 24),
+
+        // Skeleton Sub Form 4: Ringkasan Keuangan
+        _buildShimmerSectionHeader(width: 160),
+        const SizedBox(height: 6),
+        const Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            ShimmerLoading(width: 120, height: 16, borderRadius: 4),
+            ShimmerLoading(width: 100, height: 16, borderRadius: 4),
+          ],
+        ),
+        const SizedBox(height: 14),
+        const ShimmerLoading(width: double.infinity, height: 48, borderRadius: 12),
+        const SizedBox(height: 14),
+        const Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            ShimmerLoading(width: 140, height: 18, borderRadius: 4),
+            ShimmerLoading(width: 120, height: 20, borderRadius: 4),
+          ],
+        ),
+        const SizedBox(height: 14),
+        const ShimmerLoading(width: double.infinity, height: 80, borderRadius: 12),
+      ],
+    );
+  }
+
+  Widget _buildShimmerSectionHeader({required double width}) {
+    return Container(
+      padding: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 14),
+      decoration: const BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: AppColors.brandBorder,
+            width: 1.2,
+          ),
+        ),
+      ),
+      child: ShimmerLoading(
+        width: width,
+        height: 18,
+        borderRadius: 4,
+      ),
+    );
   }
 }
