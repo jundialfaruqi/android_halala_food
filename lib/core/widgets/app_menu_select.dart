@@ -150,14 +150,16 @@ class AppMenuSelect<T> extends FormField<T> {
                   onSelected: handleSelected,
                 ),
                 if (hasError && effectiveErrorText != null) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    effectiveErrorText,
-                    style: const TextStyle(
-                      fontFamily: 'PlusJakartaSans',
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.error,
+                  Padding(
+                    padding: const EdgeInsets.only(left: 16, top: 6),
+                    child: Text(
+                      effectiveErrorText,
+                      style: const TextStyle(
+                        fontFamily: 'PlusJakartaSans',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.error,
+                      ),
                     ),
                   ),
                 ],
