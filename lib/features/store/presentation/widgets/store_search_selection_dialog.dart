@@ -213,52 +213,60 @@ class _StoreSearchSelectionDialogState
             const SizedBox(height: 14),
 
             // 2. Input Pencarian
-            Container(
-              decoration: BoxDecoration(
-                color: AppColors.background,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.brandBorder),
+            TextField(
+              controller: _searchController,
+              onChanged: _onSearchChanged,
+              style: const TextStyle(
+                fontFamily: 'PlusJakartaSans',
+                fontSize: 13,
+                color: AppColors.brandEspresso,
               ),
-              child: TextField(
-                controller: _searchController,
-                onChanged: _onSearchChanged,
-                style: const TextStyle(
+              decoration: InputDecoration(
+                hintText: 'Cari nama toko, pemilik, alamat, rute...',
+                hintStyle: const TextStyle(
                   fontFamily: 'PlusJakartaSans',
                   fontSize: 13,
-                  color: AppColors.brandEspresso,
+                  color: AppColors.brandWarmGray,
                 ),
-                decoration: InputDecoration(
-                  hintText: 'Cari nama toko, pemilik, alamat, rute...',
-                  hintStyle: const TextStyle(
-                    fontFamily: 'PlusJakartaSans',
-                    fontSize: 13,
-                    color: AppColors.brandWarmGray,
-                  ),
-                  prefixIcon: const Icon(
-                    TablerIcons.search,
-                    size: 18,
-                    color: AppColors.brandWarmGray,
-                  ),
-                  suffixIcon: _searchController.text.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(
-                            TablerIcons.x,
-                            size: 16,
-                            color: AppColors.brandWarmGray,
-                          ),
-                          onPressed: () {
-                            _searchController.clear();
-                            _loadStores(page: 1, isInitial: true);
-                          },
-                        )
-                      : null,
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 12,
-                  ),
-                  border: InputBorder.none,
+                filled: true,
+                fillColor: AppColors.background,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
                 ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.brandBorder),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.brandBorder),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: AppColors.brandPrimary,
+                    width: 1.5,
+                  ),
+                ),
+                prefixIcon: const Icon(
+                  TablerIcons.search,
+                  size: 18,
+                  color: AppColors.brandWarmGray,
+                ),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(
+                          TablerIcons.x,
+                          size: 16,
+                          color: AppColors.brandWarmGray,
+                        ),
+                        onPressed: () {
+                          _searchController.clear();
+                          _loadStores(page: 1, isInitial: true);
+                        },
+                      )
+                    : null,
               ),
             ),
             const SizedBox(height: 14),
