@@ -256,7 +256,7 @@ void main() {
               home: Scaffold(
                 body: Column(
                   children: [
-                    AppEmptyCard(
+                    AppEmptyCard.inline(
                       icon: TablerIcons.package,
                       title: 'Belum Ada Muatan Barang Jadi',
                       message:

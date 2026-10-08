@@ -85,13 +85,11 @@ class _InvoiceScreenState extends ConsumerState<InvoiceScreen> {
               )
             : null,
         body: !canView
-            ? const Center(
-                child: AppEmptyCard(
-                  icon: TablerIcons.shield_lock,
-                  title: 'Akses Ditolak',
-                  message:
-                      'Anda tidak memiliki izin (faktur-view) untuk melihat data faktur tagihan.',
-                ),
+            ? const AppEmptyCard(
+                icon: TablerIcons.shield_lock,
+                title: 'Akses Ditolak',
+                message:
+                    'Anda tidak memiliki izin (faktur-view) untuk melihat data faktur tagihan.',
               )
             : RefreshIndicator(
                 color: AppColors.brandPrimary,
@@ -261,22 +259,20 @@ class _InvoiceScreenState extends ConsumerState<InvoiceScreen> {
     }
 
     if (state.invoices.isEmpty) {
-      return Center(
-        child: AppEmptyCard(
-          icon: TablerIcons.file_invoice,
-          title: 'Tidak Ada Faktur',
-          message: state.hasFilter
-              ? 'Tidak ditemukan faktur yang sesuai dengan kriteria filter.'
-              : 'Belum ada data faktur tagihan yang tercatat di sistem.',
-          actionText: state.hasFilter ? 'Reset Filter' : null,
-          actionIcon: TablerIcons.filter_off,
-          onAction: state.hasFilter
-              ? () {
-                  _searchController.clear();
-                  ref.read(invoiceViewModelProvider.notifier).clearFilters();
-                }
-              : null,
-        ),
+      return AppEmptyCard(
+        icon: TablerIcons.file_invoice,
+        title: 'Tidak Ada Faktur',
+        message: state.hasFilter
+            ? 'Tidak ditemukan faktur yang sesuai dengan kriteria filter.'
+            : 'Belum ada data faktur tagihan yang tercatat di sistem.',
+        actionText: state.hasFilter ? 'Reset Filter' : null,
+        actionIcon: TablerIcons.filter_off,
+        onAction: state.hasFilter
+            ? () {
+                _searchController.clear();
+                ref.read(invoiceViewModelProvider.notifier).clearFilters();
+              }
+            : null,
       );
     }
 

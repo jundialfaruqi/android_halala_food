@@ -273,42 +273,32 @@ class _UserScreenState extends ConsumerState<UserScreen> {
     }
 
     if (state.errorMessage != null && state.users.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: AppEmptyCard(
-            title: 'Gagal Memuat Pengguna',
-            message: state.errorMessage!,
-            actionText: 'Coba Lagi',
-            onAction: () => notifier.fetchUsers(refresh: true),
-          ),
-        ),
+      return AppEmptyCard(
+        title: 'Gagal Memuat Pengguna',
+        message: state.errorMessage!,
+        actionText: 'Coba Lagi',
+        onAction: () => notifier.fetchUsers(refresh: true),
       );
     }
 
     if (state.users.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: AppEmptyCard(
-            title: 'Pengguna Tidak Ditemukan',
-            message: state.hasFilter
-                ? 'Tidak ada data pengguna yang cocok dengan pencarian atau peran yang dipilih.'
-                : 'Belum ada data staf/pengguna yang terdaftar dalam sistem.',
-            actionText: state.hasFilter
-                ? 'Hapus Filter'
-                : (canManageUser ? 'Tambah Pengguna' : null),
-            actionIcon: state.hasFilter
-                ? null
-                : (canManageUser ? TablerIcons.plus : null),
-            onAction: state.hasFilter
-                ? () {
-                    _searchController.clear();
-                    notifier.resetFilters();
-                  }
-                : (canManageUser ? () => _onCreateUser() : null),
-          ),
-        ),
+      return AppEmptyCard(
+        title: 'Pengguna Tidak Ditemukan',
+        message: state.hasFilter
+            ? 'Tidak ada data pengguna yang cocok dengan pencarian atau peran yang dipilih.'
+            : 'Belum ada data staf/pengguna yang terdaftar dalam sistem.',
+        actionText: state.hasFilter
+            ? 'Hapus Filter'
+            : (canManageUser ? 'Tambah Pengguna' : null),
+        actionIcon: state.hasFilter
+            ? null
+            : (canManageUser ? TablerIcons.plus : null),
+        onAction: state.hasFilter
+            ? () {
+                _searchController.clear();
+                notifier.resetFilters();
+              }
+            : (canManageUser ? () => _onCreateUser() : null),
       );
     }
 

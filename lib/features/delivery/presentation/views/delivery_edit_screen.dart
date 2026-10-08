@@ -327,12 +327,10 @@ class _DeliveryEditScreenState extends ConsumerState<DeliveryEditScreen> {
           appBar: AppAppBar(
             title: 'Edit Surat Jalan',
           ),
-          body: Center(
-            child: AppEmptyCard(
-              title: 'Akses Ditolak',
-              message:
-                  'Anda tidak memiliki hak akses untuk mengubah surat jalan.',
-            ),
+          body: AppEmptyCard(
+            title: 'Akses Ditolak',
+            message:
+                'Anda tidak memiliki hak akses untuk mengubah surat jalan.',
           ),
         ),
       );
@@ -526,7 +524,7 @@ class _DeliveryEditScreenState extends ConsumerState<DeliveryEditScreen> {
 
           // Jika Kosong: Card Empty dengan Tombol Call To Action Tambahkan Produk Jadi (Point 1)
           if (_items.isEmpty) ...[
-            AppEmptyCard(
+            AppEmptyCard.inline(
               icon: TablerIcons.box_off,
               title: 'Belum Ada Muatan Produk',
               message:

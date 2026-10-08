@@ -212,28 +212,23 @@ class _StoreScreenState extends ConsumerState<StoreScreen> {
           ? 'Rute ${state.selectedRoute}'
           : state.searchQuery;
 
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: hasFilter
-              ? AppEmptyCard.search(
-                  query: filterDescription,
-                  onReset: () {
-                    _searchController.clear();
-                    notifier.clearAllFilters();
-                  },
-                )
-              : AppEmptyCard(
-                  icon: TablerIcons.building_store,
-                  title: 'Belum Ada Toko Mitra',
-                  message:
-                      'Data toko mitra belum tersedia di sistem Halala Food.',
-                  actionText: canCreateStore ? 'Tambah Mitra Toko' : null,
-                  actionIcon: canCreateStore ? TablerIcons.plus : null,
-                  onAction: canCreateStore ? () => _onCreateStore(context) : null,
-                ),
-        ),
-      );
+      return hasFilter
+          ? AppEmptyCard.search(
+              query: filterDescription,
+              onReset: () {
+                _searchController.clear();
+                notifier.clearAllFilters();
+              },
+            )
+          : AppEmptyCard(
+              icon: TablerIcons.building_store,
+              title: 'Belum Ada Toko Mitra',
+              message:
+                  'Data toko mitra belum tersedia di sistem Halala Food.',
+              actionText: canCreateStore ? 'Tambah Mitra Toko' : null,
+              actionIcon: canCreateStore ? TablerIcons.plus : null,
+              onAction: canCreateStore ? () => _onCreateStore(context) : null,
+            );
     }
 
     // 4. Data Toko List menggunakan Card List (AppCard)

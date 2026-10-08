@@ -319,36 +319,24 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
 
     if (state.deliveries.isEmpty) {
       if (state.hasFilter) {
-        return SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.symmetric(vertical: 40),
-          child: Center(
-            child: AppEmptyCard.search(
-              icon: TablerIcons.file_search,
-              query: state.searchQuery,
-              onReset: () {
-                _searchController.clear();
-                final notifier =
-                    ref.read(deliveryViewModelProvider.notifier);
-                notifier.setSearchQuery('');
-                notifier.setStatusFilter('all');
-                notifier.setRouteFilter(null);
-              },
-            ),
-          ),
+        return AppEmptyCard.search(
+          icon: TablerIcons.file_search,
+          query: state.searchQuery,
+          onReset: () {
+            _searchController.clear();
+            final notifier =
+                ref.read(deliveryViewModelProvider.notifier);
+            notifier.setSearchQuery('');
+            notifier.setStatusFilter('all');
+            notifier.setRouteFilter(null);
+          },
         );
       }
 
-      return const SingleChildScrollView(
-        physics: AlwaysScrollableScrollPhysics(),
-        padding: EdgeInsets.symmetric(vertical: 40),
-        child: Center(
-          child: AppEmptyCard(
-            title: 'Belum Ada Surat Jalan',
-            message:
-                'Daftar surat jalan pengantaran barang ke mitra toko akan ditampilkan di sini.',
-          ),
-        ),
+      return const AppEmptyCard(
+        title: 'Belum Ada Surat Jalan',
+        message:
+            'Daftar surat jalan pengantaran barang ke mitra toko akan ditampilkan di sini.',
       );
     }
 

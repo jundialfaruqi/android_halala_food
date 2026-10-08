@@ -61,6 +61,16 @@ class AppEmptyCard extends StatelessWidget {
   /// Tampilkan shadow lembut
   final bool hasShadow;
 
+  /// Apakah dibungkus otomatis dengan [SingleChildScrollView] dan [Center]
+  /// serta padding luar standar halaman pengantaran (EdgeInsets.symmetric(vertical: 40.0)).
+  /// Default: true (otomatis konsisten di seluruh halaman tanpa perlu pembungkus manual).
+  /// Atur ke false atau gunakan [AppEmptyCard.inline] jika ditaruh di dalam form/dialog inline.
+  final bool isScrollable;
+
+  /// Padding pembungkus luar jika [isScrollable] true.
+  /// Default: [EdgeInsets.symmetric(vertical: 40.0)] (sesuai standar Halaman Pengantaran).
+  final EdgeInsetsGeometry? outerPadding;
+
   const AppEmptyCard({
     super.key,
     this.icon = TablerIcons.inbox,
@@ -81,7 +91,33 @@ class AppEmptyCard extends StatelessWidget {
     this.hasBorder = false,
     this.borderColor,
     this.hasShadow = false,
+    this.isScrollable = true,
+    this.outerPadding,
   });
+
+  /// Factory / Constructor untuk penggunaan inline di dalam form atau dialog yang sudah memiliki scrollview sendiri.
+  const AppEmptyCard.inline({
+    super.key,
+    this.icon = TablerIcons.inbox,
+    this.iconWidget,
+    this.iconSize = 54.0,
+    this.iconColor,
+    required this.title,
+    this.message,
+    this.actionText,
+    this.actionIcon,
+    this.actionWidth,
+    this.actionWidget,
+    this.actionVariant = AppButtonVariant.primary,
+    this.onAction,
+    this.padding = const EdgeInsets.symmetric(horizontal: 24.0, vertical: 36.0),
+    this.margin,
+    this.backgroundColor = Colors.transparent,
+    this.hasBorder = false,
+    this.borderColor,
+    this.hasShadow = false,
+    this.outerPadding,
+  }) : isScrollable = false;
 
   /// Factory untuk kondisi pencarian tidak menemukan hasil
   factory AppEmptyCard.search({
@@ -97,6 +133,8 @@ class AppEmptyCard extends StatelessWidget {
     double iconSize = 54.0,
     Color? iconColor,
     double? actionWidth,
+    bool isScrollable = true,
+    EdgeInsetsGeometry? outerPadding,
   }) {
     return AppEmptyCard(
       key: key,
@@ -116,12 +154,14 @@ class AppEmptyCard extends StatelessWidget {
       hasBorder: hasBorder,
       borderColor: borderColor,
       hasShadow: hasShadow,
+      isScrollable: isScrollable,
+      outerPadding: outerPadding,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return AppCard(
+    final card = AppCard(
       margin: margin,
       padding: padding,
       backgroundColor: backgroundColor,
@@ -190,6 +230,24 @@ class AppEmptyCard extends StatelessWidget {
             ],
           ],
         ),
+      ),
+    );
+
+    if (!isScrollable) {
+      if (outerPadding != null && outerPadding != EdgeInsets.zero) {
+        return Padding(
+          padding: outerPadding!,
+          child: card,
+        );
+      }
+      return card;
+    }
+
+    return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: outerPadding ?? const EdgeInsets.symmetric(vertical: 40.0),
+      child: Center(
+        child: card,
       ),
     );
   }

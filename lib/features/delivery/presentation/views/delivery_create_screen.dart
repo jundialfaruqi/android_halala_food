@@ -457,7 +457,7 @@ class _DeliveryCreateScreenState extends ConsumerState<DeliveryCreateScreen> {
 
           // Jika Kosong: Card Empty dengan Tombol Call To Action Tambahkan Produk Jadi (Point 1)
           if (_items.isEmpty) ...[
-            AppEmptyCard(
+            AppEmptyCard.inline(
               icon: TablerIcons.box_off,
               title: 'Belum Ada Muatan Produk',
               message:

@@ -372,42 +372,32 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
     }
 
     if (state.errorMessage != null && state.products.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: AppEmptyCard(
-            title: 'Gagal Memuat Produk',
-            message: state.errorMessage!,
-            actionText: 'Coba Lagi',
-            onAction: () => notifier.fetchProducts(refresh: true),
-          ),
-        ),
+      return AppEmptyCard(
+        title: 'Gagal Memuat Produk',
+        message: state.errorMessage!,
+        actionText: 'Coba Lagi',
+        onAction: () => notifier.fetchProducts(refresh: true),
       );
     }
 
     if (state.products.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: AppEmptyCard(
-            title: 'Produk Tidak Ditemukan',
-            message: state.hasFilter
-                ? 'Tidak ada produk yang cocok dengan pencarian atau filter yang dipilih.'
-                : 'Belum ada data master produk jadi yang tersedia.',
-            actionText: state.hasFilter
-                ? 'Hapus Filter'
-                : (canCreateProduct ? 'Tambah Produk' : null),
-            actionIcon: state.hasFilter
-                ? null
-                : (canCreateProduct ? TablerIcons.plus : null),
-            onAction: state.hasFilter
-                ? () {
-                    _searchController.clear();
-                    notifier.resetFilters();
-                  }
-                : (canCreateProduct ? () => _onCreateProduct() : null),
-          ),
-        ),
+      return AppEmptyCard(
+        title: 'Produk Tidak Ditemukan',
+        message: state.hasFilter
+            ? 'Tidak ada produk yang cocok dengan pencarian atau filter yang dipilih.'
+            : 'Belum ada data master produk jadi yang tersedia.',
+        actionText: state.hasFilter
+            ? 'Hapus Filter'
+            : (canCreateProduct ? 'Tambah Produk' : null),
+        actionIcon: state.hasFilter
+            ? null
+            : (canCreateProduct ? TablerIcons.plus : null),
+        onAction: state.hasFilter
+            ? () {
+                _searchController.clear();
+                notifier.resetFilters();
+              }
+            : (canCreateProduct ? () => _onCreateProduct() : null),
       );
     }
 
