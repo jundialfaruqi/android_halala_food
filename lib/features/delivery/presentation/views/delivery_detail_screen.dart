@@ -205,7 +205,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
           label: 'Edit Surat Jalan',
         ));
       }
-      if ((_delivery!.isDiproses || _delivery!.isDikirim) && canEditPermission) {
+      if ((_delivery!.isDiproses || _delivery!.isDikirim) && canDeletePermission) {
         actionItems.add(const AppDropdownItem(
           value: 'cancel',
           label: 'Batalkan Pengantaran',
@@ -258,8 +258,9 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
     if (_delivery == null) return null;
 
     final user = ref.watch(authViewModelProvider).user;
-    final canEditPermission = user?.hasPermission('pengantaran-edit') ?? false;
-    if (!canEditPermission) return null;
+    final canStatusPermission = (user?.hasPermission('pengantaran-status') ?? false) ||
+        (user?.hasPermission('pengantaran-edit') ?? false);
+    if (!canStatusPermission) return null;
 
     if (_delivery!.isDiproses) {
       return Container(

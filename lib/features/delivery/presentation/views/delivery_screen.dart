@@ -352,6 +352,9 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
       );
     }
 
+    final canStatusPermission =
+        (user?.hasPermission('pengantaran-status') ?? false) ||
+        (user?.hasPermission('pengantaran-edit') ?? false);
     final canEditPermission =
         user?.hasPermission('pengantaran-edit') ?? false;
     final canDeletePermission =
@@ -378,6 +381,7 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
         return _buildDeliveryCard(
           context,
           item,
+          canStatusPermission,
           canEditPermission,
           canDeletePermission,
         );
@@ -468,6 +472,7 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
   Widget _buildDeliveryCard(
     BuildContext context,
     DeliveryModel item,
+    bool canStatusPermission,
     bool canEditPermission,
     bool canDeletePermission,
   ) {
@@ -552,7 +557,7 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
                       ],
                     ),
                   ),
-                  if (item.isDiproses && canEditPermission)
+                  if (item.isDiproses && canStatusPermission)
                     const PopupMenuItem(
                       value: 'dispatch',
                       height: 40,
@@ -598,7 +603,7 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
                         ],
                       ),
                     ),
-                  if ((item.isDiproses || item.isDikirim) && canEditPermission)
+                  if ((item.isDiproses || item.isDikirim) && canDeletePermission)
                     const PopupMenuItem(
                       value: 'cancel',
                       height: 40,

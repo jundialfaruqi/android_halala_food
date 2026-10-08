@@ -75,6 +75,7 @@ class FakeAuthViewModel extends AuthViewModel {
           'pengantaran-view',
           'pengantaran-create',
           'pengantaran-edit',
+          'pengantaran-status',
           'pengantaran-delete',
         ],
       ),
