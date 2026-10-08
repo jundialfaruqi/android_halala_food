@@ -8,6 +8,7 @@ import '../../../auth/data/models/user_model.dart';
 import '../../../auth/presentation/viewmodels/auth_viewmodel.dart';
 import '../../../auth/presentation/views/profile_screen.dart';
 import '../../../delivery/presentation/views/delivery_screen.dart';
+import '../../../invoice/presentation/views/invoice_screen.dart';
 import '../../../product/presentation/views/product_screen.dart';
 import '../../../store/presentation/views/store_coordinates_screen.dart';
 import '../../../store/presentation/views/store_screen.dart';
@@ -472,6 +473,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
 
             if (menu.title == 'Pengantaran') {
               _navigateTo(const DeliveryScreen());
+              return;
+            }
+
+            if (menu.title == 'Faktur') {
+              _navigateTo(const InvoiceScreen());
               return;
             }
 

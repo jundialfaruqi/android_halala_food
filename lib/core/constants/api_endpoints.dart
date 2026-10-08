@@ -26,6 +26,10 @@ class ApiEndpoints {
   static String deliveryComplete(int id) => '/deliveries/$id/complete';
   static String deliveryCancel(int id) => '/deliveries/$id/cancel';
 
+  // Invoices (Faktur & Piutang)
+  static const String invoices = '/invoices';
+  static String invoiceDetail(int id) => '/invoices/$id';
+
   // Dashboard & Profile
   static const String dashboard = '/dashboard';
 }
