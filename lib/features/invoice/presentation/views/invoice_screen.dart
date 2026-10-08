@@ -329,27 +329,15 @@ class _InvoiceScreenState extends ConsumerState<InvoiceScreen> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(
-                child: Row(
-                  children: [
-                    const Icon(
-                      TablerIcons.file_invoice,
-                      size: 18,
-                      color: AppColors.brandPrimary,
-                    ),
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
-                        invoice.invoiceNumber,
-                        style: const TextStyle(
-                          fontFamily: 'PlusJakartaSans',
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.brandEspresso,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  invoice.invoiceNumber,
+                  style: const TextStyle(
+                    fontFamily: 'PlusJakartaSans',
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.brandEspresso,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               // Status Label (Teks Only, tanpa dot dan badge)
@@ -369,12 +357,6 @@ class _InvoiceScreenState extends ConsumerState<InvoiceScreen> {
           // Info Toko Mitra
           Row(
             children: [
-              const Icon(
-                TablerIcons.building_store,
-                size: 16,
-                color: AppColors.brandWarmGray,
-              ),
-              const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   invoice.store?.name ?? 'Toko Mitra',

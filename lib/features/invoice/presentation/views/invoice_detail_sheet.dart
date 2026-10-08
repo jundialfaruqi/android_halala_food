@@ -76,7 +76,7 @@ class InvoiceDetailSheet extends StatelessWidget {
                           const Icon(
                             TablerIcons.file_invoice,
                             size: 20,
-                            color: AppColors.brandPrimary,
+                            color: Colors.black,
                           ),
                           const SizedBox(width: 8),
                           Flexible(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
 import 'package:android_halala_food/core/widgets/widgets.dart';
 import 'package:android_halala_food/features/auth/data/models/user_model.dart';
 import 'package:android_halala_food/features/auth/presentation/viewmodels/auth_state.dart';
@@ -159,6 +160,9 @@ void main() {
     expect(find.text('Toko Berkah Abadi'), findsOneWidget);
     expect(find.text('Dibayar Sebagian'), findsOneWidget);
     expect(find.text('Faktur & Piutang Toko'), findsOneWidget);
+
+    // Verify icons on invoice number and store name are removed from card
+    expect(find.byIcon(TablerIcons.building_store), findsNothing);
   });
 
   testWidgets(
@@ -233,5 +237,10 @@ void main() {
     expect(find.text('Rp 1.500.000'), findsWidgets);
     expect(find.text('100 pcs @ Rp 15000'), findsNothing);
     expect(find.text('Rp 1500000'), findsNothing);
+
+    // Verify invoice icon in detail sheet is black
+    final invoiceIcon =
+        tester.widget<Icon>(find.byIcon(TablerIcons.file_invoice));
+    expect(invoiceIcon.color, equals(Colors.black));
   });
 }
