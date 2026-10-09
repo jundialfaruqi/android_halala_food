@@ -1,10 +1,67 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
+import 'package:android_halala_food/features/auth/data/models/user_model.dart';
+import 'package:android_halala_food/features/auth/presentation/viewmodels/auth_state.dart';
+import 'package:android_halala_food/features/auth/presentation/viewmodels/auth_viewmodel.dart';
 import 'package:android_halala_food/features/invoice/data/models/invoice_model.dart';
+import 'package:android_halala_food/features/invoice/data/repositories/invoice_repository_impl.dart';
+import 'package:android_halala_food/features/invoice/domain/repositories/invoice_repository.dart';
 import 'package:android_halala_food/features/invoice/presentation/utils/invoice_share_helper.dart';
+import 'package:android_halala_food/features/invoice/presentation/views/invoice_detail_sheet.dart';
 import 'package:android_halala_food/features/invoice/presentation/widgets/invoice_payment_dialog.dart';
 import 'package:android_halala_food/features/invoice/presentation/widgets/invoice_reconciliation_dialog.dart';
+
+class _MockInvoiceRepo implements InvoiceRepository {
+  @override
+  Future<InvoiceListResult> getInvoices({
+    int page = 1,
+    int perPage = 15,
+    String? search,
+    String? status,
+    int? storeId,
+    String? invoiceDate,
+  }) async {
+    return const InvoiceListResult(
+      invoices: [],
+      hasMore: false,
+      total: 0,
+      currentPage: 1,
+      lastPage: 1,
+      statusCounts: {},
+      stores: [],
+    );
+  }
+
+  @override
+  Future<InvoiceModel> getInvoiceDetail(int id) async => throw UnimplementedError();
+
+  @override
+  Future<InvoiceCreateOptionsModel> getCreateOptions({int? storeId}) async =>
+      const InvoiceCreateOptionsModel();
+
+  @override
+  Future<InvoiceModel> createInvoice(Map<String, dynamic> data) async => throw UnimplementedError();
+
+  @override
+  Future<InvoiceModel> updateInvoice(int id, Map<String, dynamic> data) async => throw UnimplementedError();
+
+  @override
+  Future<void> deleteInvoice(int id) async {}
+
+  @override
+  Future<InvoiceModel> cancelInvoice(int id) async => throw UnimplementedError();
+
+  @override
+  Future<InvoiceModel> recordPayment(int invoiceId, Map<String, dynamic> data) async => throw UnimplementedError();
+
+  @override
+  Future<InvoiceModel> deletePayment(int invoiceId, int paymentId) async => throw UnimplementedError();
+
+  @override
+  Future<InvoiceModel> reconcileInvoice(int id, List<Map<String, dynamic>> items) async => throw UnimplementedError();
+}
 
 void main() {
   const dummyInvoice = InvoiceModel(
@@ -159,4 +216,172 @@ void main() {
       expect(timestampInvoice.simpleDueDate.contains('15:30:00'), isFalse);
     });
   });
+
+  group('InvoiceDetailSheet Granular Permissions Tests', () {
+    const invoiceWithCourier = InvoiceModel(
+      id: 99,
+      courierId: 77,
+      invoiceNumber: 'INV-20261009-0099',
+      invoiceDate: '2026-10-09',
+      dueDate: '2026-10-23',
+      totalAmount: 1000000,
+      paidAmount: 200000,
+      remainingBalance: 800000,
+      status: 'sebagian',
+      statusLabel: 'Dibayar Sebagian',
+      store: InvoiceStoreModel(
+        id: 5,
+        name: 'Toko Sumber Barokah',
+      ),
+      items: [
+        InvoiceItemModel(
+          id: 1,
+          invoiceId: 99,
+          productId: 10,
+          productName: 'Keripik Pisang 250g',
+          productUnit: 'pcs',
+          quantity: 50,
+          unitPrice: 20000,
+          subtotal: 1000000,
+        ),
+      ],
+      payments: [
+        InvoicePaymentModel(
+          id: 101,
+          invoiceId: 99,
+          amount: 200000,
+          paymentDate: '2026-10-09',
+          paymentMethod: 'tunai',
+          userName: 'Kurir Pengantar',
+        ),
+      ],
+    );
+
+    testWidgets(
+        'Assigned courier can see Catat Pembayaran and Rekonsiliasi, but cannot see delete payment icon',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            invoiceRepositoryProvider.overrideWithValue(_MockInvoiceRepo()),
+            authViewModelProvider.overrideWith(
+              () => _FakeAuthVM(
+                user: UserModel(
+                  id: 77, // Same as invoice courierId
+                  name: 'Ahmad Kurir',
+                  email: 'kurir@halala-food.id',
+                  roles: const ['kurir'],
+                  permissions: const ['faktur-view'], // No faktur-pembayaran-delete
+                ),
+              ),
+            ),
+          ],
+          child: const MaterialApp(
+            home: Scaffold(
+              body: InvoiceDetailSheet(invoice: invoiceWithCourier),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Catat Pembayaran and Rekonsiliasi buttons ARE visible
+      expect(find.text('Catat Pembayaran'), findsOneWidget);
+      expect(find.text('Rekonsiliasi'), findsOneWidget);
+
+      // Trash icon for deleting payment history is NOT visible for courier
+      expect(find.byIcon(TablerIcons.trash), findsNothing);
+    });
+
+    testWidgets(
+        'Unassigned courier without permissions cannot see Catat Pembayaran or Rekonsiliasi',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            invoiceRepositoryProvider.overrideWithValue(_MockInvoiceRepo()),
+            authViewModelProvider.overrideWith(
+              () => _FakeAuthVM(
+                user: UserModel(
+                  id: 999, // Different from invoice courierId (77)
+                  name: 'Kurir Lain',
+                  email: 'kurirlain@halala-food.id',
+                  roles: const ['kurir'],
+                  permissions: const ['faktur-view'], // No payment or reconcile permission
+                ),
+              ),
+            ),
+          ],
+          child: const MaterialApp(
+            home: Scaffold(
+              body: InvoiceDetailSheet(invoice: invoiceWithCourier),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Buttons are NOT visible
+      expect(find.text('Catat Pembayaran'), findsNothing);
+      expect(find.text('Rekonsiliasi'), findsNothing);
+      expect(find.byIcon(TablerIcons.trash), findsNothing);
+    });
+
+    testWidgets(
+        'Manager or user with faktur-pembayaran-delete can see delete payment icon',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            invoiceRepositoryProvider.overrideWithValue(_MockInvoiceRepo()),
+            authViewModelProvider.overrideWith(
+              () => _FakeAuthVM(
+                user: UserModel(
+                  id: 1,
+                  name: 'Ibu Manager',
+                  email: 'manager@halala-food.id',
+                  roles: const ['manager'],
+                  permissions: const [
+                    'faktur-view',
+                    'faktur-pembayaran',
+                    'faktur-rekonsiliasi',
+                    'faktur-pembayaran-delete',
+                  ],
+                ),
+              ),
+            ),
+          ],
+          child: const MaterialApp(
+            home: Scaffold(
+              body: InvoiceDetailSheet(invoice: invoiceWithCourier),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // All management buttons and trash icon are visible for manager
+      expect(find.text('Catat Pembayaran'), findsOneWidget);
+      expect(find.text('Rekonsiliasi'), findsOneWidget);
+      expect(find.byIcon(TablerIcons.trash), findsOneWidget);
+    });
+  });
 }
+
+class _FakeAuthVM extends AuthViewModel {
+  final UserModel user;
+
+  _FakeAuthVM({required this.user});
+
+  @override
+  AuthState build() {
+    return AuthState(
+      status: AuthStatus.authenticated,
+      user: user,
+    );
+  }
+}
+

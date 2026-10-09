@@ -205,14 +205,47 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
     }
 
     final currentUser = ref.watch(authViewModelProvider).user;
-    final canEdit = currentUser != null &&
-        (currentUser.roles.contains('dev') ||
-            currentUser.roles.contains('manager') ||
-            currentUser.permissions.contains('faktur-edit'));
-    final canDelete = currentUser != null &&
-        (currentUser.roles.contains('dev') ||
-            currentUser.roles.contains('manager') ||
-            currentUser.permissions.contains('faktur-delete'));
+    final isDevOrManager = currentUser != null &&
+        (currentUser.hasRole('dev') ||
+            currentUser.hasRole('manager') ||
+            currentUser.roles.contains('dev') ||
+            currentUser.roles.contains('manager'));
+
+    final isAssignedCourier = currentUser != null &&
+        _invoice.courierId != null &&
+        _invoice.courierId == currentUser.id;
+
+    // 1. Catat Pembayaran: dev/manager, permission faktur-pembayaran, fallback faktur-edit, ATAU kurir yang ditugaskan
+    final canRecordPayment = isDevOrManager ||
+        (currentUser != null &&
+            (currentUser.hasPermission('faktur-pembayaran') ||
+                currentUser.hasPermission('faktur-edit') ||
+                isAssignedCourier));
+
+    // 2. Rekonsiliasi: dev/manager, permission faktur-rekonsiliasi, fallback faktur-edit, ATAU kurir yang ditugaskan
+    final canReconcile = isDevOrManager ||
+        (currentUser != null &&
+            (currentUser.hasPermission('faktur-rekonsiliasi') ||
+                currentUser.hasPermission('faktur-edit') ||
+                isAssignedCourier));
+
+    // 3. Ubah Faktur: hanya dev/manager atau permission faktur-edit
+    final canEdit = isDevOrManager ||
+        (currentUser != null &&
+            (currentUser.hasPermission('faktur-edit') ||
+                currentUser.permissions.contains('faktur-edit')));
+
+    // 4. Hapus Faktur: dev/manager atau permission faktur-delete
+    final canDelete = isDevOrManager ||
+        (currentUser != null &&
+            (currentUser.hasPermission('faktur-delete') ||
+                currentUser.permissions.contains('faktur-delete')));
+
+    // 5. Hapus Catatan Pembayaran: HANYA jika memiliki hak khusus faktur-pembayaran-delete (kurir biasa tidak boleh)
+    final canDeletePayment = isDevOrManager ||
+        (currentUser != null &&
+            (currentUser.hasPermission('faktur-pembayaran-delete') ||
+                currentUser.permissions.contains('faktur-pembayaran-delete')));
 
     final statusColor = _getStatusColor();
     final displayStatusLabel = _invoice.isOverdue && !_invoice.isLunas
@@ -316,7 +349,7 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
                 const SizedBox(width: 8),
 
                 // 2. Catat Pembayaran Button
-                if (canEdit &&
+                if (canRecordPayment &&
                     !_invoice.isLunas &&
                     !_invoice.isDibatalkan &&
                     _invoice.remainingBalance > 0) ...[
@@ -330,7 +363,7 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
                 ],
 
                 // 3. Rekonsiliasi Button
-                if (canEdit && !_invoice.isDibatalkan) ...[
+                if (canReconcile && !_invoice.isDibatalkan) ...[
                   _buildActionButton(
                     icon: TablerIcons.arrows_exchange,
                     label: _invoice.isReconciled
@@ -696,7 +729,7 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
                     ),
                     const SizedBox(height: 8),
                     ..._invoice.payments.map(
-                      (p) => _buildPaymentRow(p, canDelete: canEdit),
+                      (p) => _buildPaymentRow(p, canDelete: canDeletePayment),
                     ),
                   ],
                 ],
