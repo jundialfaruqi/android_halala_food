@@ -1,4 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/services/websocket_service.dart';
+import '../../../../core/widgets/app_snack_bar.dart';
 import '../../data/models/delivery_model.dart';
 import '../../data/repositories/delivery_repository_impl.dart';
 import '../../domain/repositories/delivery_repository.dart';
@@ -94,6 +97,25 @@ class DeliveryViewModel extends Notifier<DeliveryState> {
   @override
   DeliveryState build() {
     _repository = ref.watch(deliveryRepositoryProvider);
+
+    // Dengar event real-time pembuatan surat pengantaran dari WebSocket
+    final wsService = ref.watch(webSocketServiceProvider);
+    final sub = wsService.onDeliveryCreated.listen((payload) {
+      debugPrint('[DeliveryViewModel] Real-time event delivery.created received: $payload');
+      loadDeliveries(refresh: true);
+
+      final deliveryNumber = payload['delivery_number']?.toString() ?? 'Surat Jalan Baru';
+      final storeName = payload['store_name']?.toString();
+      final message = storeName != null && storeName.isNotEmpty
+          ? '$deliveryNumber untuk $storeName telah ditugaskan.'
+          : '$deliveryNumber telah ditugaskan.';
+      AppSnackBar.show(null, message: message, type: SnackBarType.info);
+    });
+
+    ref.onDispose(() {
+      sub.cancel();
+    });
+
     Future.microtask(() => loadInitialData());
     return const DeliveryState(isLoading: true);
   }

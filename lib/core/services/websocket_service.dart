@@ -25,6 +25,12 @@ class WebSocketService {
   Stream<Map<String, dynamic>> get onInvoiceCreated =>
       _invoiceCreatedController.stream;
 
+  final _deliveryCreatedController =
+      StreamController<Map<String, dynamic>>.broadcast();
+
+  Stream<Map<String, dynamic>> get onDeliveryCreated =>
+      _deliveryCreatedController.stream;
+
   bool _isConnected = false;
   bool get isConnected => _isConnected;
 
@@ -86,7 +92,7 @@ class WebSocketService {
       );
       _subscribedChannels.add(userChannel);
 
-      // 3. Private channel invoices (khusus manager/dev)
+      // 3. Private channel invoices & deliveries (khusus manager/dev)
       if (isManagerOrDev) {
         final invoicesChannel = _client!.privateChannel(
           'private-invoices',
@@ -107,18 +113,48 @@ class WebSocketService {
           _handleInvoiceCreatedEvent(event);
         });
         _eventSubs.add(subInvDot);
+
+        final deliveriesChannel = _client!.privateChannel(
+          'private-deliveries',
+          authorizationDelegate:
+              EndpointAuthorizableChannelTokenAuthorizationDelegate.forPrivateChannel(
+            authorizationEndpoint: authEndpoint,
+            headers: authHeaders,
+          ),
+        );
+        _subscribedChannels.add(deliveriesChannel);
+
+        final subDeliv = deliveriesChannel.bind('delivery.created').listen((event) {
+          _handleDeliveryCreatedEvent(event);
+        });
+        _eventSubs.add(subDeliv);
+
+        final subDelivDot = deliveriesChannel.bind('.delivery.created').listen((event) {
+          _handleDeliveryCreatedEvent(event);
+        });
+        _eventSubs.add(subDelivDot);
       }
 
-      // Listen ke event invoice.created pada courier channel
-      final subCour = courierChannel.bind('invoice.created').listen((event) {
+      // Listen ke event invoice.created & delivery.created pada courier channel
+      final subCourInv = courierChannel.bind('invoice.created').listen((event) {
         _handleInvoiceCreatedEvent(event);
       });
-      _eventSubs.add(subCour);
+      _eventSubs.add(subCourInv);
 
-      final subCourDot = courierChannel.bind('.invoice.created').listen((event) {
+      final subCourInvDot = courierChannel.bind('.invoice.created').listen((event) {
         _handleInvoiceCreatedEvent(event);
       });
-      _eventSubs.add(subCourDot);
+      _eventSubs.add(subCourInvDot);
+
+      final subCourDeliv = courierChannel.bind('delivery.created').listen((event) {
+        _handleDeliveryCreatedEvent(event);
+      });
+      _eventSubs.add(subCourDeliv);
+
+      final subCourDelivDot = courierChannel.bind('.delivery.created').listen((event) {
+        _handleDeliveryCreatedEvent(event);
+      });
+      _eventSubs.add(subCourDelivDot);
 
       // Subscribe saat koneksi terbentuk
       _connectionSub = _client!.onConnectionEstablished.listen((_) {
@@ -155,9 +191,33 @@ class WebSocketService {
     }
   }
 
+  void _handleDeliveryCreatedEvent(ChannelReadEvent event) {
+    debugPrint('[WebSocket] Received delivery.created event: ${event.data}');
+    try {
+      final rawData = event.data;
+      Map<String, dynamic> payload = {};
+      if (rawData is Map<String, dynamic>) {
+        payload = rawData;
+      } else if (rawData is String) {
+        final decoded = jsonDecode(rawData);
+        if (decoded is Map<String, dynamic>) {
+          payload = decoded;
+        }
+      }
+      _deliveryCreatedController.add(payload);
+    } catch (e) {
+      debugPrint('[WebSocket] Error parsing delivery.created event: $e');
+    }
+  }
+
   @visibleForTesting
   void emitInvoiceCreatedForTest(Map<String, dynamic> payload) {
     _invoiceCreatedController.add(payload);
+  }
+
+  @visibleForTesting
+  void emitDeliveryCreatedForTest(Map<String, dynamic> payload) {
+    _deliveryCreatedController.add(payload);
   }
 
   void disconnect() {
@@ -188,5 +248,6 @@ class WebSocketService {
   void dispose() {
     disconnect();
     _invoiceCreatedController.close();
+    _deliveryCreatedController.close();
   }
 }

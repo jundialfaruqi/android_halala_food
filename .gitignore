@@ -47,4 +47,5 @@ app.*.map.json
 # Environment variables
 .env
 !.env.example
+.env.production.example
 
