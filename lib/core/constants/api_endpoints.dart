@@ -5,6 +5,7 @@ class ApiEndpoints {
   static const String refreshToken = '/auth/refresh';
   static const String logout = '/auth/logout';
   static const String me = '/auth/me';
+  static const String updateFcmToken = '/user/fcm-token';
 
   // Products
   static const String products = '/products';

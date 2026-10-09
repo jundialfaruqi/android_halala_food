@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/services/fcm_service.dart';
 import '../../../../core/services/websocket_service.dart';
 import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/widgets/app_snack_bar.dart';
@@ -40,6 +41,15 @@ class AuthViewModel extends Notifier<AuthState> {
     }
   }
 
+  Future<void> _syncFcmToken(UserModel? user) async {
+    if (user == null) return;
+    try {
+      await ref.read(fcmServiceProvider).syncTokenToBackend();
+    } catch (_) {
+      // Non-blocking: kegagalan sync fcm tidak memutus sesi login
+    }
+  }
+
   Future<void> checkAuthStatus() async {
     state = state.copyWith(status: AuthStatus.loading);
     try {
@@ -54,12 +64,14 @@ class AuthViewModel extends Notifier<AuthState> {
 
         if (user != null) {
           _connectWebSocket(user);
+          _syncFcmToken(user);
         }
 
         // Sinkronisasi data user & permissions terbaru dari API di latar belakang
         _repository.fetchUserProfile().then((freshUser) {
           state = state.copyWith(user: freshUser);
           _connectWebSocket(freshUser);
+          _syncFcmToken(freshUser);
         }).catchError((_) {
           // Abaikan error jaringan saat background sync
         });
@@ -95,6 +107,7 @@ class AuthViewModel extends Notifier<AuthState> {
         errorMessage: null,
       );
       _connectWebSocket(user);
+      _syncFcmToken(user);
       return true;
     } catch (e) {
       state = state.copyWith(

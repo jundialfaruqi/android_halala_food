@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "96444395011",
+    "project_id": "halala-food-my-id",
+    "storage_bucket": "halala-food-my-id.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:96444395011:android:15217b58fd7b140825a836",
+        "android_client_info": {
+          "package_name": "id.my.halala_food"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD8Zv8j11iW46yWujzchEFctULq6XKO7D0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
