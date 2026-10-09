@@ -525,6 +525,58 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
                       ),
                     ),
                   ],
+
+                  if (_invoice.courier != null) ...[
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[50],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppColors.brandBorder),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            TablerIcons.user,
+                            size: 16,
+                            color: AppColors.brandWarmGray,
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'Kurir Penagih: ',
+                            style: TextStyle(
+                              fontFamily: 'PlusJakartaSans',
+                              fontSize: 12,
+                              color: AppColors.brandWarmGray,
+                            ),
+                          ),
+                          Text(
+                            _invoice.courier!.name,
+                            style: const TextStyle(
+                              fontFamily: 'PlusJakartaSans',
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.brandEspresso,
+                            ),
+                          ),
+                          if (_invoice.courier!.phone != null &&
+                              _invoice.courier!.phone!.isNotEmpty) ...[
+                            const SizedBox(width: 6),
+                            Text(
+                              '(${_invoice.courier!.phone})',
+                              style: const TextStyle(
+                                fontFamily: 'PlusJakartaSans',
+                                fontSize: 11,
+                                color: AppColors.brandWarmGray,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 16),
 
                   // Rekonsiliasi Summary Bar (if reconciled)

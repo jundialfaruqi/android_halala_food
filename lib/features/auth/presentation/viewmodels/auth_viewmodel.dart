@@ -1,4 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/services/websocket_service.dart';
+import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/widgets/app_snack_bar.dart';
 import '../../data/models/user_model.dart';
 import '../../data/repositories/auth_repository_impl.dart';
@@ -19,6 +21,25 @@ class AuthViewModel extends Notifier<AuthState> {
     return const AuthState(status: AuthStatus.initial);
   }
 
+  Future<void> _connectWebSocket(UserModel? user) async {
+    if (user == null) return;
+    try {
+      final token =
+          await ref.read(secureStorageServiceProvider).getAccessToken();
+      if (token != null && token.isNotEmpty) {
+        final isManagerOrDev =
+            user.hasRole('dev') || user.hasRole('manager');
+        await ref.read(webSocketServiceProvider).connect(
+              token: token,
+              userId: user.id,
+              isManagerOrDev: isManagerOrDev,
+            );
+      }
+    } catch (_) {
+      // Non-blocking: kegagalan websocket tidak memutus sesi login
+    }
+  }
+
   Future<void> checkAuthStatus() async {
     state = state.copyWith(status: AuthStatus.loading);
     try {
@@ -31,9 +52,14 @@ class AuthViewModel extends Notifier<AuthState> {
           errorMessage: null,
         );
 
+        if (user != null) {
+          _connectWebSocket(user);
+        }
+
         // Sinkronisasi data user & permissions terbaru dari API di latar belakang
         _repository.fetchUserProfile().then((freshUser) {
           state = state.copyWith(user: freshUser);
+          _connectWebSocket(freshUser);
         }).catchError((_) {
           // Abaikan error jaringan saat background sync
         });
@@ -68,6 +94,7 @@ class AuthViewModel extends Notifier<AuthState> {
         user: user,
         errorMessage: null,
       );
+      _connectWebSocket(user);
       return true;
     } catch (e) {
       state = state.copyWith(
@@ -80,12 +107,18 @@ class AuthViewModel extends Notifier<AuthState> {
 
   Future<void> logout() async {
     state = state.copyWith(status: AuthStatus.loading);
+    try {
+      ref.read(webSocketServiceProvider).disconnect();
+    } catch (_) {}
     await _repository.logout();
     state = const AuthState(status: AuthStatus.unauthenticated);
   }
 
   void handleSessionExpired() {
     if (state.status != AuthStatus.authenticated) return;
+    try {
+      ref.read(webSocketServiceProvider).disconnect();
+    } catch (_) {}
     state = const AuthState(status: AuthStatus.unauthenticated);
     AppSnackBar.showError(
       null,

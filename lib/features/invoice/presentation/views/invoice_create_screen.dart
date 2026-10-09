@@ -52,6 +52,7 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
 
   int? _selectedStoreId;
   int? _selectedDeliveryId;
+  int? _selectedCourierId;
   DateTime? _invoiceDate;
   DateTime? _dueDate;
 
@@ -207,6 +208,9 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
           _options!.deliveries.where((d) => d.id == deliveryId).firstOrNull;
       if (delivery != null) {
         _selectedStoreId = delivery.storeId;
+        if (delivery.courierId != null) {
+          _selectedCourierId = delivery.courierId;
+        }
         _items.clear();
 
         for (final delItem in delivery.items) {
@@ -375,6 +379,7 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
         'invoice_number': _invoiceNumberController.text.trim(),
         'store_id': _selectedStoreId,
         'delivery_id': _selectedDeliveryId,
+        if (_selectedCourierId != null) 'courier_id': _selectedCourierId,
         'invoice_date': _invoiceDateController.text.trim(),
         'due_date': _dueDateController.text.trim(),
         'discount': _discount,
@@ -620,6 +625,31 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
               _onDeliverySelected(val);
             },
           ),
+          if ((_options?.couriers ?? []).isNotEmpty) ...[
+            const SizedBox(height: 14),
+            AppMenuSelect<int?>(
+              labelText: 'Kurir Penagih / Pengantar (Opsional)',
+              hintText: 'Pilih Kurir Penagih...',
+              initialSelection: _selectedCourierId,
+              entries: [
+                const AppMenuSelectEntry<int?>(
+                  value: null,
+                  label: 'Belum Ditugaskan',
+                ),
+                ...(_options?.couriers ?? []).map((c) {
+                  return AppMenuSelectEntry<int?>(
+                    value: c.id,
+                    label: c.name,
+                  );
+                }),
+              ],
+              onSelected: (val) {
+                setState(() {
+                  _selectedCourierId = val;
+                });
+              },
+            ),
+          ],
           const SizedBox(height: 24),
 
           // SUB FORM 3: RINCIAN PRODUK TERTAGIH (UI/UX Muatan Barang Jadi Surat Jalan)

@@ -204,12 +204,43 @@ class InvoicePaymentModel {
   }
 }
 
+class InvoiceCourierModel {
+  final int id;
+  final String name;
+  final String? phone;
+  final String? email;
+
+  const InvoiceCourierModel({
+    required this.id,
+    required this.name,
+    this.phone,
+    this.email,
+  });
+
+  factory InvoiceCourierModel.fromJson(Map<String, dynamic> json) {
+    return InvoiceCourierModel(
+      id: json['id'] as int? ?? 0,
+      name: json['name'] as String? ?? '-',
+      phone: json['phone'] as String?,
+      email: json['email'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    if (phone != null) 'phone': phone,
+    if (email != null) 'email': email,
+  };
+}
+
 class InvoiceModel {
   final int id;
   final String invoiceNumber;
   final int? deliveryId;
   final String? deliveryNumber;
   final int? storeId;
+  final int? courierId;
   final int? createdBy;
   final String? invoiceDate;
   final String? dueDate;
@@ -223,6 +254,7 @@ class InvoiceModel {
   final bool isOverdue;
   final String? notes;
   final InvoiceStoreModel? store;
+  final InvoiceCourierModel? courier;
   final List<InvoiceItemModel> items;
   final List<InvoicePaymentModel> payments;
 
@@ -232,6 +264,7 @@ class InvoiceModel {
     this.deliveryId,
     this.deliveryNumber,
     this.storeId,
+    this.courierId,
     this.createdBy,
     this.invoiceDate,
     this.dueDate,
@@ -245,6 +278,7 @@ class InvoiceModel {
     this.isOverdue = false,
     this.notes,
     this.store,
+    this.courier,
     this.items = const [],
     this.payments = const [],
   });
@@ -390,6 +424,7 @@ class InvoiceModel {
       deliveryId: json['delivery_id'] as int?,
       deliveryNumber: deliveryNum,
       storeId: json['store_id'] as int?,
+      courierId: json['courier_id'] as int?,
       createdBy: json['created_by'] as int?,
       invoiceDate: json['invoice_date'] as String?,
       dueDate: json['due_date'] as String?,
@@ -403,6 +438,7 @@ class InvoiceModel {
       isOverdue: json['is_overdue'] as bool? ?? false,
       notes: json['notes'] as String?,
       store: json['store'] != null ? InvoiceStoreModel.fromJson(json['store'] as Map<String, dynamic>) : null,
+      courier: json['courier'] != null ? InvoiceCourierModel.fromJson(json['courier'] as Map<String, dynamic>) : null,
       items: parsedItems,
       payments: parsedPayments,
     );
@@ -474,6 +510,7 @@ class InvoiceDeliveryOptionModel {
   final int id;
   final String deliveryNumber;
   final int storeId;
+  final int? courierId;
   final String? deliveryDate;
   final String? deliveryDateFormatted;
   final List<InvoiceDeliveryItemOptionModel> items;
@@ -482,6 +519,7 @@ class InvoiceDeliveryOptionModel {
     required this.id,
     required this.deliveryNumber,
     required this.storeId,
+    this.courierId,
     this.deliveryDate,
     this.deliveryDateFormatted,
     this.items = const [],
@@ -500,6 +538,7 @@ class InvoiceDeliveryOptionModel {
       id: json['id'] as int? ?? 0,
       deliveryNumber: json['delivery_number'] as String? ?? '-',
       storeId: json['store_id'] as int? ?? 0,
+      courierId: json['courier_id'] as int?,
       deliveryDate: json['delivery_date'] as String?,
       deliveryDateFormatted: json['delivery_date_formatted'] as String?,
       items: parsedItems,
@@ -553,6 +592,7 @@ class InvoiceDeliveryOptionModel {
 
 class InvoiceCreateOptionsModel {
   final List<InvoiceStoreModel> stores;
+  final List<InvoiceCourierModel> couriers;
   final List<InvoiceProductOptionModel> products;
   final List<InvoiceDeliveryOptionModel> deliveries;
   final String nextInvoiceNumber;
@@ -561,6 +601,7 @@ class InvoiceCreateOptionsModel {
 
   const InvoiceCreateOptionsModel({
     this.stores = const [],
+    this.couriers = const [],
     this.products = const [],
     this.deliveries = const [],
     this.nextInvoiceNumber = '',
@@ -570,12 +611,17 @@ class InvoiceCreateOptionsModel {
 
   factory InvoiceCreateOptionsModel.fromJson(Map<String, dynamic> json) {
     final rawStores = json['stores'] as List? ?? [];
+    final rawCouriers = json['couriers'] as List? ?? [];
     final rawProducts = json['products'] as List? ?? [];
     final rawDeliveries = json['deliveries'] as List? ?? [];
 
     return InvoiceCreateOptionsModel(
       stores: rawStores
           .map((s) => InvoiceStoreModel.fromJson(s as Map<String, dynamic>))
+          .toList(),
+      couriers: rawCouriers
+          .map((c) =>
+              InvoiceCourierModel.fromJson(c as Map<String, dynamic>))
           .toList(),
       products: rawProducts
           .map((p) =>

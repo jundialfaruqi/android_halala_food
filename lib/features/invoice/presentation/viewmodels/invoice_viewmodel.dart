@@ -1,4 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/services/websocket_service.dart';
+import '../../../../core/widgets/app_snack_bar.dart';
 import '../../data/models/invoice_model.dart';
 import '../../data/repositories/invoice_repository_impl.dart';
 import '../../domain/repositories/invoice_repository.dart';
@@ -88,6 +91,25 @@ class InvoiceViewModel extends Notifier<InvoiceState> {
   @override
   InvoiceState build() {
     _repository = ref.watch(invoiceRepositoryProvider);
+
+    // Dengar event real-time pembuatan faktur dari WebSocket
+    final wsService = ref.watch(webSocketServiceProvider);
+    final sub = wsService.onInvoiceCreated.listen((payload) {
+      debugPrint('[InvoiceViewModel] Real-time event invoice.created received: $payload');
+      loadInvoices(refresh: true);
+
+      final invoiceNumber = payload['invoice_number']?.toString() ?? 'Faktur Baru';
+      final storeName = payload['store_name']?.toString();
+      final message = storeName != null && storeName.isNotEmpty
+          ? '$invoiceNumber untuk $storeName telah diterbitkan.'
+          : '$invoiceNumber telah diterbitkan.';
+      AppSnackBar.show(null, message: message, type: SnackBarType.info);
+    });
+
+    ref.onDispose(() {
+      sub.cancel();
+    });
+
     Future.microtask(() => loadInvoices(refresh: true));
     return const InvoiceState(isLoading: true);
   }

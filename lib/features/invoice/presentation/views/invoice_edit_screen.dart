@@ -46,6 +46,7 @@ class _InvoiceEditScreenState extends ConsumerState<InvoiceEditScreen> {
   late final TextEditingController _notesController;
 
   int? _selectedStoreId;
+  int? _selectedCourierId;
   DateTime? _invoiceDate;
   DateTime? _dueDate;
 
@@ -67,6 +68,7 @@ class _InvoiceEditScreenState extends ConsumerState<InvoiceEditScreen> {
   void initState() {
     super.initState();
     _selectedStoreId = widget.invoice.storeId;
+    _selectedCourierId = widget.invoice.courierId;
     _invoiceNumberController = TextEditingController(
       text: widget.invoice.invoiceNumber,
     );
@@ -325,6 +327,7 @@ class _InvoiceEditScreenState extends ConsumerState<InvoiceEditScreen> {
 
       final payload = {
         'store_id': _selectedStoreId,
+        'courier_id': _selectedCourierId,
         'invoice_date': _invoiceDateController.text.trim(),
         'due_date': _dueDateController.text.trim(),
         'discount': _discount,
@@ -517,6 +520,31 @@ class _InvoiceEditScreenState extends ConsumerState<InvoiceEditScreen> {
               return null;
             },
           ),
+          if ((_options?.couriers ?? []).isNotEmpty) ...[
+            const SizedBox(height: 14),
+            AppMenuSelect<int?>(
+              labelText: 'Kurir Penagih / Pengantar (Opsional)',
+              hintText: 'Pilih Kurir Penagih...',
+              initialSelection: _selectedCourierId,
+              entries: [
+                const AppMenuSelectEntry<int?>(
+                  value: null,
+                  label: 'Belum Ditugaskan',
+                ),
+                ...(_options?.couriers ?? []).map((c) {
+                  return AppMenuSelectEntry<int?>(
+                    value: c.id,
+                    label: c.name,
+                  );
+                }),
+              ],
+              onSelected: (val) {
+                setState(() {
+                  _selectedCourierId = val;
+                });
+              },
+            ),
+          ],
           const SizedBox(height: 14),
 
           // Tanggal Faktur & Jatuh Tempo
