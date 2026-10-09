@@ -1,4 +1,4 @@
-package com.example.android_halala_food
+package id.my.halala_food
 
 import android.content.Context
 import android.location.Location

@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.android_halala_food"
+    namespace = "id.my.halala_food"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -21,7 +21,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.android_halala_food"
+        applicationId = "id.my.halala_food"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

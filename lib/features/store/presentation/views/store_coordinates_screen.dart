@@ -1750,7 +1750,7 @@ class _StoreCoordinatesScreenState extends ConsumerState<StoreCoordinatesScreen>
             children: [
               TileLayer(
                 urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.example.android_halala_food',
+                userAgentPackageName: 'id.my.halala_food',
                 tileProvider: NetworkTileProvider(
                   headers: <String, String>{
                     'User-Agent':

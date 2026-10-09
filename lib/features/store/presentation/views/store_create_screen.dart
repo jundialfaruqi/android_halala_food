@@ -827,7 +827,7 @@ class _StoreCreateScreenState extends ConsumerState<StoreCreateScreen> {
                           urlTemplate:
                               'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                           userAgentPackageName:
-                              'com.example.android_halala_food',
+                              'id.my.halala_food',
                           tileProvider: NetworkTileProvider(
                             headers: <String, String>{
                               'User-Agent':
