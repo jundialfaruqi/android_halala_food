@@ -616,61 +616,95 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                 ...d.items.asMap().entries.map((entry) {
                   final index = entry.key;
                   final item = entry.value;
+                  final photoUrl = item.productPhotoUrl;
+                  final hasPhoto = photoUrl != null && photoUrl.trim().isNotEmpty;
 
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SizedBox(
-                              width: 22,
-                              child: Text(
-                                '${index + 1}.',
-                                style: const TextStyle(
-                                  fontFamily: 'PlusJakartaSans',
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.brandWarmGray,
-                                ),
-                              ),
+                        SizedBox(
+                          width: 20,
+                          child: Text(
+                            '${index + 1}.',
+                            style: const TextStyle(
+                              fontFamily: 'PlusJakartaSans',
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.brandWarmGray,
                             ),
-                            Expanded(
-                              child: Text(
+                          ),
+                        ),
+                        // Foto Produk Rounded Circle
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: AppColors.brandBorder, width: 1),
+                            color: const Color(0xFFF1F5F9),
+                          ),
+                          child: ClipOval(
+                            child: hasPhoto
+                                ? AppCachedImage(
+                                    imageUrl: photoUrl,
+                                    width: 40,
+                                    height: 40,
+                                    fit: BoxFit.cover,
+                                    borderRadius: 0,
+                                  )
+                                : Center(
+                                    child: Text(
+                                      item.productName.isNotEmpty
+                                          ? item.productName[0].toUpperCase()
+                                          : 'P',
+                                      style: const TextStyle(
+                                        fontFamily: 'PlusJakartaSans',
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.brandEspresso,
+                                      ),
+                                    ),
+                                  ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
                                 item.productName,
                                 style: const TextStyle(
                                   fontFamily: 'PlusJakartaSans',
-                                  fontSize: 14.5,
+                                  fontSize: 14,
                                   fontWeight: FontWeight.w700,
                                   color: AppColors.brandEspresso,
                                 ),
                               ),
-                            ),
-                            Text(
-                              _currencyFormat.format(item.subtotal),
-                              style: const TextStyle(
-                                fontFamily: 'PlusJakartaSans',
-                                fontSize: 14.5,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.brandEspresso,
-                                fontFeatures: [FontFeature.tabularFigures()],
+                              const SizedBox(height: 3),
+                              Text(
+                                '${item.quantity} ${item.productUnit} @ ${_currencyFormat.format(item.unitPrice)}',
+                                style: const TextStyle(
+                                  fontFamily: 'PlusJakartaSans',
+                                  fontSize: 12.5,
+                                  color: AppColors.brandWarmGray,
+                                  fontFeatures: [FontFeature.tabularFigures()],
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                        const SizedBox(height: 4),
-                        Padding(
-                          padding: const EdgeInsets.only(left: 22),
-                          child: Text(
-                            '${item.quantity} ${item.productUnit} @ ${_currencyFormat.format(item.unitPrice)}',
-                            style: const TextStyle(
-                              fontFamily: 'PlusJakartaSans',
-                              fontSize: 13,
-                              color: AppColors.brandWarmGray,
-                              fontFeatures: [FontFeature.tabularFigures()],
-                            ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _currencyFormat.format(item.subtotal),
+                          style: const TextStyle(
+                            fontFamily: 'PlusJakartaSans',
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.brandEspresso,
+                            fontFeatures: [FontFeature.tabularFigures()],
                           ),
                         ),
                       ],
