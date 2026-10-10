@@ -132,6 +132,8 @@ void main() {
     await tester.pumpAndSettle();
 
     // Tap Hapus button
+    await tester.ensureVisible(find.text('Hapus'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Hapus'));
     await tester.pumpAndSettle();
 
@@ -186,6 +188,8 @@ void main() {
     await tester.pumpAndSettle();
 
     // Tap Hapus button
+    await tester.ensureVisible(find.text('Hapus'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Hapus'));
     await tester.pumpAndSettle();
 
