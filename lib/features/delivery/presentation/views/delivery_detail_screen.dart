@@ -12,6 +12,8 @@ import '../../data/repositories/delivery_repository_impl.dart';
 import '../viewmodels/delivery_viewmodel.dart';
 import 'delivery_complete_screen.dart';
 import 'delivery_edit_screen.dart';
+import '../../../invoice/data/repositories/invoice_repository_impl.dart';
+import '../../../invoice/presentation/views/invoice_detail_sheet.dart';
 
 class DeliveryDetailScreen extends ConsumerStatefulWidget {
   final int deliveryId;
@@ -28,6 +30,7 @@ class DeliveryDetailScreen extends ConsumerStatefulWidget {
 
 class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
   bool _isLoading = true;
+  bool _isLoadingInvoice = false;
   DeliveryModel? _delivery;
   String? _errorMessage;
 
@@ -90,6 +93,30 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
     } else {
       if (mounted) {
         AppSnackBar.showInfo(context, message: 'Alamat atau koordinat toko tidak tersedia');
+      }
+    }
+  }
+
+  Future<void> _openInvoiceDetail(int invoiceId) async {
+    if (_isLoadingInvoice) return;
+    setState(() => _isLoadingInvoice = true);
+    try {
+      final repository = ref.read(invoiceRepositoryProvider);
+      final invoice = await repository.getInvoiceDetail(invoiceId);
+      if (mounted) {
+        InvoiceDetailSheet.show(context, invoice);
+      }
+    } catch (e) {
+      if (mounted) {
+        AppSnackBar.showError(
+          context,
+          message:
+              'Gagal memuat rincian faktur: ${e.toString().replaceFirst('Exception: ', '')}',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingInvoice = false);
       }
     }
   }
@@ -734,15 +761,86 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                     ),
                   ],
                   if (d.invoice != null) ...[
-                    const SizedBox(height: 10),
-                    Text(
-                      'Faktur Piutang: ${d.invoice!.invoiceNumber} (${_currencyFormat.format(d.invoice!.totalAmount)})',
-                      style: const TextStyle(
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Faktur Piutang',
+                      style: TextStyle(
                         fontFamily: 'PlusJakartaSans',
                         fontSize: 13.5,
                         fontWeight: FontWeight.w600,
                         color: AppColors.brandEspresso,
-                        fontFeatures: [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    InkWell(
+                      onTap: _isLoadingInvoice
+                          ? null
+                          : () => _openInvoiceDetail(d.invoice!.id),
+                      borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: AppColors.brandBorder),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.only(bottom: 1.5),
+                                  decoration: const BoxDecoration(
+                                    border: Border(
+                                      bottom: BorderSide(
+                                        color: Colors.black,
+                                        width: 1.0,
+                                      ),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    d.invoice!.invoiceNumber,
+                                    style: const TextStyle(
+                                      fontFamily: 'PlusJakartaSans',
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                ),
+                                if (_isLoadingInvoice) ...[
+                                  const SizedBox(width: 8),
+                                  const SizedBox(
+                                    width: 14,
+                                    height: 14,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.0,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        AppColors.brandPrimary,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            Text(
+                              _currencyFormat.format(d.invoice!.totalAmount),
+                              style: const TextStyle(
+                                fontFamily: 'PlusJakartaSans',
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.brandEspresso,
+                                fontFeatures: [FontFeature.tabularFigures()],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
