@@ -6,12 +6,13 @@ const Object _kFilterAllSentinel = Object();
 
 /// Reusable core component filter dropdown berbentuk pill/capsule atau expanded container.
 /// Menggunakan [PopupMenuButton] dengan styling khas Halala Food:
-/// - Rounded border dengan border aktif [AppColors.brandPrimary]
-/// - Pilihan "Semua" di posisi teratas dengan [PopupMenuDivider]
+/// - Rounded border dengan border aktif [AppColors.brandPrimary] (atau border netral pada mode formulir)
+/// - Pilihan "Semua" di posisi teratas dengan [PopupMenuDivider] jika [showAllOption] bernilai `true`
 /// - Opsi aktif ditandai dengan font tebal dan warna brand
 /// - Mendukung mode pill (compact/minAxisSize) atau expanded (full width form/filter bar)
+/// - Mendukung mode formulir (tanpa opsi "Semua", dengan placeholder/hint text, dan validasi error border)
 class AppFilterDropdown<T> extends StatelessWidget {
-  /// Nilai item yang saat ini dipilih. `null` berarti opsi "Semua" (unfiltered).
+  /// Nilai item yang saat ini dipilih. `null` berarti opsi "Semua" (unfiltered) atau belum dipilih.
   final T? selectedValue;
 
   /// Daftar item pilihan yang tersedia.
@@ -21,7 +22,7 @@ class AppFilterDropdown<T> extends StatelessWidget {
   /// Mengembalikan `null` jika pengguna memilih opsi "Semua".
   final ValueChanged<T?> onSelected;
 
-  /// Label teks untuk opsi "Semua" (default: `'Semua Rute'`).
+  /// Label teks untuk opsi "Semua" atau placeholder saat belum ada item dipilih (default: `'Semua Rute'`).
   final String allLabel;
 
   /// Fungsi pengubah objek item menjadi teks String (default: `item.toString()`).
@@ -39,7 +40,7 @@ class AppFilterDropdown<T> extends StatelessWidget {
   /// Jika true, lebar widget menyesuaikan parent ([double.infinity]) dan teks otomatis ellipsis.
   final bool isExpanded;
 
-  /// Tinggi widget (secara default `42` jika [isExpanded], atau wrap content jika false).
+  /// Tinggi widget (secara default `46` jika [isExpanded], atau wrap content jika false).
   final double? height;
 
   /// Padding dalam kontainer trigger.
@@ -69,6 +70,12 @@ class AppFilterDropdown<T> extends StatelessWidget {
   /// Ukuran font teks trigger (default: `13`).
   final double fontSize;
 
+  /// Jika false, opsi "Semua" tidak ditampilkan pada menu pop-up (cocok untuk formulir input yang wajib memilih salah satu nilai).
+  final bool showAllOption;
+
+  /// Menandakan field dalam kondisi error validasi (border dan teks merah).
+  final bool hasError;
+
   const AppFilterDropdown({
     super.key,
     required this.selectedValue,
@@ -90,6 +97,8 @@ class AppFilterDropdown<T> extends StatelessWidget {
     this.icon = TablerIcons.chevron_down,
     this.iconSize,
     this.fontSize = 13,
+    this.showAllOption = true,
+    this.hasError = false,
   });
 
   String _formatItem(T item) {
@@ -111,17 +120,66 @@ class AppFilterDropdown<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isFiltered = selectedValue != null;
-    final effectiveHeight = height ?? (isExpanded ? 42.0 : null);
+    final isSelected = selectedValue != null;
+    final isFormMode = !showAllOption;
+    final effectiveHeight = height ?? (isExpanded ? 46.0 : null);
     final effectiveRadius =
         borderRadius ?? BorderRadius.circular(isExpanded ? 10.0 : 20.0);
     final effectivePadding = padding ??
         (isExpanded
-            ? const EdgeInsets.symmetric(horizontal: 12)
+            ? const EdgeInsets.symmetric(horizontal: 14)
             : const EdgeInsets.symmetric(horizontal: 14, vertical: 7));
     final effectiveOffset =
-        offset ?? (isExpanded ? const Offset(0, 44) : const Offset(0, 38));
+        offset ?? (isExpanded ? const Offset(0, 48) : const Offset(0, 38));
     final effectiveIconSize = iconSize ?? (isExpanded ? 16.0 : 14.0);
+
+    // Penentuan warna border:
+    Color effectiveBorderColor;
+    if (hasError) {
+      effectiveBorderColor = const Color(0xFFDC2626);
+    } else if (isFormMode) {
+      effectiveBorderColor = AppColors.brandBorder;
+    } else {
+      effectiveBorderColor =
+          isSelected ? AppColors.brandPrimary : AppColors.brandBorder;
+    }
+
+    final effectiveBorderWidth =
+        (hasError || (!isFormMode && isSelected)) ? 1.2 : 1.0;
+
+    // Penentuan styling teks trigger:
+    Color triggerTextColor;
+    FontWeight triggerFontWeight;
+    if (isFormMode) {
+      if (!isSelected) {
+        triggerTextColor =
+            hasError ? const Color(0xFFDC2626) : AppColors.brandWarmGray;
+        triggerFontWeight = FontWeight.w500;
+      } else {
+        triggerTextColor = AppColors.brandEspresso;
+        triggerFontWeight = FontWeight.w600;
+      }
+    } else {
+      if (isSelected) {
+        triggerTextColor = AppColors.brandPrimary;
+        triggerFontWeight = FontWeight.w700;
+      } else {
+        triggerTextColor = AppColors.brandEspresso;
+        triggerFontWeight = FontWeight.w600;
+      }
+    }
+
+    // Penentuan warna ikon:
+    Color triggerIconColor;
+    if (hasError) {
+      triggerIconColor = const Color(0xFFDC2626);
+    } else if (isFormMode) {
+      triggerIconColor =
+          isSelected ? AppColors.brandEspresso : AppColors.brandWarmGray;
+    } else {
+      triggerIconColor =
+          isSelected ? AppColors.brandPrimary : AppColors.brandWarmGray;
+    }
 
     return PopupMenuButton<Object?>(
       tooltip: tooltip,
@@ -129,7 +187,7 @@ class AppFilterDropdown<T> extends StatelessWidget {
       elevation: elevation,
       color: Colors.white,
       constraints: menuConstraints ??
-          BoxConstraints(minWidth: isExpanded ? 200 : 150),
+          BoxConstraints(minWidth: isExpanded ? 240 : 150, maxHeight: 320),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
         side: const BorderSide(color: AppColors.brandBorder),
@@ -142,26 +200,31 @@ class AppFilterDropdown<T> extends StatelessWidget {
         }
       },
       itemBuilder: (context) {
-        return [
-          // Opsi Semua / Tanpa Filter
-          PopupMenuItem<Object?>(
-            value: _kFilterAllSentinel,
-            height: 40,
-            child: Text(
-              allLabel,
-              style: TextStyle(
-                fontFamily: 'PlusJakartaSans',
-                fontSize: 13,
-                fontWeight: !isFiltered ? FontWeight.w700 : FontWeight.w500,
-                color: !isFiltered
-                    ? AppColors.brandPrimary
-                    : AppColors.brandEspresso,
+        final menuItems = <PopupMenuEntry<Object?>>[];
+
+        if (showAllOption) {
+          menuItems.add(
+            PopupMenuItem<Object?>(
+              value: _kFilterAllSentinel,
+              height: 40,
+              child: Text(
+                allLabel,
+                style: TextStyle(
+                  fontFamily: 'PlusJakartaSans',
+                  fontSize: 13,
+                  fontWeight: !isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: !isSelected
+                      ? AppColors.brandPrimary
+                      : AppColors.brandEspresso,
+                ),
               ),
             ),
-          ),
-          const PopupMenuDivider(height: 1),
-          // Opsi masing-masing item
-          ...items.map(
+          );
+          menuItems.add(const PopupMenuDivider(height: 1));
+        }
+
+        menuItems.addAll(
+          items.map(
             (item) {
               final isItemActive = selectedValue == item;
               return PopupMenuItem<Object?>(
@@ -169,10 +232,13 @@ class AppFilterDropdown<T> extends StatelessWidget {
                 height: 40,
                 child: Text(
                   _formatItem(item),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontFamily: 'PlusJakartaSans',
                     fontSize: 13,
-                    fontWeight: isItemActive ? FontWeight.w700 : FontWeight.w500,
+                    fontWeight:
+                        isItemActive ? FontWeight.w700 : FontWeight.w500,
                     color: isItemActive
                         ? AppColors.brandPrimary
                         : AppColors.brandEspresso,
@@ -181,7 +247,9 @@ class AppFilterDropdown<T> extends StatelessWidget {
               );
             },
           ),
-        ];
+        );
+
+        return menuItems;
       },
       child: Container(
         height: effectiveHeight,
@@ -190,8 +258,8 @@ class AppFilterDropdown<T> extends StatelessWidget {
           color: Colors.white,
           borderRadius: effectiveRadius,
           border: Border.all(
-            color: isFiltered ? AppColors.brandPrimary : AppColors.brandBorder,
-            width: isFiltered ? 1.2 : 1.0,
+            color: effectiveBorderColor,
+            width: effectiveBorderWidth,
           ),
           boxShadow: showShadow
               ? [
@@ -215,11 +283,8 @@ class AppFilterDropdown<T> extends StatelessWidget {
                       style: TextStyle(
                         fontFamily: 'PlusJakartaSans',
                         fontSize: fontSize,
-                        fontWeight:
-                            isFiltered ? FontWeight.w700 : FontWeight.w600,
-                        color: isFiltered
-                            ? AppColors.brandPrimary
-                            : AppColors.brandEspresso,
+                        fontWeight: triggerFontWeight,
+                        color: triggerTextColor,
                       ),
                     ),
                   ),
@@ -227,9 +292,7 @@ class AppFilterDropdown<T> extends StatelessWidget {
                   Icon(
                     icon,
                     size: effectiveIconSize,
-                    color: isFiltered
-                        ? AppColors.brandPrimary
-                        : AppColors.brandWarmGray,
+                    color: triggerIconColor,
                   ),
                 ],
               )
@@ -241,20 +304,15 @@ class AppFilterDropdown<T> extends StatelessWidget {
                     style: TextStyle(
                       fontFamily: 'PlusJakartaSans',
                       fontSize: fontSize,
-                      fontWeight:
-                          isFiltered ? FontWeight.w700 : FontWeight.w600,
-                      color: isFiltered
-                          ? AppColors.brandPrimary
-                          : AppColors.brandEspresso,
+                      fontWeight: triggerFontWeight,
+                      color: triggerTextColor,
                     ),
                   ),
                   const SizedBox(width: 4),
                   Icon(
                     icon,
                     size: effectiveIconSize,
-                    color: isFiltered
-                        ? AppColors.brandPrimary
-                        : AppColors.brandWarmGray,
+                    color: triggerIconColor,
                   ),
                 ],
               ),

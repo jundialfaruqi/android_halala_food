@@ -49,6 +49,7 @@ class _RawMaterialFormScreenState extends ConsumerState<RawMaterialFormScreen> {
   int? _calcSelectedUnitId;
 
   int? _selectedUnitId;
+  bool _unitHasError = false;
   bool _isSubmitting = false;
 
   @override
@@ -88,13 +89,6 @@ class _RawMaterialFormScreenState extends ConsumerState<RawMaterialFormScreen> {
       final state = ref.read(rawMaterialViewModelProvider);
       if (state.availableUnits.isEmpty) {
         ref.read(rawMaterialViewModelProvider.notifier).fetchOptions();
-      } else {
-        if (_selectedUnitId == null && state.availableUnits.isNotEmpty) {
-          setState(() {
-            _selectedUnitId = state.availableUnits.first.id;
-            _calcSelectedUnitId = _selectedUnitId;
-          });
-        }
       }
     });
   }
@@ -120,9 +114,12 @@ class _RawMaterialFormScreenState extends ConsumerState<RawMaterialFormScreen> {
     }
 
     if (_selectedUnitId == null) {
+      setState(() {
+        _unitHasError = true;
+      });
       AppSnackBar.showError(
         context,
-        message: 'Pilih satuan pengukuran terlebih dahulu.',
+        message: 'Satuan pengukuran wajib dipilih.',
       );
       return;
     }
@@ -180,11 +177,6 @@ class _RawMaterialFormScreenState extends ConsumerState<RawMaterialFormScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(rawMaterialViewModelProvider);
     final units = state.availableUnits;
-
-    if (_selectedUnitId == null && units.isNotEmpty) {
-      _selectedUnitId = units.first.id;
-      _calcSelectedUnitId ??= _selectedUnitId;
-    }
 
     final isSubmitting = _isSubmitting || state.isSubmitting;
 
@@ -256,45 +248,41 @@ class _RawMaterialFormScreenState extends ConsumerState<RawMaterialFormScreen> {
                   ),
                 ),
                 const SizedBox(height: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 4),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                        color: AppColors.brandBorder, width: 1),
-                    color: Colors.white,
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<int>(
-                      value: _selectedUnitId,
-                      isExpanded: true,
-                      icon: const Icon(TablerIcons.chevron_down,
-                          color: Colors.black, size: 18),
-                      items: units.map((u) {
-                        return DropdownMenuItem<int>(
-                          value: u.id,
-                          child: Text(
-                            '${u.name} (${u.shortName})',
-                            style: const TextStyle(
-                              fontFamily: 'PlusJakartaSans',
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.brandEspresso,
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: (val) {
-                        if (val != null) {
-                          setState(() {
-                            _selectedUnitId = val;
-                          });
-                        }
-                      },
+                AppFilterDropdown<RawMaterialUnitOptionModel>(
+                  selectedValue: units
+                      .cast<RawMaterialUnitOptionModel?>()
+                      .firstWhere(
+                        (u) => u?.id == _selectedUnitId,
+                        orElse: () => null,
+                      ),
+                  items: units,
+                  allLabel: 'Pilih Satuan',
+                  showAllOption: false,
+                  isExpanded: true,
+                  showShadow: false,
+                  hasError: _unitHasError,
+                  height: 48,
+                  itemLabel: (u) => '${u.name} (${u.shortName})',
+                  onSelected: (u) {
+                    setState(() {
+                      _selectedUnitId = u?.id;
+                      _calcSelectedUnitId = u?.id;
+                      _unitHasError = false;
+                    });
+                  },
+                ),
+                if (_unitHasError) ...[
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Satuan pengukuran wajib dipilih.',
+                    style: TextStyle(
+                      fontFamily: 'PlusJakartaSans',
+                      fontSize: 11.5,
+                      color: Color(0xFFDC2626),
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                ),
+                ],
                 const SizedBox(height: 16),
 
                 // 3. Stok Saat Ini & Batas Minimum
@@ -504,44 +492,29 @@ class _RawMaterialFormScreenState extends ConsumerState<RawMaterialFormScreen> {
             ),
           ),
           const SizedBox(height: 4),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.brandBorder, width: 1),
-              color: Colors.white,
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<int>(
-                value: _calcSelectedUnitId ?? _selectedUnitId,
-                isExpanded: true,
-                icon: const Icon(TablerIcons.chevron_down,
-                    color: Colors.black, size: 16),
-                items: units.map((u) {
-                  return DropdownMenuItem<int>(
-                    value: u.id,
-                    child: Text(
-                      '${u.name} (${u.shortName})',
-                      style: const TextStyle(
-                        fontFamily: 'PlusJakartaSans',
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.brandEspresso,
-                      ),
-                    ),
-                  );
-                }).toList(),
-                onChanged: (val) {
-                  if (val != null) {
-                    setState(() {
-                      _calcSelectedUnitId = val;
-                      _calcResult = null;
-                      _calcError = null;
-                    });
-                  }
-                },
-              ),
-            ),
+          AppFilterDropdown<RawMaterialUnitOptionModel>(
+            selectedValue: units
+                .cast<RawMaterialUnitOptionModel?>()
+                .firstWhere(
+                  (u) => u?.id == (_calcSelectedUnitId ?? _selectedUnitId),
+                  orElse: () => null,
+                ),
+            items: units,
+            allLabel: 'Pilih Satuan',
+            showAllOption: false,
+            isExpanded: true,
+            showShadow: false,
+            height: 44,
+            itemLabel: (u) => '${u.name} (${u.shortName})',
+            onSelected: (u) {
+              if (u != null) {
+                setState(() {
+                  _calcSelectedUnitId = u.id;
+                  _calcResult = null;
+                  _calcError = null;
+                });
+              }
+            },
           ),
           const SizedBox(height: 10),
 

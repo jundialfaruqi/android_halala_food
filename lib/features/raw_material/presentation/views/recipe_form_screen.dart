@@ -32,6 +32,7 @@ class RecipeFormScreen extends ConsumerStatefulWidget {
 class _RecipeRowItem {
   int? materialId;
   final TextEditingController controller;
+  bool hasError = false;
 
   _RecipeRowItem({
     required this.materialId,
@@ -84,12 +85,9 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
 
       // Jika belum ada bahan sama sekali, siapkan 1 baris awal
       if (_rows.isEmpty) {
-        final options = state.availableMaterialOptions.isNotEmpty
-            ? state.availableMaterialOptions
-            : state.materials;
         setState(() {
           _rows.add(_RecipeRowItem(
-            materialId: options.isNotEmpty ? options.first.id : null,
+            materialId: null,
             controller: TextEditingController(text: '0'),
           ));
         });
@@ -109,7 +107,7 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
   void _addRecipeRow(List<RawMaterialModel> materialOptions) {
     setState(() {
       _rows.add(_RecipeRowItem(
-        materialId: materialOptions.isNotEmpty ? materialOptions.first.id : null,
+        materialId: null,
         controller: TextEditingController(text: '0'),
       ));
     });
@@ -127,16 +125,35 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
 
   /// Simpan formula resep ke backend
   Future<void> _submitRecipe() async {
+    bool hasAnyError = false;
     final validIngredients = <Map<String, dynamic>>[];
+
     for (final row in _rows) {
       final matId = row.materialId;
       final qty = double.tryParse(row.controller.text.trim()) ?? 0.0;
+
+      if (matId == null || matId <= 0) {
+        row.hasError = true;
+        hasAnyError = true;
+      } else {
+        row.hasError = false;
+      }
+
       if (matId != null && matId > 0 && qty > 0) {
         validIngredients.add({
           'raw_material_id': matId,
           'quantity_needed': qty,
         });
       }
+    }
+
+    if (hasAnyError) {
+      setState(() {});
+      AppSnackBar.showError(
+        context,
+        message: 'Bahan baku wajib dipilih untuk semua baris resep.',
+      );
+      return;
     }
 
     if (validIngredients.isEmpty) {
@@ -197,7 +214,7 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
     // Pastikan jika _rows kosong dan opsi sudah termuat, tambahkan baris default
     if (_rows.isEmpty && materialOptions.isNotEmpty) {
       _rows.add(_RecipeRowItem(
-        materialId: materialOptions.first.id,
+        materialId: null,
         controller: TextEditingController(text: '0'),
       ));
     }
@@ -636,51 +653,38 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
               color: AppColors.brandEspresso,
             ),
           ),
-          const SizedBox(height: 6),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.brandBorder),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<int>(
-                value: row.materialId,
-                isExpanded: true,
-                icon: const Icon(TablerIcons.chevron_down, color: Colors.black, size: 18),
-                hint: const Text(
-                  '-- Pilih Bahan Baku --',
-                  style: TextStyle(
-                    fontFamily: 'PlusJakartaSans',
-                    fontSize: 13,
-                    color: AppColors.brandWarmGray,
-                  ),
-                ),
-                items: materialOptions.map((m) {
-                  return DropdownMenuItem<int>(
-                    value: m.id,
-                    child: Text(
-                      '${m.name} (${_currencyFormat.format(m.costPerUnit)} / ${m.unitShort})',
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontFamily: 'PlusJakartaSans',
-                        fontSize: 13,
-                        color: AppColors.brandEspresso,
-                      ),
-                    ),
-                  );
-                }).toList(),
-                onChanged: (val) {
-                  if (val != null) {
-                    setState(() {
-                      row.materialId = val;
-                    });
-                  }
-                },
+          AppFilterDropdown<RawMaterialModel>(
+            selectedValue: selectedMat,
+            items: materialOptions,
+            allLabel: 'Pilih Bahan Baku',
+            showAllOption: false,
+            isExpanded: true,
+            showShadow: false,
+            hasError: row.hasError,
+            height: 48,
+            itemLabel: (m) =>
+                '${m.name} (${_currencyFormat.format(m.costPerUnit)} / ${m.unitShort})',
+            onSelected: (m) {
+              if (m != null) {
+                setState(() {
+                  row.materialId = m.id;
+                  row.hasError = false;
+                });
+              }
+            },
+          ),
+          if (row.hasError) ...[
+            const SizedBox(height: 4),
+            const Text(
+              'Bahan baku wajib dipilih.',
+              style: TextStyle(
+                fontFamily: 'PlusJakartaSans',
+                fontSize: 11.5,
+                color: Color(0xFFDC2626),
+                fontWeight: FontWeight.w500,
               ),
             ),
-          ),
+          ],
           const SizedBox(height: 12),
 
           // 2. Input Takaran
