@@ -462,7 +462,7 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
   Widget _buildShimmerLoadingList() {
     final screenWidth = MediaQuery.sizeOf(context).width;
     final cardWidth = (screenWidth - 32 - 12) / 2;
-    final childAspectRatio = cardWidth / (cardWidth + 136.0);
+    final childAspectRatio = cardWidth / (cardWidth + 116.0);
 
     return GridView.builder(
       physics: const NeverScrollableScrollPhysics(),
