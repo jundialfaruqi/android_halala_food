@@ -875,46 +875,14 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Item Bahan Baku Dibeli (${_items.length})',
-              style: const TextStyle(
-                fontFamily: 'PlusJakartaSans',
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: AppColors.brandEspresso,
-              ),
-            ),
-            InkWell(
-              onTap: _addNewRow,
-              borderRadius: BorderRadius.circular(8),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: AppColors.brandPrimary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: const [
-                    Icon(TablerIcons.plus, size: 14, color: AppColors.brandPrimary),
-                    SizedBox(width: 4),
-                    Text(
-                      'Tambah Baris',
-                      style: TextStyle(
-                        fontFamily: 'PlusJakartaSans',
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.brandPrimary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
+        Text(
+          'Item Bahan Baku Dibeli (${_items.length})',
+          style: const TextStyle(
+            fontFamily: 'PlusJakartaSans',
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            color: AppColors.brandEspresso,
+          ),
         ),
         const SizedBox(height: 10),
 
@@ -936,12 +904,21 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
               ),
             ),
           )
-        else
+        else ...[
           ..._items.asMap().entries.map((entry) {
             final index = entry.key;
             final item = entry.value;
             return _buildRowItemWidget(index, item);
           }),
+          const SizedBox(height: 4),
+          AppButton.outline(
+            text: 'Tambah Baris',
+            icon: const Icon(TablerIcons.plus, size: 18),
+            height: 44,
+            borderRadius: 12,
+            onPressed: _addNewRow,
+          ),
+        ],
       ],
     );
   }
