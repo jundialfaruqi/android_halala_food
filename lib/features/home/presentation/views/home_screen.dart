@@ -7,6 +7,7 @@ import '../../../../core/widgets/widgets.dart';
 import '../../../auth/data/models/user_model.dart';
 import '../../../auth/presentation/viewmodels/auth_viewmodel.dart';
 import '../../../auth/presentation/views/profile_screen.dart';
+import '../../../cash_book/presentation/views/cash_book_screen.dart';
 import '../../../delivery/presentation/views/delivery_screen.dart';
 import '../../../invoice/presentation/views/invoice_screen.dart';
 import '../../../product/presentation/views/product_screen.dart';
@@ -490,6 +491,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
 
             if (menu.title == 'Bahan Baku') {
               _navigateTo(const RawMaterialScreen());
+              return;
+            }
+
+            if (menu.title == 'Buku Kas') {
+              _navigateTo(const CashBookScreen());
               return;
             }
 

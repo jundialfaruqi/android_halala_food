@@ -55,6 +55,12 @@ class ApiEndpoints {
   static String productionDetail(int id) => '/productions/$id';
   static String productionCancel(int id) => '/productions/$id/cancel';
 
+  // Cash Book (Buku Kas & Keuangan)
+  static const String cashBook = '/cash-book';
+  static const String cashBookTransactions = '/cash-book/transactions';
+  static String cashBookTransactionDetail(int id) => '/cash-book/transactions/$id';
+  static const String cashBookAccounts = '/cash-book/accounts';
+
   // Dashboard & Profile
   static const String dashboard = '/dashboard';
 }
