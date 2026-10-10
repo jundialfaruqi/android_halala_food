@@ -1324,27 +1324,96 @@ class _RawMaterialScreenState extends ConsumerState<RawMaterialScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Header: Nama Bahan & Status Stok
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    ShimmerLoading(width: 160, height: 18),
-                    ShimmerLoading(width: 50, height: 16),
+                    ShimmerLoading(width: 150, height: 18, borderRadius: 4),
+                    ShimmerLoading(width: 65, height: 16, borderRadius: 4),
                   ],
                 ),
                 SizedBox(height: 12),
                 Divider(height: 1, color: AppColors.brandBorder),
-                SizedBox(height: 12),
+                SizedBox(height: 14),
+
+                // Row 2: Rincian Stok & Batas Minimum
                 Row(
                   children: [
-                    Expanded(child: ShimmerLoading(width: 100, height: 16)),
-                    Expanded(child: ShimmerLoading(width: 100, height: 16)),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ShimmerLoading(width: 75, height: 12, borderRadius: 3),
+                          SizedBox(height: 6),
+                          ShimmerLoading(width: 90, height: 16, borderRadius: 4),
+                        ],
+                      ),
+                    ),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ShimmerLoading(width: 80, height: 12, borderRadius: 3),
+                          SizedBox(height: 6),
+                          ShimmerLoading(width: 75, height: 16, borderRadius: 4),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
-                SizedBox(height: 10),
+                SizedBox(height: 14),
+
+                // Row 3: Harga Beli & Digunakan Pada
                 Row(
                   children: [
-                    Expanded(child: ShimmerLoading(width: 120, height: 16)),
-                    Expanded(child: ShimmerLoading(width: 80, height: 16)),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ShimmerLoading(width: 95, height: 12, borderRadius: 3),
+                          SizedBox(height: 6),
+                          ShimmerLoading(width: 110, height: 15, borderRadius: 4),
+                        ],
+                      ),
+                    ),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ShimmerLoading(width: 85, height: 12, borderRadius: 3),
+                          SizedBox(height: 6),
+                          ShimmerLoading(width: 90, height: 15, borderRadius: 4),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 14),
+                Divider(height: 1, color: AppColors.brandBorder),
+                SizedBox(height: 12),
+
+                // Row 4: Action Buttons (Stock Opname, Ubah, Hapus)
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 4,
+                      child: ShimmerLoading(
+                          width: double.infinity, height: 34, borderRadius: 8),
+                    ),
+                    SizedBox(width: 8),
+                    Expanded(
+                      flex: 3,
+                      child: ShimmerLoading(
+                          width: double.infinity, height: 34, borderRadius: 8),
+                    ),
+                    SizedBox(width: 8),
+                    Expanded(
+                      flex: 3,
+                      child: ShimmerLoading(
+                          width: double.infinity, height: 34, borderRadius: 8),
+                    ),
                   ],
                 ),
               ],
@@ -1361,24 +1430,112 @@ class _RawMaterialScreenState extends ConsumerState<RawMaterialScreen> {
         3,
         (i) => Container(
           margin: const EdgeInsets.only(bottom: 14),
-          child: const AppCard(
-            padding: EdgeInsets.all(16),
+          child: AppCard(
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                // Header Produk: Avatar Bulat, Nama, Satuan Kemasan & Tombol Atur Resep
+                const Row(
                   children: [
-                    ShimmerLoading(width: 150, height: 18),
-                    ShimmerLoading(width: 80, height: 32),
+                    ShimmerLoading.circular(size: 44),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ShimmerLoading(width: 140, height: 16, borderRadius: 4),
+                          SizedBox(height: 6),
+                          ShimmerLoading(width: 100, height: 12, borderRadius: 4),
+                        ],
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    ShimmerLoading(width: 110, height: 36, borderRadius: 10),
                   ],
                 ),
-                SizedBox(height: 14),
-                ShimmerLoading(width: double.infinity, height: 50),
-                SizedBox(height: 14),
-                ShimmerLoading(width: 180, height: 14),
-                SizedBox(height: 8),
-                ShimmerLoading(width: double.infinity, height: 60),
+                const SizedBox(height: 14),
+
+                // Ringkasan Harga, HPP Bahan, dan Gross Margin (3 Kolom Bersih)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF9FAFB),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppColors.brandBorder, width: 1),
+                  ),
+                  child: Row(
+                    children: [
+                      const Expanded(
+                        child: Column(
+                          children: [
+                            ShimmerLoading(width: 55, height: 11, borderRadius: 3),
+                            SizedBox(height: 6),
+                            ShimmerLoading(width: 65, height: 14, borderRadius: 4),
+                          ],
+                        ),
+                      ),
+                      Container(width: 1, height: 28, color: AppColors.brandBorder),
+                      const Expanded(
+                        child: Column(
+                          children: [
+                            ShimmerLoading(width: 55, height: 11, borderRadius: 3),
+                            SizedBox(height: 6),
+                            ShimmerLoading(width: 65, height: 14, borderRadius: 4),
+                          ],
+                        ),
+                      ),
+                      Container(width: 1, height: 28, color: AppColors.brandBorder),
+                      const Expanded(
+                        child: Column(
+                          children: [
+                            ShimmerLoading(width: 65, height: 11, borderRadius: 3),
+                            SizedBox(height: 6),
+                            ShimmerLoading(width: 45, height: 14, borderRadius: 4),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Header Komposisi Takaran
+                const ShimmerLoading(width: 180, height: 12, borderRadius: 4),
+                const SizedBox(height: 8),
+
+                // Box Komposisi Formula Takaran
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.brandBorder, width: 1),
+                  ),
+                  child: const Column(
+                    children: [
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            ShimmerLoading(width: 110, height: 13, borderRadius: 4),
+                            ShimmerLoading(width: 50, height: 12, borderRadius: 4),
+                          ],
+                        ),
+                      ),
+                      Divider(height: 1, color: AppColors.brandBorder),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            ShimmerLoading(width: 90, height: 13, borderRadius: 4),
+                            ShimmerLoading(width: 45, height: 12, borderRadius: 4),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
