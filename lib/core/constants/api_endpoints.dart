@@ -61,6 +61,12 @@ class ApiEndpoints {
   static String cashBookTransactionDetail(int id) => '/cash-book/transactions/$id';
   static const String cashBookAccounts = '/cash-book/accounts';
 
+  // Purchases (Pengadaan & Pembelian Bahan Baku)
+  static const String purchases = '/purchases';
+  static const String purchaseOptions = '/purchases/options';
+  static String purchaseDetail(int id) => '/purchases/$id';
+  static String purchasePayDebt(int id) => '/purchases/$id/pay-debt';
+
   // Dashboard & Profile
   static const String dashboard = '/dashboard';
 }

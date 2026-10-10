@@ -12,6 +12,7 @@ import '../../../delivery/presentation/views/delivery_screen.dart';
 import '../../../invoice/presentation/views/invoice_screen.dart';
 import '../../../product/presentation/views/product_screen.dart';
 import '../../../production/presentation/views/production_screen.dart';
+import '../../../purchase/presentation/views/purchase_screen.dart';
 import '../../../raw_material/presentation/views/raw_material_screen.dart';
 import '../../../store/presentation/views/store_coordinates_screen.dart';
 import '../../../store/presentation/views/store_screen.dart';
@@ -496,6 +497,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
 
             if (menu.title == 'Buku Kas') {
               _navigateTo(const CashBookScreen());
+              return;
+            }
+
+            if (menu.title == 'Pembelian') {
+              _navigateTo(const PurchaseScreen());
               return;
             }
 
