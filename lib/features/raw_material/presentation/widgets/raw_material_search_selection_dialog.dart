@@ -159,21 +159,6 @@ class _RawMaterialSearchSelectionDialogState
               padding: const EdgeInsets.fromLTRB(20, 18, 14, 14),
               child: Row(
                 children: [
-                  Container(
-                    width: 38,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AppColors.brandBorder),
-                    ),
-                    child: const Icon(
-                      TablerIcons.package,
-                      color: AppColors.brandEspresso,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
                   const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
