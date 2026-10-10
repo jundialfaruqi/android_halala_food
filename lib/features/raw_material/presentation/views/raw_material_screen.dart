@@ -15,9 +15,8 @@ class RawMaterialScreen extends ConsumerStatefulWidget {
   ConsumerState<RawMaterialScreen> createState() => _RawMaterialScreenState();
 }
 
-class _RawMaterialScreenState extends ConsumerState<RawMaterialScreen>
-    with SingleTickerProviderStateMixin {
-  late final TabController _tabController;
+class _RawMaterialScreenState extends ConsumerState<RawMaterialScreen> {
+  int _selectedTabIndex = 0;
   final TextEditingController _materialSearchController = TextEditingController();
   final TextEditingController _recipeSearchController = TextEditingController();
 
@@ -30,22 +29,16 @@ class _RawMaterialScreenState extends ConsumerState<RawMaterialScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(rawMaterialViewModelProvider.notifier).fetchMaterials();
       ref.read(rawMaterialViewModelProvider.notifier).fetchRecipes();
       ref.read(rawMaterialViewModelProvider.notifier).fetchOptions();
     });
-
-    _tabController.addListener(() {
-      if (mounted) setState(() {});
-    });
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
     _materialSearchController.dispose();
     _recipeSearchController.dispose();
     super.dispose();
@@ -63,72 +56,106 @@ class _RawMaterialScreenState extends ConsumerState<RawMaterialScreen>
 
     return AppStatusBar(
       child: AppScaffold(
-        appBar: AppAppBar(
+        appBar: const AppAppBar(
           title: 'Bahan Baku & Resep BOM',
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(48),
-            child: Container(
-              decoration: const BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: AppColors.brandBorder, width: 1),
-                ),
-              ),
-              child: TabBar(
-                controller: _tabController,
-                indicatorColor: AppColors.brandPrimary,
-                indicatorWeight: 3,
-                labelColor: AppColors.brandPrimary,
-                unselectedLabelColor: AppColors.brandWarmGray,
-                labelStyle: const TextStyle(
-                  fontFamily: 'PlusJakartaSans',
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14.5,
-                ),
-                unselectedLabelStyle: const TextStyle(
-                  fontFamily: 'PlusJakartaSans',
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14.5,
-                ),
-                tabs: [
-                  Tab(
-                    text:
-                        'Master Bahan Baku (${state.summary?.totalMaterials ?? state.materials.length})',
-                  ),
-                  Tab(
-                    text: 'Resep Produk BOM (${state.recipes.length})',
-                  ),
-                ],
-              ),
-            ),
-          ),
         ),
-        floatingActionButton: (_tabController.index == 0 && canCreateMaterial)
+        floatingActionButton: (_selectedTabIndex == 0 && canCreateMaterial)
             ? AppFloatingActionButton(
                 onPressed: () => _openMaterialFormModal(context),
                 icon: const Icon(TablerIcons.plus, color: Colors.white, size: 22),
               )
             : null,
-        body: TabBarView(
-          controller: _tabController,
+        body: Column(
           children: [
-            // TAB 1: MASTER BAHAN BAKU
-            _buildMaterialsTab(
-              context,
-              state,
-              canEdit: canEditMaterial,
-              canDelete: canDeleteMaterial,
-              canCreate: canCreateMaterial,
-            ),
+            // 1. Tab Menu (Mengikuti UI Tab Halaman Pengantaran)
+            _buildTopMenuTabBar(state),
 
-            // TAB 2: RESEP PRODUK (BOM)
-            _buildRecipesTab(
-              context,
-              state,
-              canManage: canManageRecipe,
+            // 2. Content View
+            Expanded(
+              child: _selectedTabIndex == 0
+                  ? _buildMaterialsTab(
+                      context,
+                      state,
+                      canEdit: canEditMaterial,
+                      canDelete: canDeleteMaterial,
+                      canCreate: canCreateMaterial,
+                    )
+                  : _buildRecipesTab(
+                      context,
+                      state,
+                      canManage: canManageRecipe,
+                    ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  /// Tab Menu Horizontal (Mengikuti UI Halaman Pengantaran)
+  Widget _buildTopMenuTabBar(RawMaterialState state) {
+    final totalMaterials = state.summary?.totalMaterials ?? state.materials.length;
+    final totalRecipes = state.recipes.length;
+
+    final tabs = [
+      (0, 'Master Bahan Baku', totalMaterials),
+      (1, 'Resep Produk BOM', totalRecipes),
+    ];
+
+    return Column(
+      children: [
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: tabs.map((tab) {
+              final isSelected = _selectedTabIndex == tab.$1;
+              final count = tab.$3;
+              final label = count > 0 ? '${tab.$2} ($count)' : tab.$2;
+
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: InkWell(
+                  onTap: () {
+                    setState(() {
+                      _selectedTabIndex = tab.$1;
+                    });
+                  },
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(
+                          color: isSelected
+                              ? AppColors.brandPrimary
+                              : Colors.transparent,
+                          width: 2.2,
+                        ),
+                      ),
+                    ),
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        fontFamily: 'PlusJakartaSans',
+                        fontSize: 13.5,
+                        fontWeight: isSelected
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                        color: isSelected
+                            ? AppColors.brandPrimary
+                            : AppColors.brandWarmGray,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+        const Divider(height: 1, color: AppColors.brandBorder),
+      ],
     );
   }
 
@@ -142,16 +169,12 @@ class _RawMaterialScreenState extends ConsumerState<RawMaterialScreen>
     required bool canDelete,
     required bool canCreate,
   }) {
-    return RefreshIndicator(
-      color: AppColors.brandPrimary,
-      onRefresh: () async {
-        await ref.read(rawMaterialViewModelProvider.notifier).fetchMaterials();
-      },
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 80),
-        children: [
-          // 1. Search Bar (AppTextField tanpa icon bg, icon hitam)
-          AppTextField(
+    return Column(
+      children: [
+        // 1. Search Bar (AppTextField tanpa icon bg, icon hitam)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          child: AppTextField(
             controller: _materialSearchController,
             hintText: 'Cari nama bahan baku...',
             prefixIcon: const Icon(
@@ -176,113 +199,140 @@ class _RawMaterialScreenState extends ConsumerState<RawMaterialScreen>
                   .setMaterialSearch(val);
             },
           ),
-          const SizedBox(height: 12),
+        ),
 
-          // 2. Filter Status Stok (Menggunakan Tab Horizontal)
-          _buildStockStatusTabBar(state),
-          const SizedBox(height: 14),
+        // 2. Filter Status Stok (Mengikuti UI Filter Rute di Halaman Mitra Toko)
+        _buildStockStatusFilterBar(state),
 
-          // 3. Konten Bahan Baku (Shimmer / Empty / List Card)
-          if (state.isLoadingMaterials) ...[
-            _buildMaterialShimmerList(),
-          ] else if (state.materials.isEmpty) ...[
-            AppEmptyCard(
-              icon: TablerIcons.box_off,
-              iconColor: Colors.black,
-              title: 'Tidak ada bahan baku ditemukan',
-              message:
-                  'Coba ubah kata kunci pencarian atau pilih tab status stok lainnya.',
-              actionText: canCreate ? 'Tambah Bahan Baru' : null,
-              actionIcon: TablerIcons.plus,
-              onAction: canCreate ? () => _openMaterialFormModal(context) : null,
+        // 3. Konten Bahan Baku (Shimmer / Empty / List Card)
+        Expanded(
+          child: RefreshIndicator(
+            color: AppColors.brandPrimary,
+            onRefresh: () async {
+              await ref
+                  .read(rawMaterialViewModelProvider.notifier)
+                  .fetchMaterials();
+            },
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 80),
+              children: [
+                if (state.isLoadingMaterials) ...[
+                  _buildMaterialShimmerList(),
+                ] else if (state.materials.isEmpty) ...[
+                  AppEmptyCard(
+                    icon: TablerIcons.box_off,
+                    iconColor: Colors.black,
+                    title: 'Tidak ada bahan baku ditemukan',
+                    message:
+                        'Coba ubah kata kunci pencarian atau pilih filter status stok lainnya.',
+                    actionText: canCreate ? 'Tambah Bahan Baru' : null,
+                    actionIcon: TablerIcons.plus,
+                    onAction:
+                        canCreate ? () => _openMaterialFormModal(context) : null,
+                  ),
+                ] else ...[
+                  ...state.materials.map(
+                    (mat) => _buildMaterialCard(
+                      context,
+                      mat,
+                      canEdit: canEdit,
+                      canDelete: canDelete,
+                    ),
+                  ),
+                ],
+              ],
             ),
-          ] else ...[
-            ...state.materials.map(
-              (mat) => _buildMaterialCard(
-                context,
-                mat,
-                canEdit: canEdit,
-                canDelete: canDelete,
-              ),
-            ),
-          ],
-        ],
-      ),
+          ),
+        ),
+      ],
     );
   }
 
-  /// Segmented Tab untuk filter status stok (Semua, Aman, Menipis, Habis)
-  Widget _buildStockStatusTabBar(RawMaterialState state) {
+  /// Filter Bar Horizontal Chip untuk Memilih Status Stok Bahan Baku
+  /// Mengikuti UI Filter Rute di Halaman Mitra Toko
+  Widget _buildStockStatusFilterBar(RawMaterialState state) {
     final summary = state.summary;
     final totalCount = summary?.totalMaterials ?? state.materials.length;
     final safeCount = summary?.safeMaterials ?? 0;
     final warningCount = summary?.warningMaterials ?? 0;
     final dangerCount = summary?.dangerMaterials ?? 0;
 
-    final tabs = [
-      ('all', 'Semua', totalCount),
-      ('safe', 'Aman', safeCount),
-      ('warning', 'Menipis', warningCount),
-      ('danger', 'Habis', dangerCount),
+    final filterOptions = [
+      ('all', 'Semua', totalCount, TablerIcons.layout_grid),
+      ('safe', 'Stok Aman', safeCount, TablerIcons.circle_check),
+      ('warning', 'Stok Menipis', warningCount, TablerIcons.alert_triangle),
+      ('danger', 'Stok Habis', dangerCount, TablerIcons.alert_circle),
     ];
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      physics: const BouncingScrollPhysics(),
-      child: Row(
-        children: tabs.map((tab) {
-          final isSelected = state.materialStatusFilter == tab.$1;
-          return Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: InkWell(
-              onTap: () {
-                ref
-                    .read(rawMaterialViewModelProvider.notifier)
-                    .setMaterialStatus(tab.$1);
-              },
-              borderRadius: BorderRadius.circular(10),
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                decoration: BoxDecoration(
-                  color: isSelected ? Colors.black : Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: isSelected ? Colors.black : AppColors.brandBorder,
-                    width: 1,
+    return Container(
+      height: 36,
+      margin: const EdgeInsets.only(bottom: 8.0),
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        itemCount: filterOptions.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final item = filterOptions[index];
+          final key = item.$1;
+          final title = item.$2;
+          final count = item.$3;
+          final icon = item.$4;
+
+          final isSelected = state.materialStatusFilter == key;
+          final label = count > 0 ? '$title ($count)' : title;
+
+          return GestureDetector(
+            key: ValueKey('stock_status_chip_$key'),
+            onTap: () {
+              ref
+                  .read(rawMaterialViewModelProvider.notifier)
+                  .setMaterialStatus(key);
+            },
+            behavior: HitTestBehavior.opaque,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? AppColors.brandPrimary
+                    : AppColors.brandSoftCreamLight,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isSelected
+                      ? AppColors.brandPrimary
+                      : AppColors.brandBorder,
+                  width: 1,
+                ),
+              ),
+              alignment: Alignment.center,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    icon,
+                    size: 13,
+                    color: isSelected ? Colors.white : Colors.black,
                   ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      tab.$2,
-                      style: TextStyle(
-                        fontFamily: 'PlusJakartaSans',
-                        fontSize: 13,
-                        fontWeight:
-                            isSelected ? FontWeight.w700 : FontWeight.w600,
-                        color: isSelected ? Colors.white : AppColors.brandEspresso,
-                      ),
+                  const SizedBox(width: 6),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontFamily: 'PlusJakartaSans',
+                      fontSize: 12.5,
+                      fontWeight: isSelected
+                          ? FontWeight.w700
+                          : FontWeight.w500,
+                      color: isSelected
+                          ? Colors.white
+                          : AppColors.brandEspresso,
                     ),
-                    const SizedBox(width: 6),
-                    Text(
-                      '(${tab.$3})',
-                      style: TextStyle(
-                        fontFamily: 'PlusJakartaSans',
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w500,
-                        color: isSelected
-                            ? Colors.white.withValues(alpha: 0.8)
-                            : AppColors.brandWarmGray,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           );
-        }).toList(),
+        },
       ),
     );
   }
@@ -512,16 +562,12 @@ class _RawMaterialScreenState extends ConsumerState<RawMaterialScreen>
     RawMaterialState state, {
     required bool canManage,
   }) {
-    return RefreshIndicator(
-      color: AppColors.brandPrimary,
-      onRefresh: () async {
-        await ref.read(rawMaterialViewModelProvider.notifier).fetchRecipes();
-      },
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 80),
-        children: [
-          // 1. Search Bar
-          AppTextField(
+    return Column(
+      children: [
+        // 1. Search Bar
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+          child: AppTextField(
             controller: _recipeSearchController,
             hintText: 'Cari nama produk...',
             prefixIcon: const Icon(
@@ -546,25 +592,40 @@ class _RawMaterialScreenState extends ConsumerState<RawMaterialScreen>
                   .setRecipeSearch(val);
             },
           ),
-          const SizedBox(height: 14),
+        ),
 
-          // 2. Daftar Resep Produk (BOM)
-          if (state.isLoadingRecipes) ...[
-            _buildRecipeShimmerList(),
-          ] else if (state.recipes.isEmpty) ...[
-            const AppEmptyCard(
-              icon: TablerIcons.box_off,
-              iconColor: Colors.black,
-              title: 'Tidak ada produk resep ditemukan',
-              message: 'Coba ubah kata kunci pencarian nama produk.',
+        // 2. Daftar Resep Produk (BOM)
+        Expanded(
+          child: RefreshIndicator(
+            color: AppColors.brandPrimary,
+            onRefresh: () async {
+              await ref
+                  .read(rawMaterialViewModelProvider.notifier)
+                  .fetchRecipes();
+            },
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 80),
+              children: [
+                if (state.isLoadingRecipes) ...[
+                  _buildRecipeShimmerList(),
+                ] else if (state.recipes.isEmpty) ...[
+                  const AppEmptyCard(
+                    icon: TablerIcons.box_off,
+                    iconColor: Colors.black,
+                    title: 'Tidak ada produk resep ditemukan',
+                    message: 'Coba ubah kata kunci pencarian nama produk.',
+                  ),
+                ] else ...[
+                  ...state.recipes.map(
+                    (prod) =>
+                        _buildRecipeCard(context, prod, canManage: canManage),
+                  ),
+                ],
+              ],
             ),
-          ] else ...[
-            ...state.recipes.map(
-              (prod) => _buildRecipeCard(context, prod, canManage: canManage),
-            ),
-          ],
-        ],
-      ),
+          ),
+        ),
+      ],
     );
   }
 
