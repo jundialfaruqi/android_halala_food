@@ -4,4 +4,9 @@ class AppRoutes {
   static const String home = '/';
   static const String products = '/products';
   static const String profile = '/profile';
+  static const String deliveryDetail = '/deliveries/:id';
+  static const String invoiceDetail = '/invoices/:id';
+
+  static String deliveryPath(dynamic id) => '/deliveries/$id';
+  static String invoicePath(dynamic id) => '/invoices/$id';
 }

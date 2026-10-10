@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -67,8 +68,18 @@ class FcmService {
       await _localNotifications.initialize(
         initSettings,
         onDidReceiveNotificationResponse: (response) {
-          // Callback saat user mengklik banner notifikasi lokal
           debugPrint('Local notification clicked: ${response.payload}');
+          if (response.payload != null &&
+              response.payload!.isNotEmpty &&
+              onNotificationTap != null) {
+            try {
+              final Map<String, dynamic> data =
+                  Map<String, dynamic>.from(jsonDecode(response.payload!));
+              onNotificationTap(RemoteMessage(data: data));
+            } catch (e) {
+              debugPrint('Error parsing notification payload: $e');
+            }
+          }
         },
       );
 
@@ -91,7 +102,7 @@ class FcmService {
                 icon: '@mipmap/ic_launcher',
               ),
             ),
-            payload: message.data['type'] ?? '',
+            payload: jsonEncode(message.data),
           );
         }
       });

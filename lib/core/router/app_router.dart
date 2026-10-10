@@ -5,7 +5,9 @@ import '../../features/auth/presentation/viewmodels/auth_state.dart';
 import '../../features/auth/presentation/viewmodels/auth_viewmodel.dart';
 import '../../features/auth/presentation/views/login_screen.dart';
 import '../../features/auth/presentation/views/splash_screen.dart';
+import '../../features/delivery/presentation/views/delivery_detail_screen.dart';
 import '../../features/home/presentation/views/home_screen.dart';
+import '../../features/invoice/presentation/views/invoice_detail_screen.dart';
 import '../widgets/widgets.dart';
 import 'app_routes.dart';
 
@@ -65,6 +67,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.home,
         builder: (context, state) => const HomeScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.deliveryDetail,
+        builder: (context, state) {
+          final idStr = state.pathParameters['id'];
+          final deliveryId = int.tryParse(idStr ?? '') ?? 0;
+          return DeliveryDetailScreen(deliveryId: deliveryId);
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.invoiceDetail,
+        builder: (context, state) {
+          final idStr = state.pathParameters['id'];
+          final invoiceId = int.tryParse(idStr ?? '') ?? 0;
+          return InvoiceDetailScreen(invoiceId: invoiceId);
+        },
       ),
     ],
   );
