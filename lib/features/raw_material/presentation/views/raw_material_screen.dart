@@ -218,7 +218,6 @@ class _RawMaterialScreenState extends ConsumerState<RawMaterialScreen> {
                 ] else if (state.materials.isEmpty) ...[
                   AppEmptyCard(
                     icon: TablerIcons.box_off,
-                    iconColor: Colors.black,
                     title: 'Tidak ada bahan baku ditemukan',
                     message:
                         'Coba ubah kata kunci pencarian atau pilih filter status stok lainnya.',
@@ -687,7 +686,6 @@ class _RawMaterialScreenState extends ConsumerState<RawMaterialScreen> {
                 ] else if (state.recipes.isEmpty) ...[
                   const AppEmptyCard(
                     icon: TablerIcons.box_off,
-                    iconColor: Colors.black,
                     title: 'Tidak ada produk resep ditemukan',
                     message: 'Coba ubah kata kunci pencarian nama produk.',
                   ),
