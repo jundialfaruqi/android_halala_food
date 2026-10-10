@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
-
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/widgets.dart';
@@ -16,10 +17,7 @@ import 'invoice_edit_screen.dart';
 class InvoiceDetailSheet extends ConsumerStatefulWidget {
   final InvoiceModel invoice;
 
-  const InvoiceDetailSheet({
-    super.key,
-    required this.invoice,
-  });
+  const InvoiceDetailSheet({super.key, required this.invoice});
 
   static Future<void> show(BuildContext context, InvoiceModel invoice) {
     return showModalBottomSheet(
@@ -82,9 +80,7 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
   Future<void> _handleEditInvoice() async {
     final updated = await Navigator.push<InvoiceModel>(
       context,
-      MaterialPageRoute(
-        builder: (_) => InvoiceEditScreen(invoice: _invoice),
-      ),
+      MaterialPageRoute(builder: (_) => InvoiceEditScreen(invoice: _invoice)),
     );
 
     if (updated != null && mounted) {
@@ -205,44 +201,51 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
     }
 
     final currentUser = ref.watch(authViewModelProvider).user;
-    final isDevOrManager = currentUser != null &&
+    final isDevOrManager =
+        currentUser != null &&
         (currentUser.hasRole('dev') ||
             currentUser.hasRole('manager') ||
             currentUser.roles.contains('dev') ||
             currentUser.roles.contains('manager'));
 
-    final isAssignedCourier = currentUser != null &&
+    final isAssignedCourier =
+        currentUser != null &&
         _invoice.courierId != null &&
         _invoice.courierId == currentUser.id;
 
     // 1. Catat Pembayaran: dev/manager, permission faktur-pembayaran, fallback faktur-edit, ATAU kurir yang ditugaskan
-    final canRecordPayment = isDevOrManager ||
+    final canRecordPayment =
+        isDevOrManager ||
         (currentUser != null &&
             (currentUser.hasPermission('faktur-pembayaran') ||
                 currentUser.hasPermission('faktur-edit') ||
                 isAssignedCourier));
 
     // 2. Rekonsiliasi: dev/manager, permission faktur-rekonsiliasi, fallback faktur-edit, ATAU kurir yang ditugaskan
-    final canReconcile = isDevOrManager ||
+    final canReconcile =
+        isDevOrManager ||
         (currentUser != null &&
             (currentUser.hasPermission('faktur-rekonsiliasi') ||
                 currentUser.hasPermission('faktur-edit') ||
                 isAssignedCourier));
 
     // 3. Ubah Faktur: hanya dev/manager atau permission faktur-edit
-    final canEdit = isDevOrManager ||
+    final canEdit =
+        isDevOrManager ||
         (currentUser != null &&
             (currentUser.hasPermission('faktur-edit') ||
                 currentUser.permissions.contains('faktur-edit')));
 
     // 4. Hapus Faktur: dev/manager atau permission faktur-delete
-    final canDelete = isDevOrManager ||
+    final canDelete =
+        isDevOrManager ||
         (currentUser != null &&
             (currentUser.hasPermission('faktur-delete') ||
                 currentUser.permissions.contains('faktur-delete')));
 
     // 5. Hapus Catatan Pembayaran: HANYA jika memiliki hak khusus faktur-pembayaran-delete (kurir biasa tidak boleh)
-    final canDeletePayment = isDevOrManager ||
+    final canDeletePayment =
+        isDevOrManager ||
         (currentUser != null &&
             (currentUser.hasPermission('faktur-pembayaran-delete') ||
                 currentUser.permissions.contains('faktur-pembayaran-delete')));
@@ -470,14 +473,46 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
                         ],
                         if (_invoice.store?.ownerName != null ||
                             _invoice.store?.phone != null) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            'Pemilik: ${_invoice.store?.ownerName ?? "-"} | Telp: ${_invoice.store?.phone ?? "-"}',
-                            style: const TextStyle(
-                              fontFamily: 'PlusJakartaSans',
-                              fontSize: 12,
-                              color: AppColors.brandWarmGray,
-                            ),
+                          const SizedBox(height: 6),
+                          Wrap(
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              Text(
+                                'Pemilik: ${_invoice.store?.ownerName ?? "-"}',
+                                style: const TextStyle(
+                                  fontFamily: 'PlusJakartaSans',
+                                  fontSize: 12,
+                                  color: AppColors.brandWarmGray,
+                                ),
+                              ),
+                              const Text(
+                                ' | Telp: ',
+                                style: TextStyle(
+                                  fontFamily: 'PlusJakartaSans',
+                                  fontSize: 12,
+                                  color: AppColors.brandWarmGray,
+                                ),
+                              ),
+                              if (_invoice.store?.phone != null &&
+                                  _invoice.store!.phone!.trim().isNotEmpty) ...[
+                                _buildClickablePhone(
+                                  context: context,
+                                  rawPhone: _invoice.store!.phone!,
+                                  targetName:
+                                      _invoice.store?.name ?? 'Toko Mitra',
+                                  fontSize: 12,
+                                ),
+                              ] else ...[
+                                const Text(
+                                  '-',
+                                  style: TextStyle(
+                                    fontFamily: 'PlusJakartaSans',
+                                    fontSize: 12,
+                                    color: AppColors.brandWarmGray,
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                         ],
                       ],
@@ -489,10 +524,10 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 8),
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
+                      horizontal: 8,
+                      vertical: 8,
                     ),
+                    decoration: const BoxDecoration(color: Colors.white),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.center,
@@ -511,8 +546,7 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
                           label: 'Jatuh Tempo',
                           value: _invoice.formattedDueDate,
                           icon: TablerIcons.clock,
-                          isHighlight:
-                              _invoice.isOverdue && !_invoice.isLunas,
+                          isHighlight: _invoice.isOverdue && !_invoice.isLunas,
                         ),
                       ],
                     ),
@@ -523,7 +557,9 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
                     const SizedBox(height: 10),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.grey[50],
                         borderRadius: BorderRadius.circular(8),
@@ -563,7 +599,9 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
                     const SizedBox(height: 10),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.grey[50],
                         borderRadius: BorderRadius.circular(8),
@@ -597,13 +635,13 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
                           if (_invoice.courier!.phone != null &&
                               _invoice.courier!.phone!.isNotEmpty) ...[
                             const SizedBox(width: 6),
-                            Text(
-                              '(${_invoice.courier!.phone})',
-                              style: const TextStyle(
-                                fontFamily: 'PlusJakartaSans',
-                                fontSize: 11,
-                                color: AppColors.brandWarmGray,
-                              ),
+                            _buildClickablePhone(
+                              context: context,
+                              rawPhone: _invoice.courier!.phone!,
+                              targetName: _invoice.courier!.name,
+                              fontSize: 11.5,
+                              prefixText: '(',
+                              suffixText: ')',
                             ),
                           ],
                         ],
@@ -631,9 +669,7 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
                     ),
                     const SizedBox(height: 4),
                     Container(
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                      ),
+                      decoration: const BoxDecoration(color: Colors.white),
                       child: Column(
                         children: [
                           for (int i = 0; i < _invoice.items.length; i++)
@@ -692,8 +728,8 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
                           isTotal: true,
                           valueColor: _invoice.remainingBalance > 0
                               ? (_invoice.isOverdue
-                                  ? AppColors.error
-                                  : AppColors.warning)
+                                    ? AppColors.error
+                                    : AppColors.warning)
                               : AppColors.success,
                         ),
                       ],
@@ -701,8 +737,7 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
                   ),
 
                   // Catatan (jika ada)
-                  if (_invoice.notes != null &&
-                      _invoice.notes!.isNotEmpty) ...[
+                  if (_invoice.notes != null && _invoice.notes!.isNotEmpty) ...[
                     const SizedBox(height: 14),
                     Text(
                       'Catatan: ${_invoice.notes}',
@@ -771,11 +806,7 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              size: 15,
-              color: textColor,
-            ),
+            Icon(icon, size: 15, color: textColor),
             const SizedBox(width: 6),
             Text(
               label,
@@ -800,8 +831,9 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
     int totalSold = 0;
 
     for (final it in _invoice.items) {
-      totalDelivered +=
-          it.deliveredQuantity > 0 ? it.deliveredQuantity : it.quantity;
+      totalDelivered += it.deliveredQuantity > 0
+          ? it.deliveredQuantity
+          : it.quantity;
       totalRemaining += it.remainingQuantity;
       totalDamaged += it.damagedQuantity;
       totalReturned += it.returnedQuantity;
@@ -895,9 +927,7 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
               style: TextStyle(
                 fontFamily: 'PlusJakartaSans',
                 fontSize: 11,
-                color: isHighlight
-                    ? AppColors.error
-                    : AppColors.brandWarmGray,
+                color: isHighlight ? AppColors.error : AppColors.brandWarmGray,
               ),
             ),
             const SizedBox(height: 2),
@@ -907,9 +937,7 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
                 fontFamily: 'PlusJakartaSans',
                 fontSize: 12.5,
                 fontWeight: FontWeight.w700,
-                color: isHighlight
-                    ? AppColors.error
-                    : AppColors.brandEspresso,
+                color: isHighlight ? AppColors.error : AppColors.brandEspresso,
               ),
               overflow: TextOverflow.ellipsis,
             ),
@@ -920,7 +948,8 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
   }
 
   Widget _buildItemRow(InvoiceItemModel item, {bool isLast = false}) {
-    final hasReconcileDetails = _invoice.isReconciled &&
+    final hasReconcileDetails =
+        _invoice.isReconciled &&
         (item.remainingQuantity > 0 ||
             item.damagedQuantity > 0 ||
             item.returnedQuantity > 0);
@@ -936,10 +965,7 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
           border: isLast
               ? null
               : const Border(
-                  bottom: BorderSide(
-                    color: AppColors.brandBorder,
-                    width: 1.0,
-                  ),
+                  bottom: BorderSide(color: AppColors.brandBorder, width: 1.0),
                 ),
         ),
         child: Row(
@@ -1013,10 +1039,7 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: AppColors.brandSoftCream,
-        border: Border.all(
-          color: AppColors.brandBorder,
-          width: 1.0,
-        ),
+        border: Border.all(color: AppColors.brandBorder, width: 1.0),
       ),
       child: ClipOval(
         child: hasPhoto
@@ -1071,7 +1094,10 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
                 children: [
                   // Header: Nama Produk & Tombol Tutup
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
@@ -1091,7 +1117,11 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
                         const SizedBox(width: 12),
                         IconButton(
                           onPressed: () => Navigator.of(dialogContext).pop(),
-                          icon: const Icon(TablerIcons.x, color: Colors.white, size: 24),
+                          icon: const Icon(
+                            TablerIcons.x,
+                            color: Colors.white,
+                            size: 24,
+                          ),
                           splashRadius: 22,
                           tooltip: 'Tutup',
                         ),
@@ -1138,11 +1168,7 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
       children: const [
-        Icon(
-          TablerIcons.photo_off,
-          size: 64,
-          color: Colors.white38,
-        ),
+        Icon(TablerIcons.photo_off, size: 64, color: Colors.white38),
         SizedBox(height: 12),
         Text(
           'Foto produk tidak tersedia',
@@ -1298,6 +1324,312 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  /// Format nomor telepon dengan prefix '+' jika belum ada
+  String _formatPhoneWithPlus(String rawPhone) {
+    final trimmed = rawPhone.trim();
+    if (trimmed.isEmpty) return '';
+    return trimmed.startsWith('+') ? trimmed : '+$trimmed';
+  }
+
+  /// Dialog Menu untuk Salin Nomor HP dan Hubungi WhatsApp
+  void _showPhoneMenuDialog(
+    BuildContext context, {
+    required String rawPhone,
+    required String targetName,
+  }) {
+    final formattedPhone = _formatPhoneWithPlus(rawPhone);
+
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return Dialog(
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 24,
+            vertical: 24,
+          ),
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 360),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              targetName,
+                              style: const TextStyle(
+                                fontFamily: 'PlusJakartaSans',
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.brandEspresso,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              formattedPhone,
+                              style: const TextStyle(
+                                fontFamily: 'PlusJakartaSans',
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.brandWarmGray,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(dialogContext),
+                        icon: const Icon(TablerIcons.x, size: 20),
+                        color: AppColors.brandEspresso,
+                        splashRadius: 20,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 32,
+                          minHeight: 32,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  const Divider(height: 1, color: AppColors.brandBorder),
+                  const SizedBox(height: 14),
+
+                  // Option 1: Copy Nomor HP
+                  InkWell(
+                    onTap: () async {
+                      Navigator.pop(dialogContext);
+                      await Clipboard.setData(
+                        ClipboardData(text: formattedPhone),
+                      );
+                      if (context.mounted) {
+                        AppSnackBar.showSuccess(
+                          context,
+                          message:
+                              'Nomor HP $formattedPhone berhasil disalin ke clipboard.',
+                        );
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF9FAFB),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AppColors.brandBorder),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(
+                            TablerIcons.copy,
+                            size: 18,
+                            color: AppColors.brandEspresso,
+                          ),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Copy Nomor HP',
+                              style: TextStyle(
+                                fontFamily: 'PlusJakartaSans',
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.brandEspresso,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Option 2: Hubungi WA (Wa.me)
+                  InkWell(
+                    onTap: () {
+                      Navigator.pop(dialogContext);
+                      _openWhatsApp(context, rawPhone, targetName);
+                    },
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF0FDF4),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFBBF7D0)),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(
+                            TablerIcons.brand_whatsapp,
+                            size: 20,
+                            color: Color(0xFF16A34A),
+                          ),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Buka Whatsapp',
+                              style: TextStyle(
+                                fontFamily: 'PlusJakartaSans',
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF15803D),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Buka direct chat WhatsApp (wa.me)
+  Future<void> _openWhatsApp(
+    BuildContext context,
+    String rawPhone,
+    String targetName,
+  ) async {
+    var digits = rawPhone.replaceAll(RegExp(r'\D'), '');
+    if (digits.startsWith('0')) {
+      digits = '62${digits.substring(1)}';
+    } else if (digits.startsWith('8')) {
+      digits = '62$digits';
+    }
+
+    if (digits.isEmpty) {
+      AppSnackBar.showError(context, message: 'Nomor WhatsApp tidak valid.');
+      return;
+    }
+
+    final message = Uri.encodeComponent(
+      'Halo $targetName, saya dari Halala Food terkait faktur ${_invoice.invoiceNumber}.',
+    );
+    final whatsappUri = Uri.parse(
+      'whatsapp://send?phone=$digits&text=$message',
+    );
+    final webUri = Uri.parse('https://wa.me/$digits?text=$message');
+
+    try {
+      if (await canLaunchUrl(whatsappUri)) {
+        await launchUrl(whatsappUri, mode: LaunchMode.externalApplication);
+      } else if (await canLaunchUrl(webUri)) {
+        await launchUrl(webUri, mode: LaunchMode.externalApplication);
+      } else {
+        if (context.mounted) {
+          AppSnackBar.showError(
+            context,
+            message: 'Tidak dapat membuka aplikasi WhatsApp.',
+          );
+        }
+      }
+    } catch (_) {
+      try {
+        await launchUrl(webUri, mode: LaunchMode.externalApplication);
+      } catch (_) {
+        if (context.mounted) {
+          AppSnackBar.showError(
+            context,
+            message: 'Gagal membuka tautan WhatsApp.',
+          );
+        }
+      }
+    }
+  }
+
+  /// Widget nomor telepon interaktif dengan format '+'
+  Widget _buildClickablePhone({
+    required BuildContext context,
+    required String rawPhone,
+    required String targetName,
+    double fontSize = 12,
+    FontWeight fontWeight = FontWeight.w600,
+    Color textColor = AppColors.brandEspresso,
+    String prefixText = '',
+    String suffixText = '',
+  }) {
+    final formatted = _formatPhoneWithPlus(rawPhone);
+
+    return InkWell(
+      onTap: () => _showPhoneMenuDialog(
+        context,
+        rawPhone: rawPhone,
+        targetName: targetName,
+      ),
+      borderRadius: BorderRadius.circular(4),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            if (prefixText.isNotEmpty)
+              Text(
+                prefixText,
+                style: TextStyle(
+                  fontFamily: 'PlusJakartaSans',
+                  fontSize: fontSize,
+                  color: AppColors.brandWarmGray,
+                ),
+              ),
+            Text(
+              formatted,
+              style: TextStyle(
+                fontFamily: 'PlusJakartaSans',
+                fontSize: fontSize,
+                fontWeight: fontWeight,
+                color: textColor,
+                decoration: TextDecoration.underline,
+                decorationColor: textColor.withValues(alpha: 0.5),
+              ),
+            ),
+            if (suffixText.isNotEmpty)
+              Text(
+                suffixText,
+                style: TextStyle(
+                  fontFamily: 'PlusJakartaSans',
+                  fontSize: fontSize,
+                  color: AppColors.brandWarmGray,
+                ),
+              ),
+            const SizedBox(width: 3),
+            Icon(
+              TablerIcons.phone_call,
+              size: fontSize + 1,
+              color: AppColors.brandWarmGray,
+            ),
+          ],
+        ),
       ),
     );
   }
