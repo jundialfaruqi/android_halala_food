@@ -197,6 +197,7 @@ class ProductRecipeItemModel {
 class ProductBOMModel {
   final int id;
   final String name;
+  final String? photoUrl;
   final int? unitId;
   final String? unitName;
   final double consignmentPrice;
@@ -212,6 +213,7 @@ class ProductBOMModel {
   const ProductBOMModel({
     required this.id,
     required this.name,
+    this.photoUrl,
     this.unitId,
     this.unitName,
     required this.consignmentPrice,
@@ -240,6 +242,7 @@ class ProductBOMModel {
           ? json['id']
           : int.tryParse(json['id']?.toString() ?? '0') ?? 0,
       name: json['name']?.toString() ?? '',
+      photoUrl: json['photo_url']?.toString() ?? json['photo']?.toString(),
       unitId: json['unit_id'] != null
           ? (json['unit_id'] is int
               ? json['unit_id']

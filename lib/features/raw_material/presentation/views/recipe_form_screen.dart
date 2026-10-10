@@ -372,23 +372,45 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
 
   /// Card Header Informasi Produk
   Widget _buildProductHeaderCard() {
+    final photoUrl = widget.product.photoUrl;
+    final hasPhoto = photoUrl != null && photoUrl.trim().isNotEmpty;
+
     return AppCard(
       padding: const EdgeInsets.all(16),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            width: 44,
-            height: 44,
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
               color: const Color(0xFFF1F5F9),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: AppColors.brandBorder),
             ),
-            child: const Icon(
-              TablerIcons.chef_hat,
-              color: AppColors.brandEspresso,
-              size: 22,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(9),
+              child: hasPhoto
+                  ? AppCachedImage(
+                      imageUrl: photoUrl,
+                      width: 48,
+                      height: 48,
+                      fit: BoxFit.cover,
+                      borderRadius: 9,
+                    )
+                  : Center(
+                      child: Text(
+                        widget.product.name.isNotEmpty
+                            ? widget.product.name[0].toUpperCase()
+                            : 'P',
+                        style: const TextStyle(
+                          fontFamily: 'PlusJakartaSans',
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.brandEspresso,
+                        ),
+                      ),
+                    ),
             ),
           ),
           const SizedBox(width: 14),

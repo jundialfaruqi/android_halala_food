@@ -711,6 +711,9 @@ class _RawMaterialScreenState extends ConsumerState<RawMaterialScreen> {
     ProductBOMModel prod, {
     required bool canManage,
   }) {
+    final photoUrl = prod.photoUrl;
+    final hasPhoto = photoUrl != null && photoUrl.trim().isNotEmpty;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       child: AppCard(
@@ -720,8 +723,41 @@ class _RawMaterialScreenState extends ConsumerState<RawMaterialScreen> {
           children: [
             // Header Produk & Tombol Atur Resep
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                // Foto Produk Rounded Circle
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.brandBorder, width: 1),
+                    color: const Color(0xFFF1F5F9),
+                  ),
+                  child: ClipOval(
+                    child: hasPhoto
+                        ? AppCachedImage(
+                            imageUrl: photoUrl,
+                            width: 44,
+                            height: 44,
+                            fit: BoxFit.cover,
+                            borderRadius: 0,
+                          )
+                        : Center(
+                            child: Text(
+                              prod.name.isNotEmpty
+                                  ? prod.name[0].toUpperCase()
+                                  : 'P',
+                              style: const TextStyle(
+                                fontFamily: 'PlusJakartaSans',
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.brandEspresso,
+                              ),
+                            ),
+                          ),
+                  ),
+                ),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -748,6 +784,7 @@ class _RawMaterialScreenState extends ConsumerState<RawMaterialScreen> {
                   ),
                 ),
                 if (canManage) ...[
+                  const SizedBox(width: 8),
                   AppButton(
                     text: 'Atur Resep',
                     icon: const Icon(TablerIcons.settings, color: Colors.black, size: 16),
