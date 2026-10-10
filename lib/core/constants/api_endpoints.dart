@@ -48,6 +48,13 @@ class ApiEndpoints {
   static const String recipes = '/recipes';
   static String recipeSave(int productId) => '/recipes/$productId';
 
+  // Productions (Produksi & Manufaktur)
+  static const String productions = '/productions';
+  static const String productionOptions = '/productions/options';
+  static const String productionMutations = '/productions/mutations';
+  static String productionDetail(int id) => '/productions/$id';
+  static String productionCancel(int id) => '/productions/$id/cancel';
+
   // Dashboard & Profile
   static const String dashboard = '/dashboard';
 }

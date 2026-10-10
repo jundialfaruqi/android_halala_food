@@ -99,60 +99,63 @@ class _RawMaterialScreenState extends ConsumerState<RawMaterialScreen> {
       (1, 'Resep Produk BOM', totalRecipes),
     ];
 
-    return Column(
-      children: [
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            children: tabs.map((tab) {
-              final isSelected = _selectedTabIndex == tab.$1;
-              final count = tab.$3;
-              final label = count > 0 ? '${tab.$2} ($count)' : tab.$2;
+    return Container(
+      color: AppColors.background,
+      child: Column(
+        children: [
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: tabs.map((tab) {
+                final isSelected = _selectedTabIndex == tab.$1;
+                final count = tab.$3;
+                final label = count > 0 ? '${tab.$2} ($count)' : tab.$2;
 
-              return Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: InkWell(
-                  onTap: () {
-                    setState(() {
-                      _selectedTabIndex = tab.$1;
-                    });
-                  },
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      border: Border(
-                        bottom: BorderSide(
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: InkWell(
+                    onTap: () {
+                      setState(() {
+                        _selectedTabIndex = tab.$1;
+                      });
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        border: Border(
+                          bottom: BorderSide(
+                            color: isSelected
+                                ? AppColors.brandPrimary
+                                : Colors.transparent,
+                            width: 2.2,
+                          ),
+                        ),
+                      ),
+                      child: Text(
+                        label,
+                        style: TextStyle(
+                          fontFamily: 'PlusJakartaSans',
+                          fontSize: 13.5,
+                          fontWeight: isSelected
+                              ? FontWeight.w700
+                              : FontWeight.w500,
                           color: isSelected
                               ? AppColors.brandPrimary
-                              : Colors.transparent,
-                          width: 2.2,
+                              : AppColors.brandWarmGray,
                         ),
                       ),
                     ),
-                    child: Text(
-                      label,
-                      style: TextStyle(
-                        fontFamily: 'PlusJakartaSans',
-                        fontSize: 13.5,
-                        fontWeight: isSelected
-                            ? FontWeight.w700
-                            : FontWeight.w500,
-                        color: isSelected
-                            ? AppColors.brandPrimary
-                            : AppColors.brandWarmGray,
-                      ),
-                    ),
                   ),
-                ),
-              );
-            }).toList(),
+                );
+              }).toList(),
+            ),
           ),
-        ),
-        const Divider(height: 1, color: AppColors.brandBorder),
-      ],
+          const Divider(height: 1, color: AppColors.brandBorder),
+        ],
+      ),
     );
   }
 
