@@ -528,9 +528,24 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    AppTextField(
-                      controller: _purchaseNumberController,
-                      enabled: false,
+                    SizedBox(
+                      height: 48,
+                      child: AppTextField(
+                        controller: _purchaseNumberController,
+                        enabled: false,
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 13,
+                        ),
+                        borderRadius: 10,
+                        style: const TextStyle(
+                          fontFamily: 'PlusJakartaSans',
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.brandWarmGray,
+                        ),
+                      ),
                     ),
                   ],
                 ),

@@ -410,87 +410,102 @@ class _PurchaseDetailSheetState extends ConsumerState<PurchaseDetailSheet> {
             ],
           ),
           const SizedBox(height: 8),
-          ...p.items.map((it) {
-            final formattedQty = it.quantity
-                .toStringAsFixed(it.quantity.truncateToDouble() == it.quantity ? 0 : 2);
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.brandBorder),
+            ),
+            child: Column(
+              children: p.items.asMap().entries.map((entry) {
+                final index = entry.key;
+                final it = entry.value;
+                final isLast = index == p.items.length - 1;
+                final formattedQty = it.quantity.toStringAsFixed(
+                    it.quantity.truncateToDouble() == it.quantity ? 0 : 2);
 
-            return Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.brandBorder),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: AppColors.brandPrimary.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    alignment: Alignment.center,
-                    child: const Icon(
-                      TablerIcons.leaf,
-                      size: 16,
-                      color: AppColors.brandPrimary,
-                    ),
+                return Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    border: isLast
+                        ? null
+                        : const Border(
+                            bottom: BorderSide(
+                              color: AppColors.brandBorder,
+                              width: 1.0,
+                            ),
+                          ),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          it.rawMaterialName,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        width: 22,
+                        child: Text(
+                          '${index + 1}.',
                           style: const TextStyle(
                             fontFamily: 'PlusJakartaSans',
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
-                            color: AppColors.brandEspresso,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '$formattedQty ${it.unitName} @ ${_currencyFormat.format(it.costPerUnit)}',
-                          style: const TextStyle(
-                            fontFamily: 'PlusJakartaSans',
-                            fontSize: 11.5,
                             color: AppColors.brandWarmGray,
                           ),
                         ),
-                        if (it.notes != null && it.notes!.isNotEmpty) ...[
-                          const SizedBox(height: 3),
-                          Text(
-                            it.notes!,
-                            style: const TextStyle(
-                              fontFamily: 'PlusJakartaSans',
-                              fontSize: 11,
-                              fontStyle: FontStyle.italic,
-                              color: AppColors.brandWarmGray,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              it.rawMaterialName,
+                              style: const TextStyle(
+                                fontFamily: 'PlusJakartaSans',
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.brandEspresso,
+                              ),
                             ),
-                          ),
-                        ],
-                      ],
-                    ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '$formattedQty ${it.unitName} @ ${_currencyFormat.format(it.costPerUnit)}',
+                              style: const TextStyle(
+                                fontFamily: 'PlusJakartaSans',
+                                fontSize: 11.5,
+                                color: AppColors.brandWarmGray,
+                              ),
+                            ),
+                            if (it.notes != null && it.notes!.isNotEmpty) ...[
+                              const SizedBox(height: 3),
+                              Text(
+                                it.notes!,
+                                style: const TextStyle(
+                                  fontFamily: 'PlusJakartaSans',
+                                  fontSize: 11,
+                                  fontStyle: FontStyle.italic,
+                                  color: AppColors.brandWarmGray,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        _currencyFormat.format(it.subtotal),
+                        style: const TextStyle(
+                          fontFamily: 'PlusJakartaSans',
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.brandEspresso,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    _currencyFormat.format(it.subtotal),
-                    style: const TextStyle(
-                      fontFamily: 'PlusJakartaSans',
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.brandEspresso,
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }),
+                );
+              }).toList(),
+            ),
+          ),
 
           // Catatan Pembelian
           if (p.notes != null && p.notes!.isNotEmpty) ...[
