@@ -749,7 +749,6 @@ class _CashBookScreenState extends ConsumerState<CashBookScreen> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.brandBorder),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -799,17 +798,16 @@ class _CashBookScreenState extends ConsumerState<CashBookScreen> {
                         ),
                       ),
 
-                      // Baris 3: Keterangan / Bahan Baku
+                      // Baris 3: Keterangan Lengkap & Ringkasan Bahan Baku
                       if (tx.description != null &&
                           tx.description!.isNotEmpty) ...[
-                        const SizedBox(height: 3),
+                        const SizedBox(height: 4),
                         Text(
                           tx.description!,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             fontFamily: 'PlusJakartaSans',
                             fontSize: 12,
+                            height: 1.35,
                             color: AppColors.brandEspresso,
                           ),
                         ),
@@ -819,12 +817,11 @@ class _CashBookScreenState extends ConsumerState<CashBookScreen> {
                         const SizedBox(height: 4),
                         Text(
                           'Bahan: ${tx.materialsSummary}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             fontFamily: 'PlusJakartaSans',
                             fontSize: 11,
                             fontWeight: FontWeight.w500,
+                            height: 1.3,
                             color: AppColors.brandPrimary,
                           ),
                         ),
@@ -882,7 +879,6 @@ class _CashBookScreenState extends ConsumerState<CashBookScreen> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.brandBorder),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
