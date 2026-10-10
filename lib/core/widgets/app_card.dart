@@ -27,6 +27,8 @@ class AppCard extends StatelessWidget {
   final double _stackOffsetVertical;
   final bool stackAtTop;
   final bool isGlass;
+  final double glassOpacity;
+  final double glassBlur;
 
   /// Card standar (#ffffff, tanpa shadow, tanpa border)
   const AppCard({
@@ -42,11 +44,13 @@ class AppCard extends StatelessWidget {
     this.onLongPress,
     this.boxShadow,
     this.clipBehavior = Clip.antiAlias,
+    this.isGlass = false,
+    this.glassOpacity = 0.78,
+    this.glassBlur = 16.0,
   })  : _isStacked = false,
         _stackInsetHorizontal = 0,
         _stackOffsetVertical = 0,
-        stackAtTop = false,
-        isGlass = false;
+        stackAtTop = false;
 
   /// Card bernuansa krem lembut khas Halala Food
   const AppCard.soft({
@@ -61,11 +65,13 @@ class AppCard extends StatelessWidget {
     this.onTap,
     this.onLongPress,
     this.clipBehavior = Clip.antiAlias,
+    this.isGlass = false,
+    this.glassOpacity = 0.78,
+    this.glassBlur = 16.0,
   })  : _isStacked = false,
         _stackInsetHorizontal = 0,
         _stackOffsetVertical = 0,
         stackAtTop = false,
-        isGlass = false,
         boxShadow = null;
 
   /// Card minimalis bergaris tepi tanpa efek bayangan
@@ -81,11 +87,13 @@ class AppCard extends StatelessWidget {
     this.onTap,
     this.onLongPress,
     this.clipBehavior = Clip.antiAlias,
+    this.isGlass = false,
+    this.glassOpacity = 0.78,
+    this.glassBlur = 16.0,
   })  : _isStacked = false,
         _stackInsetHorizontal = 0,
         _stackOffsetVertical = 0,
         stackAtTop = false,
-        isGlass = false,
         boxShadow = null;
 
   /// Card dengan efek tumpukan 3 layer (3-card stacked deck effect) lengkap dengan shadow
@@ -106,6 +114,8 @@ class AppCard extends StatelessWidget {
     double stackOffsetVertical = 8.5,
     this.stackAtTop = false,
     this.isGlass = true,
+    this.glassOpacity = 0.78,
+    this.glassBlur = 16.0,
   })  : _isStacked = true,
         _stackInsetHorizontal = stackInsetHorizontal,
         _stackOffsetVertical = stackOffsetVertical;
@@ -224,18 +234,48 @@ class AppCard extends StatelessWidget {
           isTopStacked ? _stackedFrontShadowTop : _stackedFrontShadow;
     }
 
-    Widget card = Container(
-      padding: padding,
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(borderRadius),
-        border: borderWidth > 0
-            ? Border.all(color: borderColor, width: borderWidth)
-            : null,
-        boxShadow: effectiveShadow,
-      ),
-      child: child,
-    );
+    Widget cardContent = child;
+
+    Widget card;
+    if (isGlass) {
+      card = Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(borderRadius),
+          boxShadow: effectiveShadow,
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(borderRadius),
+          clipBehavior: clipBehavior,
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: glassBlur, sigmaY: glassBlur),
+            child: Container(
+              padding: padding,
+              decoration: BoxDecoration(
+                color: backgroundColor.withValues(alpha: glassOpacity),
+                borderRadius: BorderRadius.circular(borderRadius),
+                border: borderWidth > 0
+                    ? Border.all(color: borderColor, width: borderWidth)
+                    : null,
+              ),
+              child: cardContent,
+            ),
+          ),
+        ),
+      );
+    } else {
+      card = Container(
+        padding: padding,
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(borderRadius),
+          border: borderWidth > 0
+              ? Border.all(color: borderColor, width: borderWidth)
+              : null,
+          boxShadow: effectiveShadow,
+        ),
+        child: cardContent,
+      );
+    }
 
     if (onTap != null || onLongPress != null) {
       card = Material(
