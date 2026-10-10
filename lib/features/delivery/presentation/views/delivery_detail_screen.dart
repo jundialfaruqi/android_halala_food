@@ -402,46 +402,8 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                     color: AppColors.brandWarmGray,
                   ),
                 ),
-                const SizedBox(height: 12),
-                const Divider(height: 1, color: AppColors.brandBorder),
-                const SizedBox(height: 12),
-
-                // Clean Status Text (NO BADGE, NO DOTS)
-                Text(
-                  'Status: ${d.statusLabel}',
-                  style: const TextStyle(
-                    fontFamily: 'PlusJakartaSans',
-                    fontSize: 14.5,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.brandEspresso,
-                  ),
-                ),
-                if (d.dispatchedAt != null && d.dispatchedAt!.isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    'Waktu Diberangkatkan: ${d.formattedDispatchedAt}',
-                    style: const TextStyle(
-                      fontFamily: 'PlusJakartaSans',
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.brandWarmGray,
-                    ),
-                  ),
-                ],
-                if (d.deliveredAt != null && d.deliveredAt!.isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    'Waktu Selesai Serah Terima: ${d.formattedDeliveredAt}',
-                    style: const TextStyle(
-                      fontFamily: 'PlusJakartaSans',
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.brandWarmGray,
-                    ),
-                  ),
-                ],
                 if (d.notes != null && d.notes!.isNotEmpty) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Text(
                     'Catatan: ${d.notes}',
                     style: const TextStyle(
@@ -452,6 +414,12 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                     ),
                   ),
                 ],
+                const SizedBox(height: 14),
+                const Divider(height: 1, color: AppColors.brandBorder),
+                const SizedBox(height: 14),
+
+                // Bagian Status: Vertical Stepper 3 Baris
+                _buildStatusStepperSection(d),
               ],
             ),
           ),
@@ -541,44 +509,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
             const SizedBox(height: 14),
           ],
 
-          // 3. Info Kurir Bertugas
-          AppCard(
-            padding: const EdgeInsets.all(18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Kurir Bertugas',
-                  style: TextStyle(
-                    fontFamily: 'PlusJakartaSans',
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.brandEspresso,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  d.courier?.name ?? 'Belum Ditugaskan',
-                  style: const TextStyle(
-                    fontFamily: 'PlusJakartaSans',
-                    fontSize: 14.5,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.brandEspresso,
-                  ),
-                ),
-                if (d.courier?.phone != null && d.courier!.phone!.isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  _buildPhoneRow(
-                    context,
-                    label: 'No. HP',
-                    rawPhone: d.courier!.phone!,
-                    targetName: d.courier?.name ?? 'Kurir',
-                  ),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(height: 14),
+          // 3. Rincian Muatan Barang (Info Kurir Bertugas telah dipindahkan ke dalam Stepper Status)
 
           // 4. Rincian Muatan Barang
           AppCard(
@@ -853,7 +784,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
       physics: const NeverScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
       children: const [
-        // 1. Ringkasan Surat Jalan (Card Utama)
+        // 1. Ringkasan Surat Jalan & Status Stepper (Card Utama)
         AppCard(
           padding: EdgeInsets.all(18),
           child: Column(
@@ -868,40 +799,82 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
               ),
               SizedBox(height: 8),
               ShimmerLoading(width: 140, height: 13, borderRadius: 4),
-            ],
-          ),
-        ),
-        SizedBox(height: 14),
-
-        // 2. Status Pengantaran
-        AppCard(
-          padding: EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  ShimmerLoading(width: 80, height: 13, borderRadius: 4),
-                  ShimmerLoading(width: 90, height: 15, borderRadius: 4),
-                ],
-              ),
-              SizedBox(height: 12),
+              SizedBox(height: 14),
               Divider(height: 1, color: AppColors.brandBorder),
-              SizedBox(height: 12),
+              SizedBox(height: 14),
+
+              // Baris 1 Shimmer: Status & Lacak
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  ShimmerLoading(width: 110, height: 13, borderRadius: 4),
-                  ShimmerLoading(width: 110, height: 13, borderRadius: 4),
+                  ShimmerLoading(width: 70, height: 16, borderRadius: 4),
+                  ShimmerLoading(width: 55, height: 16, borderRadius: 4),
                 ],
+              ),
+              SizedBox(height: 16),
+
+              // Baris 2 Shimmer: Vertical Stepper 3 Steps
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ShimmerLoading(width: 22, height: 22, borderRadius: 11),
+                  SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ShimmerLoading(width: 90, height: 14, borderRadius: 4),
+                      SizedBox(height: 4),
+                      ShimmerLoading(width: 160, height: 12, borderRadius: 3),
+                    ],
+                  ),
+                ],
+              ),
+              SizedBox(height: 16),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ShimmerLoading(width: 22, height: 22, borderRadius: 11),
+                  SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ShimmerLoading(width: 110, height: 14, borderRadius: 4),
+                      SizedBox(height: 4),
+                      ShimmerLoading(width: 140, height: 12, borderRadius: 3),
+                    ],
+                  ),
+                ],
+              ),
+              SizedBox(height: 16),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ShimmerLoading(width: 22, height: 22, borderRadius: 11),
+                  SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ShimmerLoading(width: 80, height: 14, borderRadius: 4),
+                      SizedBox(height: 4),
+                      ShimmerLoading(width: 150, height: 12, borderRadius: 3),
+                    ],
+                  ),
+                ],
+              ),
+              SizedBox(height: 16),
+
+              // Baris 3 Shimmer: Box Info Kurir
+              ShimmerLoading(
+                width: double.infinity,
+                height: 52,
+                borderRadius: 10,
               ),
             ],
           ),
         ),
         SizedBox(height: 14),
 
-        // 3. Info Mitra Toko
+        // 2. Info Mitra Toko
         AppCard(
           padding: EdgeInsets.all(16),
           child: Column(
@@ -916,24 +889,6 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
               ShimmerLoading(width: 140, height: 13, borderRadius: 4),
               SizedBox(height: 6),
               ShimmerLoading(width: 220, height: 13, borderRadius: 4),
-            ],
-          ),
-        ),
-        SizedBox(height: 14),
-
-        // 4. Info Kurir
-        AppCard(
-          padding: EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ShimmerLoading(width: 100, height: 14, borderRadius: 4),
-              SizedBox(height: 10),
-              Divider(height: 1, color: AppColors.brandBorder),
-              SizedBox(height: 12),
-              ShimmerLoading(width: 160, height: 15, borderRadius: 4),
-              SizedBox(height: 6),
-              ShimmerLoading(width: 120, height: 13, borderRadius: 4),
             ],
           ),
         ),
@@ -1146,4 +1101,459 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
       ],
     );
   }
+
+  /// Bagian Status Stepper (3 Baris):
+  /// 1. Titel teks Status & Tombol teks Lacak
+  /// 2. Stepper vertical
+  /// 3. Teks informasi kurir
+  Widget _buildStatusStepperSection(DeliveryModel d) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Baris 1: Titel teks Status & Tombol teks Lacak
+        _buildStatusStepperHeader(context),
+
+        // Baris 2: Stepper vertical
+        _buildVerticalStepper(d),
+
+        // Baris 3: Teks informasi kurir
+        _buildCourierInfoSection(d),
+      ],
+    );
+  }
+
+  /// Baris 1: Header status dengan judul 'Status' dan tombol aksi 'Lacak'
+  Widget _buildStatusStepperHeader(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        const Text(
+          'Status',
+          style: TextStyle(
+            fontFamily: 'PlusJakartaSans',
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            color: AppColors.brandEspresso,
+          ),
+        ),
+        InkWell(
+          onTap: () {
+            AppSnackBar.showInfo(
+              context,
+              message: 'Fitur pelacakan pengantaran sedang disiapkan.',
+            );
+          },
+          borderRadius: BorderRadius.circular(6),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Lacak',
+                  style: TextStyle(
+                    fontFamily: 'PlusJakartaSans',
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.brandPrimary,
+                  ),
+                ),
+                SizedBox(width: 4),
+                Icon(
+                  TablerIcons.chevron_right,
+                  size: 15,
+                  color: AppColors.brandPrimary,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Baris 2: Stepper vertical perjalanan surat jalan
+  Widget _buildVerticalStepper(DeliveryModel d) {
+    final List<({String title, String subtitle, _DeliveryStepState state})> steps;
+
+    if (d.isDibatalkan) {
+      steps = [
+        (
+          title: 'Diproses',
+          subtitle: 'Surat jalan disiapkan • ${d.formattedDate}',
+          state: _DeliveryStepState.completed,
+        ),
+        (
+          title: 'Dibatalkan',
+          subtitle: 'Pengantaran surat jalan dibatalkan',
+          state: _DeliveryStepState.cancelled,
+        ),
+      ];
+    } else {
+      // Step 1: Diproses
+      final step1Subtitle = 'Disiapkan di gudang • ${d.formattedDate}';
+
+      // Step 2: Sedang Dikirim
+      final String step2Subtitle;
+      final _DeliveryStepState step2State;
+      if (d.isSelesai) {
+        step2Subtitle = d.dispatchedAt != null
+            ? 'Diberangkatkan ${d.formattedDispatchedAt}'
+            : 'Pengantaran kurir selesai';
+        step2State = _DeliveryStepState.completed;
+      } else if (d.isDikirim) {
+        step2Subtitle = d.dispatchedAt != null
+            ? 'Diberangkatkan ${d.formattedDispatchedAt}'
+            : 'Kurir dalam perjalanan menuju toko';
+        step2State = _DeliveryStepState.current;
+      } else {
+        step2Subtitle = 'Menunggu keberangkatan kurir';
+        step2State = _DeliveryStepState.pending;
+      }
+
+      // Step 3: Selesai
+      final String step3Subtitle;
+      final _DeliveryStepState step3State;
+      if (d.isSelesai) {
+        final recipientInfo =
+            (d.recipientName != null && d.recipientName!.trim().isNotEmpty)
+                ? ' • Diterima oleh ${d.recipientName}'
+                : '';
+        step3Subtitle = d.deliveredAt != null
+            ? 'Selesai ${d.formattedDeliveredAt}$recipientInfo'
+            : 'Serah terima barang selesai$recipientInfo';
+        step3State = _DeliveryStepState.completed;
+      } else {
+        step3Subtitle = 'Menunggu serah terima di toko';
+        step3State = _DeliveryStepState.pending;
+      }
+
+      steps = [
+        (
+          title: 'Diproses',
+          subtitle: step1Subtitle,
+          state: _DeliveryStepState.completed,
+        ),
+        (
+          title: 'Sedang Dikirim',
+          subtitle: step2Subtitle,
+          state: step2State,
+        ),
+        (
+          title: 'Selesai',
+          subtitle: step3Subtitle,
+          state: step3State,
+        ),
+      ];
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 14),
+      child: Column(
+        children: steps.asMap().entries.map((entry) {
+          final index = entry.key;
+          final step = entry.value;
+          final isLast = index == steps.length - 1;
+
+          return IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Node + Line
+                SizedBox(
+                  width: 22,
+                  child: Column(
+                    children: [
+                      _buildStepNode(step.state),
+                      if (!isLast)
+                        Expanded(
+                          child: Container(
+                            width: 2,
+                            color: step.state == _DeliveryStepState.completed
+                                ? AppColors.brandPrimary
+                                : AppColors.brandBorder,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Text Content
+                Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.only(bottom: isLast ? 0 : 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          step.title,
+                          style: TextStyle(
+                            fontFamily: 'PlusJakartaSans',
+                            fontSize: 13.5,
+                            fontWeight: (step.state == _DeliveryStepState.completed ||
+                                    step.state == _DeliveryStepState.current)
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                            color: step.state == _DeliveryStepState.current
+                                ? AppColors.brandPrimary
+                                : (step.state == _DeliveryStepState.cancelled
+                                    ? AppColors.error
+                                    : (step.state == _DeliveryStepState.pending
+                                        ? AppColors.brandWarmGray
+                                        : AppColors.brandEspresso)),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          step.subtitle,
+                          style: TextStyle(
+                            fontFamily: 'PlusJakartaSans',
+                            fontSize: 12,
+                            fontWeight: step.state == _DeliveryStepState.current
+                                ? FontWeight.w500
+                                : FontWeight.w400,
+                            color: step.state == _DeliveryStepState.cancelled
+                                ? AppColors.error
+                                : AppColors.brandWarmGray,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  /// Indicator node untuk vertical stepper
+  Widget _buildStepNode(_DeliveryStepState state) {
+    switch (state) {
+      case _DeliveryStepState.completed:
+        return Container(
+          width: 22,
+          height: 22,
+          decoration: const BoxDecoration(
+            color: AppColors.brandPrimary,
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(
+            TablerIcons.check,
+            size: 13,
+            color: Colors.white,
+          ),
+        );
+      case _DeliveryStepState.current:
+        return Container(
+          width: 22,
+          height: 22,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: AppColors.brandPrimary,
+              width: 2.5,
+            ),
+          ),
+          child: Center(
+            child: Container(
+              width: 8,
+              height: 8,
+              decoration: const BoxDecoration(
+                color: AppColors.brandPrimary,
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+        );
+      case _DeliveryStepState.pending:
+        return Container(
+          width: 22,
+          height: 22,
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8FAFC),
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: AppColors.brandBorder,
+              width: 1.5,
+            ),
+          ),
+          child: Center(
+            child: Container(
+              width: 6,
+              height: 6,
+              decoration: const BoxDecoration(
+                color: AppColors.brandBorder,
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+        );
+      case _DeliveryStepState.cancelled:
+        return Container(
+          width: 22,
+          height: 22,
+          decoration: const BoxDecoration(
+            color: AppColors.error,
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(
+            TablerIcons.x,
+            size: 13,
+            color: Colors.white,
+          ),
+        );
+    }
+  }
+
+  /// Baris 3: Teks informasi kurir pengantar
+  Widget _buildCourierInfoSection(DeliveryModel d) {
+    final courierName = d.courier?.name ?? 'Belum Ditugaskan';
+    final courierPhone = d.courier?.phone;
+    final hasPhone = courierPhone != null && courierPhone.isNotEmpty;
+
+    return Container(
+      margin: const EdgeInsets.only(top: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.brandSoftCreamLight,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.brandBorder),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: AppColors.brandPrimary.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              TablerIcons.steering_wheel,
+              size: 17,
+              color: AppColors.brandPrimary,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Kurir Bertugas',
+                  style: TextStyle(
+                    fontFamily: 'PlusJakartaSans',
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.brandWarmGray,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  courierName,
+                  style: const TextStyle(
+                    fontFamily: 'PlusJakartaSans',
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.brandEspresso,
+                  ),
+                ),
+                if (hasPhone) ...[
+                  const SizedBox(height: 1),
+                  Text(
+                    _formatPhone(courierPhone),
+                    style: const TextStyle(
+                      fontFamily: 'PlusJakartaSans',
+                      fontSize: 12,
+                      color: AppColors.brandWarmGray,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if (hasPhone) ...[
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Tombol Salin
+                InkWell(
+                  onTap: () => _copyPhoneToClipboard(context, courierPhone),
+                  borderRadius: BorderRadius.circular(4),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 5, vertical: 4),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          TablerIcons.copy,
+                          size: 14,
+                          color: AppColors.brandPrimary,
+                        ),
+                        SizedBox(width: 3),
+                        Text(
+                          'Salin',
+                          style: TextStyle(
+                            fontFamily: 'PlusJakartaSans',
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.brandPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                // Tombol WhatsApp
+                InkWell(
+                  onTap: () =>
+                      _openWhatsApp(context, courierPhone, courierName),
+                  borderRadius: BorderRadius.circular(4),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 5, vertical: 4),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          TablerIcons.brand_whatsapp,
+                          size: 15,
+                          color: Color(0xFF25D366),
+                        ),
+                        SizedBox(width: 3),
+                        Text(
+                          'WA',
+                          style: TextStyle(
+                            fontFamily: 'PlusJakartaSans',
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF16A34A),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 }
+
+/// Status state untuk setiap tahapan pada vertical stepper surat jalan
+enum _DeliveryStepState {
+  completed,
+  current,
+  pending,
+  cancelled,
+}
+
