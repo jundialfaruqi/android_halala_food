@@ -230,6 +230,7 @@ class _ProductionScreenState extends ConsumerState<ProductionScreen> {
     required bool canDelete,
   }) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // 1. Search Bar
         Padding(
@@ -621,6 +622,7 @@ class _ProductionScreenState extends ConsumerState<ProductionScreen> {
             .firstOrNull;
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // 1. Search Bar
         Padding(
@@ -656,12 +658,15 @@ class _ProductionScreenState extends ConsumerState<ProductionScreen> {
           ),
         ),
 
-        // 2. Filter Dropdown Bahan Baku & Arah Mutasi (AppFilterDropdown seperti Filter Rute di Kordinat)
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+        // 2. Filter Dropdown Bahan Baku & Arah Mutasi (AppFilterDropdown Rata Kiri)
+        Align(
+          alignment: Alignment.centerLeft,
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 // Filter Bahan Baku
                 AppFilterDropdown<ProductionRawMaterialOptionModel>(

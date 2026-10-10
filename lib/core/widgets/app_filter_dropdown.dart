@@ -58,7 +58,7 @@ class AppFilterDropdown<T> extends StatelessWidget {
   /// Ketinggian elevasi bayangan pop-up menu (default: `6`).
   final double elevation;
 
-  /// Menampilkan soft shadow pada tombol trigger (default: `true`).
+  /// Menampilkan soft shadow pada tombol trigger (default: `false`).
   final bool showShadow;
 
   /// Ikon chevron (default: [TablerIcons.chevron_down]).
@@ -93,7 +93,7 @@ class AppFilterDropdown<T> extends StatelessWidget {
     this.offset,
     this.menuConstraints,
     this.elevation = 6,
-    this.showShadow = true,
+    this.showShadow = false,
     this.icon = TablerIcons.chevron_down,
     this.iconSize,
     this.fontSize = 13,
@@ -181,13 +181,21 @@ class AppFilterDropdown<T> extends StatelessWidget {
           isSelected ? AppColors.brandPrimary : AppColors.brandWarmGray;
     }
 
-    return PopupMenuButton<Object?>(
-      tooltip: tooltip,
-      offset: effectiveOffset,
-      elevation: elevation,
-      color: Colors.white,
-      constraints: menuConstraints ??
-          BoxConstraints(minWidth: isExpanded ? 240 : 150, maxHeight: 320),
+    return Theme(
+      data: Theme.of(context).copyWith(
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+        hoverColor: Colors.transparent,
+        splashFactory: NoSplash.splashFactory,
+      ),
+      child: PopupMenuButton<Object?>(
+        splashRadius: 0,
+        tooltip: tooltip,
+        offset: effectiveOffset,
+        elevation: elevation,
+        color: Colors.white,
+        constraints: menuConstraints ??
+            BoxConstraints(minWidth: isExpanded ? 240 : 150, maxHeight: 320),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
         side: const BorderSide(color: AppColors.brandBorder),
@@ -317,6 +325,7 @@ class AppFilterDropdown<T> extends StatelessWidget {
                 ],
               ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
