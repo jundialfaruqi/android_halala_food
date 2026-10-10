@@ -329,55 +329,33 @@ class _RawMaterialFormScreenState extends ConsumerState<RawMaterialFormScreen> {
                 const SizedBox(height: 16),
 
                 // 4. Header Harga Beli per Satuan + Smart Calculator Toggle
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Harga Beli per Satuan *',
-                      style: TextStyle(
-                        fontFamily: 'PlusJakartaSans',
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.brandEspresso,
-                      ),
-                    ),
-                    InkWell(
-                      onTap: () =>
-                          _openPackagingCalculatorModal(context, units),
-                      borderRadius: BorderRadius.circular(6),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF9FAFB),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: AppColors.brandBorder),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              TablerIcons.calculator,
-                              size: 14,
-                              color: Colors.black,
-                            ),
-                            SizedBox(width: 5),
-                            Text(
-                              'Hitung dari Pembelian Kemasan',
-                              style: TextStyle(
-                                fontFamily: 'PlusJakartaSans',
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.brandEspresso,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
+                const Text(
+                  'Harga Beli per Satuan *',
+                  style: TextStyle(
+                    fontFamily: 'PlusJakartaSans',
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.brandEspresso,
+                  ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
+
+                AppButton(
+                  text: 'Hitung dari Pembelian Kemasan',
+                  icon: const Icon(
+                    TablerIcons.calculator,
+                    size: 16,
+                    color: Colors.black,
+                  ),
+                  variant: AppButtonVariant.outline,
+                  height: 44,
+                  textColor: AppColors.brandEspresso,
+                  borderColor: AppColors.brandBorder,
+                  borderRadius: 10,
+                  onPressed: () =>
+                      _openPackagingCalculatorModal(context, units),
+                ),
+                const SizedBox(height: 10),
 
                 AppTextField(
                   controller: _costController,
@@ -449,20 +427,6 @@ class _RawMaterialFormScreenState extends ConsumerState<RawMaterialFormScreen> {
                         padding: const EdgeInsets.fromLTRB(20, 4, 16, 12),
                         child: Row(
                           children: [
-                            Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF3F4F6),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(
-                                TablerIcons.calculator,
-                                size: 20,
-                                color: Colors.black,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
                             const Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -756,25 +720,15 @@ class _RawMaterialFormScreenState extends ConsumerState<RawMaterialFormScreen> {
                                               color: AppColors.brandEspresso,
                                             ),
                                           ),
-                                          Row(
-                                            children: [
-                                              Icon(TablerIcons.check,
-                                                  size: 14,
-                                                  color: AppColors
-                                                      .brandNaturalGreen),
-                                              SizedBox(width: 4),
-                                              Text(
-                                                'Siap Diterapkan',
-                                                style: TextStyle(
-                                                  fontFamily:
-                                                      'PlusJakartaSans',
-                                                  fontSize: 11.5,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: AppColors
-                                                      .brandNaturalGreen,
-                                                ),
-                                              ),
-                                            ],
+                                          Text(
+                                            'Siap Diterapkan',
+                                            style: TextStyle(
+                                              fontFamily: 'PlusJakartaSans',
+                                              fontSize: 11.5,
+                                              fontWeight: FontWeight.w600,
+                                              color:
+                                                  AppColors.brandNaturalGreen,
+                                            ),
                                           ),
                                         ],
                                       ),
