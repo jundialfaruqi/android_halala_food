@@ -8,7 +8,7 @@ import '../../../auth/presentation/viewmodels/auth_viewmodel.dart';
 import '../../data/models/purchase_model.dart';
 import '../viewmodels/purchase_viewmodel.dart';
 import 'purchase_detail_sheet.dart';
-import 'purchase_form_sheet.dart';
+import 'purchase_form_screen.dart';
 import 'purchase_pay_debt_dialog.dart';
 
 class PurchaseScreen extends ConsumerStatefulWidget {
@@ -52,7 +52,12 @@ class _PurchaseScreenState extends ConsumerState<PurchaseScreen> {
   }
 
   void _openCreateModal() {
-    PurchaseFormSheet.show(context);
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const PurchaseFormScreen(),
+      ),
+    );
   }
 
   void _openPayDebtModal(PurchaseModel purchase) {
