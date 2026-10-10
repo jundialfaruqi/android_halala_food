@@ -7,6 +7,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../data/models/raw_material_model.dart';
 import '../viewmodels/raw_material_viewmodel.dart';
+import '../widgets/raw_material_dropdown_search_field.dart';
 
 /// Halaman Layar Penuh untuk Mengatur Formula Resep Produk (Bill of Materials / BOM)
 /// Menggunakan seluruh App Core Widget:
@@ -643,48 +644,26 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
           ),
           const SizedBox(height: 10),
 
-          // 1. Dropdown Pemilihan Bahan Baku
-          const Text(
-            'Pilih Bahan Baku *',
-            style: TextStyle(
-              fontFamily: 'PlusJakartaSans',
-              fontSize: 12.5,
-              fontWeight: FontWeight.w600,
-              color: AppColors.brandEspresso,
-            ),
-          ),
-          AppFilterDropdown<RawMaterialModel>(
-            selectedValue: selectedMat,
-            items: materialOptions,
-            allLabel: 'Pilih Bahan Baku',
-            showAllOption: false,
-            isExpanded: true,
-            showShadow: false,
-            hasError: row.hasError,
-            height: 48,
-            itemLabel: (m) =>
-                '${m.name} (${_currencyFormat.format(m.costPerUnit)} / ${m.unitShort})',
-            onSelected: (m) {
-              if (m != null) {
-                setState(() {
-                  row.materialId = m.id;
-                  row.hasError = false;
-                });
+          // 1. Dropdown Pencarian Bahan Baku
+          RawMaterialDropdownSearchField(
+            labelText: 'Pilih Bahan Baku *',
+            hintText: 'Pilih Bahan Baku...',
+            initialValue: row.materialId,
+            initialMaterial: selectedMat,
+            initialMaterials: materialOptions,
+            validator: (val) {
+              if (row.hasError || val == null || val <= 0) {
+                return 'Bahan baku wajib dipilih.';
               }
+              return null;
+            },
+            onSelected: (mat) {
+              setState(() {
+                row.materialId = mat?.id;
+                row.hasError = false;
+              });
             },
           ),
-          if (row.hasError) ...[
-            const SizedBox(height: 4),
-            const Text(
-              'Bahan baku wajib dipilih.',
-              style: TextStyle(
-                fontFamily: 'PlusJakartaSans',
-                fontSize: 11.5,
-                color: Color(0xFFDC2626),
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
           const SizedBox(height: 12),
 
           // 2. Input Takaran
