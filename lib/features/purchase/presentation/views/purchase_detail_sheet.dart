@@ -105,20 +105,6 @@ class _PurchaseDetailSheetState extends ConsumerState<PurchaseDetailSheet> {
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
               child: Row(
                 children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: AppColors.brandPrimary.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      TablerIcons.shopping_cart,
-                      color: AppColors.brandPrimary,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
                   const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,

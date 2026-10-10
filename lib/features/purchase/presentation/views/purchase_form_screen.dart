@@ -8,8 +8,63 @@ import '../../../../core/widgets/widgets.dart';
 import '../../data/models/purchase_options_model.dart';
 import '../viewmodels/purchase_viewmodel.dart';
 
+/// Konsep 3: Opsi Konversi Satuan Pembelian Nota
+class PurchaseUnitConversionOption {
+  final String label;
+  final String shortName;
+  final double multiplier;
+
+  const PurchaseUnitConversionOption({
+    required this.label,
+    required this.shortName,
+    required this.multiplier,
+  });
+}
+
+/// Mendeteksi opsi satuan pembelian yang tersedia berdasarkan satuan dasar resep
+List<PurchaseUnitConversionOption> getAvailablePurchaseUnits(String baseUnitStr) {
+  final u = baseUnitStr.trim().toLowerCase();
+  if (u == 'gram' || u == 'g' || u == 'gr') {
+    return const [
+      PurchaseUnitConversionOption(
+        label: 'Kg (1.000 g)',
+        shortName: 'Kg',
+        multiplier: 1000.0,
+      ),
+      PurchaseUnitConversionOption(
+        label: 'Gram (g)',
+        shortName: 'Gram',
+        multiplier: 1.0,
+      ),
+    ];
+  } else if (u == 'ml' || u == 'mililiter' || u == 'mili') {
+    return const [
+      PurchaseUnitConversionOption(
+        label: 'Liter (1.000 ml)',
+        shortName: 'Liter',
+        multiplier: 1000.0,
+      ),
+      PurchaseUnitConversionOption(
+        label: 'Mililiter (ml)',
+        shortName: 'ml',
+        multiplier: 1.0,
+      ),
+    ];
+  } else {
+    final cleanName = baseUnitStr.isNotEmpty ? baseUnitStr : 'Satuan';
+    return [
+      PurchaseUnitConversionOption(
+        label: cleanName,
+        shortName: cleanName,
+        multiplier: 1.0,
+      ),
+    ];
+  }
+}
+
 class PurchaseFormRowItem {
   PurchaseRawMaterialOption? selectedMaterial;
+  PurchaseUnitConversionOption? selectedUnit;
   final TextEditingController quantityController;
   final TextEditingController costController;
   final TextEditingController notesController;
@@ -17,6 +72,7 @@ class PurchaseFormRowItem {
 
   PurchaseFormRowItem({
     this.selectedMaterial,
+    this.selectedUnit,
     required this.quantityController,
     required this.costController,
     required this.notesController,
@@ -50,13 +106,8 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
   final _supplierController = TextEditingController();
   final _notesController = TextEditingController();
 
-  // 2. Select date saat halaman dibuka adalah null dengan teks placeholder "Pilih Tanggal"
   DateTime? _purchaseDate;
-
-  // 3. Select metode pembayaran defaultnya "Pilih Metode Bayar" (null)
   String? _selectedPaymentMethod; // 'tunai', 'transfer_bank', 'tempo'
-
-  // 4. Select Akun Kas defaultnya "Pilih Akun Kas" (null)
   int? _selectedAccountId;
 
   List<PurchaseRawMaterialOption> _rawMaterials = [];
@@ -94,10 +145,8 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
         _rawMaterials = opts.rawMaterials;
         _accounts = opts.accounts;
 
-        // Default akun kas tetap null sesuai permintaan user
         _selectedAccountId = null;
 
-        // Tambahkan 1 baris item awal tanpa memicu nested setState
         _createRowItem();
 
         setState(() {
@@ -122,6 +171,7 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
 
     final row = PurchaseFormRowItem(
       selectedMaterial: null,
+      selectedUnit: null,
       quantityController: qtyCtrl,
       costController: costCtrl,
       notesController: notesCtrl,
@@ -172,6 +222,28 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
     }
   }
 
+  void _onUnitChanged(PurchaseFormRowItem item, PurchaseUnitConversionOption newUnit) {
+    final oldMultiplier = item.selectedUnit?.multiplier ?? 1.0;
+    final newMultiplier = newUnit.multiplier;
+
+    setState(() {
+      item.selectedUnit = newUnit;
+
+      // Konversi cerdas nilai input harga saat ini
+      final currentCost = _parseNumber(item.costController.text);
+      if (currentCost > 0) {
+        final baseCost = currentCost / oldMultiplier;
+        final convertedCost = baseCost * newMultiplier;
+        item.costController.text = ThousandsSeparatorInputFormatter.format(convertedCost);
+      }
+
+      item.subtotal = _calculateRowSubtotal(
+        item.quantityController.text,
+        item.costController.text,
+      );
+    });
+  }
+
   double get _grandTotal {
     double sum = 0.0;
     for (var it in _items) {
@@ -206,7 +278,6 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
   }
 
   Future<void> _submit() async {
-    // 1. Pakaikan validasi dinamis AppDynamicValidationForm
     final isValid = _formKey.currentState?.validate() ?? false;
     if (!isValid) {
       AppSnackBar.showError(
@@ -258,20 +329,36 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
         );
         return;
       }
-      final qty = _parseNumber(it.quantityController.text);
-      if (qty <= 0) {
+      final qtyBeli = _parseNumber(it.quantityController.text);
+      if (qtyBeli <= 0) {
         AppSnackBar.showError(
           context,
           message: 'Jumlah kuantitas baris #${i + 1} harus lebih dari 0.',
         );
         return;
       }
-      final cost = _parseNumber(it.costController.text);
+      final hargaBeli = _parseNumber(it.costController.text);
+      final multiplier = it.selectedUnit?.multiplier ?? 1.0;
+      final unitShort = it.selectedUnit?.shortName ?? '';
+
+      // Konversi Qty & Harga ke Satuan Dasar Resep Gudang
+      final qtyGudang = qtyBeli * multiplier;
+      final costPerBaseUnit = multiplier > 0 ? (hargaBeli / multiplier) : hargaBeli;
+
+      // Catatan otomatis jika membeli dalam satuan kemasan/kg
+      String? itemNotes = it.notesController.text.trim();
+      if (itemNotes.isEmpty && multiplier > 1.0) {
+        final fmtQty = qtyBeli.truncateToDouble() == qtyBeli
+            ? qtyBeli.toInt().toString()
+            : qtyBeli.toString();
+        itemNotes = 'Beli $fmtQty $unitShort (@ Rp ${ThousandsSeparatorInputFormatter.format(hargaBeli)})';
+      }
+
       itemsPayload.add({
         'raw_material_id': it.selectedMaterial!.id,
-        'quantity': qty,
-        'cost_per_unit': cost,
-        'notes': it.notesController.text.trim(),
+        'quantity': qtyGudang,
+        'cost_per_unit': costPerBaseUnit,
+        'notes': itemNotes.isNotEmpty ? itemNotes : null,
       });
     }
 
@@ -464,7 +551,6 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    // 2. Select date default null dengan Teks Placeholder "Pilih Tanggal"
                     FormField<DateTime?>(
                       initialValue: _purchaseDate,
                       validator: (val) {
@@ -584,11 +670,10 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
           ),
           const SizedBox(height: 14),
 
-          // 3 & 4. Metode Pembayaran & Akun Kas (FormField Validasi Dinamis)
+          // Metode Pembayaran & Akun Kas
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 3. Select metode pembayaran defaultnya "Pilih Metode Bayar"
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -664,7 +749,6 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
                 ),
               ),
 
-              // 4. Select Akun Kas defaultnya "Pilih Akun Kas"
               if (_selectedPaymentMethod != 'tempo') ...[
                 const SizedBox(width: 12),
                 Expanded(
@@ -713,9 +797,9 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
                                       : 'Pilih Akun Kas';
                                 },
                                 onSelected: (val) {
-                                  setState(() => _selectedAccountId =
-                                      int.tryParse(val ?? ''));
-                                  fieldState.didChange(_selectedAccountId);
+                                  final id = int.tryParse(val ?? '');
+                                  setState(() => _selectedAccountId = id);
+                                  fieldState.didChange(id);
                                 },
                               ),
                               if (fieldState.hasError) ...[
@@ -741,7 +825,7 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
           ),
           const SizedBox(height: 14),
 
-          // Catatan Faktur (Opsional)
+          // Catatan Faktur
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -771,7 +855,7 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
     );
   }
 
-  /// Section 2: Baris Item Bahan Baku yang Dibeli (AppDropdownSearchField)
+  /// Section 2: Baris Item Bahan Baku yang Dibeli
   Widget _buildItemsSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -847,8 +931,21 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
     );
   }
 
-  /// 5. Baris Item Menggunakan AppDropdownSearchField
+  /// Baris Item dengan Konsep 3: Auto-Detect Satuan Cerdas Nota
   Widget _buildRowItemWidget(int index, PurchaseFormRowItem item) {
+    final availableUnits = item.selectedMaterial != null
+        ? getAvailablePurchaseUnits(item.selectedMaterial!.displayUnit)
+        : const <PurchaseUnitConversionOption>[];
+
+    final unitShort = item.selectedUnit?.shortName ??
+        (item.selectedMaterial?.displayUnit ?? 'Satuan');
+    final multiplier = item.selectedUnit?.multiplier ?? 1.0;
+    final qtyBeli = _parseNumber(item.quantityController.text);
+    final hargaBeli = _parseNumber(item.costController.text);
+    final qtyGudang = qtyBeli * multiplier;
+    final costPerBaseUnit = multiplier > 0 ? (hargaBeli / multiplier) : hargaBeli;
+    final baseUnit = item.selectedMaterial?.displayUnit ?? 'satuan';
+
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 12),
@@ -890,7 +987,7 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
           ),
           const SizedBox(height: 10),
 
-          // 5. Item Bahan Baku Menggunakan AppDropdownSearchField
+          // 1. Pilih Bahan Baku
           AppDropdownSearchField<PurchaseRawMaterialOption>(
             labelText: 'PILIH BAHAN BAKU *',
             hintText: 'Cari atau pilih bahan baku...',
@@ -904,12 +1001,12 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
             itemEquals: (a, b) => a?.id == b?.id,
             itemLabel: (m) => '${m.name} (${m.stock} ${m.displayUnit})',
             itemSubtitle: (m) =>
-                'Stok: ${m.stock} ${m.displayUnit} • Standar: Rp ${ThousandsSeparatorInputFormatter.format(m.costPerUnit)}',
+                'Stok: ${m.stock} ${m.displayUnit} • Standar: Rp ${ThousandsSeparatorInputFormatter.format(m.costPerUnit)} / ${m.displayUnit}',
             searchMatcher: (m, query) =>
                 m.name.toLowerCase().contains(query.toLowerCase()) ||
                 m.displayUnit.toLowerCase().contains(query.toLowerCase()),
             validator: (val) {
-              if (val == null) {
+              if (item.selectedMaterial == null) {
                 return 'Pilih bahan baku untuk baris #${index + 1}.';
               }
               return null;
@@ -918,24 +1015,96 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
               setState(() {
                 item.selectedMaterial = m;
                 if (m != null) {
-                  if (item.costController.text == '0' ||
-                      item.costController.text.isEmpty) {
-                    item.costController.text =
-                        ThousandsSeparatorInputFormatter.format(
-                      m.costPerUnit,
-                    );
-                  }
+                  final units = getAvailablePurchaseUnits(m.displayUnit);
+                  item.selectedUnit = units.first;
+
+                  // Hitung harga default sesuai unit pembelian terpilih
+                  final defaultPrice = m.costPerUnit * item.selectedUnit!.multiplier;
+                  item.costController.text =
+                      ThousandsSeparatorInputFormatter.format(defaultPrice);
+
                   item.subtotal = _calculateRowSubtotal(
                     item.quantityController.text,
                     item.costController.text,
                   );
+                } else {
+                  item.selectedUnit = null;
                 }
               });
             },
           ),
           const SizedBox(height: 12),
 
-          // Qty & Harga Satuan
+          // 2. Konsep 3: Kapsul Pilihan Satuan Pembelian di Nota
+          if (item.selectedMaterial != null && availableUnits.isNotEmpty) ...[
+            const Text(
+              'SATUAN PEMBELIAN NOTA *',
+              style: TextStyle(
+                fontFamily: 'PlusJakartaSans',
+                fontSize: 10.5,
+                fontWeight: FontWeight.w700,
+                color: AppColors.brandWarmGray,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: availableUnits.map((u) {
+                final isSelected = item.selectedUnit?.shortName == u.shortName;
+                return InkWell(
+                  onTap: () => _onUnitChanged(item, u),
+                  borderRadius: BorderRadius.circular(20),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? AppColors.brandPrimary.withValues(alpha: 0.1)
+                          : const Color(0xFFF9FAFB),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: isSelected
+                            ? AppColors.brandPrimary
+                            : AppColors.brandBorder,
+                        width: isSelected ? 1.5 : 1.0,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          isSelected
+                              ? TablerIcons.circle_dot
+                              : TablerIcons.circle,
+                          size: 13,
+                          color: isSelected
+                              ? AppColors.brandPrimary
+                              : AppColors.brandWarmGray,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          u.label,
+                          style: TextStyle(
+                            fontFamily: 'PlusJakartaSans',
+                            fontSize: 12,
+                            fontWeight:
+                                isSelected ? FontWeight.w700 : FontWeight.w500,
+                            color: isSelected
+                                ? AppColors.brandPrimary
+                                : AppColors.brandEspresso,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 12),
+          ],
+
+          // 3. Input Qty & Harga Satuan Sesuai Satuan Terpilih
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -944,9 +1113,9 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'QTY *',
-                      style: TextStyle(
+                    Text(
+                      'QTY (${unitShort.toUpperCase()}) *',
+                      style: const TextStyle(
                         fontFamily: 'PlusJakartaSans',
                         fontSize: 10.5,
                         fontWeight: FontWeight.w700,
@@ -979,24 +1148,21 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'HARGA SATUAN (RP) *',
-                      style: TextStyle(
+                    Text(
+                      'HARGA / $unitShort (RP) *',
+                      style: const TextStyle(
                         fontFamily: 'PlusJakartaSans',
                         fontSize: 10.5,
                         fontWeight: FontWeight.w700,
                         color: AppColors.brandWarmGray,
                       ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 6),
                     AppTextField(
                       controller: item.costController,
                       keyboardType: TextInputType.number,
                       textAlign: TextAlign.left,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                        const ThousandsSeparatorInputFormatter(),
-                      ],
                       prefixText: 'Rp ',
                       prefixStyle: const TextStyle(
                         fontFamily: 'PlusJakartaSans',
@@ -1004,6 +1170,10 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
                         fontWeight: FontWeight.w600,
                         color: AppColors.brandWarmGray,
                       ),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        const ThousandsSeparatorInputFormatter(),
+                      ],
                       validator: (val) {
                         if (val == null || val.trim().isEmpty) {
                           return 'Harga wajib diisi.';
@@ -1018,34 +1188,107 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
           ),
           const SizedBox(height: 12),
 
-          // Subtotal Baris
+          // 4. Kartu Subtotal & Info Transparan Konversi Stok Gudang
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: const Color(0xFFF9FAFB),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.brandBorder),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Column(
               children: [
-                const Text(
-                  'Subtotal Baris Ini',
-                  style: TextStyle(
-                    fontFamily: 'PlusJakartaSans',
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.brandWarmGray,
+                if (item.selectedMaterial != null &&
+                    multiplier > 1.0 &&
+                    qtyBeli > 0) ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: const [
+                          Icon(
+                            TablerIcons.archive,
+                            size: 14,
+                            color: AppColors.brandNaturalGreen,
+                          ),
+                          SizedBox(width: 6),
+                          Text(
+                            'Masuk Stok Gudang:',
+                            style: TextStyle(
+                              fontFamily: 'PlusJakartaSans',
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.brandWarmGray,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        '+${NumberFormat.decimalPattern('id_ID').format(qtyGudang)} $baseUnit',
+                        style: const TextStyle(
+                          fontFamily: 'PlusJakartaSans',
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.brandNaturalGreen,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                Text(
-                  _currencyFormat.format(item.subtotal),
-                  style: const TextStyle(
-                    fontFamily: 'PlusJakartaSans',
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.brandEspresso,
+                  const SizedBox(height: 6),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: const [
+                          Icon(TablerIcons.tag,
+                              size: 14, color: AppColors.brandWarmGray),
+                          SizedBox(width: 6),
+                          Text(
+                            'HPP Resep Masak:',
+                            style: TextStyle(
+                              fontFamily: 'PlusJakartaSans',
+                              fontSize: 11.5,
+                              color: AppColors.brandWarmGray,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        'Rp ${NumberFormat.decimalPattern('id_ID').format(costPerBaseUnit)} / $baseUnit',
+                        style: const TextStyle(
+                          fontFamily: 'PlusJakartaSans',
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.brandEspresso,
+                        ),
+                      ),
+                    ],
                   ),
+                  const Divider(height: 16, color: AppColors.brandBorder),
+                ],
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Subtotal Nota Baris Ini',
+                      style: TextStyle(
+                        fontFamily: 'PlusJakartaSans',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.brandEspresso,
+                      ),
+                    ),
+                    Text(
+                      _currencyFormat.format(item.subtotal),
+                      style: const TextStyle(
+                        fontFamily: 'PlusJakartaSans',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.brandPrimary,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
