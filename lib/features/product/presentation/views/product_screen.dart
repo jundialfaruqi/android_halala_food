@@ -402,7 +402,7 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
     }
 
     final hasActions = canEditProduct || canDeleteProduct;
-    final contentHeight = hasActions ? 172.0 : 132.0;
+    final contentHeight = hasActions ? 136.0 : 96.0;
     final screenWidth = MediaQuery.sizeOf(context).width;
     final cardWidth = (screenWidth - 32 - 12) / 2;
     final childAspectRatio = cardWidth / (cardWidth + contentHeight);
@@ -462,7 +462,7 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
   Widget _buildShimmerLoadingList() {
     final screenWidth = MediaQuery.sizeOf(context).width;
     final cardWidth = (screenWidth - 32 - 12) / 2;
-    final childAspectRatio = cardWidth / (cardWidth + 172.0);
+    final childAspectRatio = cardWidth / (cardWidth + 136.0);
 
     return GridView.builder(
       physics: const NeverScrollableScrollPhysics(),
@@ -491,7 +491,7 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Baris 1: Foto Thumbnail Shimmer (Flush Top, Left, Right) + Gradient Overlay Nama Shimmer
+          // Baris 1: Foto Thumbnail Shimmer (Flush Top, Left, Right) + Badge Shimmer & Gradient Overlay
           AspectRatio(
             aspectRatio: 1,
             child: Stack(
@@ -504,6 +504,19 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
                       height: double.infinity,
                       borderRadius: 0,
                     ),
+                  ),
+                ),
+                // Shimmer Badge Status & Stok Top Left
+                const Positioned(
+                  top: 8,
+                  left: 8,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ShimmerLoading(width: 38, height: 18, borderRadius: 20),
+                      SizedBox(width: 5),
+                      ShimmerLoading(width: 42, height: 18, borderRadius: 20),
+                    ],
                   ),
                 ),
                 Positioned(
@@ -543,7 +556,7 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
               ],
             ),
           ),
-          Padding(
+          const Padding(
             padding: EdgeInsets.fromLTRB(10, 8, 10, 10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -557,11 +570,6 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
                 ShimmerLoading(width: 85, height: 9, borderRadius: 3),
                 SizedBox(height: 3),
                 ShimmerLoading(width: 90, height: 13, borderRadius: 4),
-                SizedBox(height: 6),
-                // Baris 2 - 3: Stok
-                ShimmerLoading(width: 40, height: 9, borderRadius: 3),
-                SizedBox(height: 3),
-                ShimmerLoading(width: 60, height: 12, borderRadius: 4),
                 SizedBox(height: 10),
                 // Shimmer Tombol Aksi Bawah
                 Row(
@@ -653,39 +661,84 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
                   ),
                 ),
 
-                // Badge Status Float Left (Tanpa Dot)
+                // Badge Status Float Left & Badge Stok di sampingnya (Tanpa teks "stok")
                 Positioned(
                   top: 8,
                   left: 8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3.5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: (product.isActive
-                              ? AppColors.brandNaturalGreen
-                              : AppColors.brandWarmGray)
-                          .withValues(alpha: 0.92),
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.14),
-                          blurRadius: 4,
-                          offset: const Offset(0, 1.5),
+                  right: 8,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // 1. Badge Status (Aktif / Nonaktif)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3.5,
                         ),
-                      ],
-                    ),
-                    child: Text(
-                      product.isActive ? 'Aktif' : 'Nonaktif',
-                      style: const TextStyle(
-                        fontFamily: 'PlusJakartaSans',
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                        letterSpacing: 0.2,
+                        decoration: BoxDecoration(
+                          color: (product.isActive
+                                  ? AppColors.brandNaturalGreen
+                                  : AppColors.brandWarmGray)
+                              .withValues(alpha: 0.92),
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.14),
+                              blurRadius: 4,
+                              offset: const Offset(0, 1.5),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          product.isActive ? 'Aktif' : 'Nonaktif',
+                          style: const TextStyle(
+                            fontFamily: 'PlusJakartaSans',
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 5),
+
+                      // 2. Badge Stok (di samping status, tanpa teks "stok")
+                      Flexible(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3.5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: (product.stockReady > 0
+                                    ? Colors.black.withValues(alpha: 0.60)
+                                    : AppColors.error.withValues(alpha: 0.90)),
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.14),
+                                blurRadius: 4,
+                                offset: const Offset(0, 1.5),
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            unitLabel.isNotEmpty
+                                ? '${product.stockReady} $unitLabel'
+                                : '${product.stockReady}',
+                            style: const TextStyle(
+                              fontFamily: 'PlusJakartaSans',
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                              letterSpacing: 0.2,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
 
@@ -836,37 +889,7 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
                   ],
                 ),
 
-                const SizedBox(height: 6),
-
-                // 4. Stok
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Stok',
-                      style: TextStyle(
-                        fontFamily: 'PlusJakartaSans',
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.brandWarmGray,
-                      ),
-                    ),
-                    const SizedBox(height: 1),
-                    Text(
-                      '${product.stockReady} $unitLabel',
-                      style: const TextStyle(
-                        fontFamily: 'PlusJakartaSans',
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.brandEspresso,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-
-                // 5. Tombol Aksi Bawah Stok: Hapus (Kiri) & Ubah (Kanan)
+                // 3. Tombol Aksi Bawah: Hapus (Kiri) & Ubah (Kanan)
                 if (canEditProduct || canDeleteProduct) ...[
                   const SizedBox(height: 10),
                   Row(
