@@ -817,6 +817,7 @@ class _PurchaseScreenState extends ConsumerState<PurchaseScreen> {
     return Column(
       children: List.generate(4, (index) {
         return Container(
+          width: double.infinity,
           margin: const EdgeInsets.only(bottom: 8),
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
@@ -825,12 +826,57 @@ class _PurchaseScreenState extends ConsumerState<PurchaseScreen> {
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              ShimmerLoading(width: 140, height: 14, borderRadius: 4),
-              SizedBox(height: 8),
-              ShimmerLoading(width: 200, height: 16, borderRadius: 4),
-              SizedBox(height: 8),
-              ShimmerLoading(width: 100, height: 12, borderRadius: 4),
+            children: [
+              // Baris 1: Tanggal & No Faktur
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: const [
+                  ShimmerLoading(width: 170, height: 13, borderRadius: 4),
+                  ShimmerLoading(width: 16, height: 16, borderRadius: 4),
+                ],
+              ),
+              const SizedBox(height: 8),
+
+              // Baris 2: Nama Supplier
+              const ShimmerLoading(width: 210, height: 16, borderRadius: 4),
+              const SizedBox(height: 8),
+
+              // Baris 3: Badges status bayar & metode
+              Row(
+                children: const [
+                  ShimmerLoading(width: 60, height: 20, borderRadius: 6),
+                  SizedBox(width: 6),
+                  ShimmerLoading(width: 85, height: 20, borderRadius: 6),
+                ],
+              ),
+              const SizedBox(height: 10),
+
+              // Baris 4: Deskripsi item bahan
+              const ShimmerLoading(
+                width: double.infinity,
+                height: 12,
+                borderRadius: 4,
+              ),
+              const SizedBox(height: 10),
+
+              const Divider(height: 1, color: AppColors.brandBorder),
+              const SizedBox(height: 10),
+
+              // Baris 5: Total Belanja
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      ShimmerLoading(width: 70, height: 10, borderRadius: 3),
+                      SizedBox(height: 4),
+                      ShimmerLoading(width: 110, height: 15, borderRadius: 4),
+                    ],
+                  ),
+                  const ShimmerLoading(width: 65, height: 26, borderRadius: 8),
+                ],
+              ),
             ],
           ),
         );
