@@ -875,19 +875,12 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
               ),
               SizedBox(height: 10),
 
-              // Baris 2 Shimmer: No HP kiri dan tombol action kanan
+              // Baris 2 Shimmer: No. HP kiri dan nomor HP kanan
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  ShimmerLoading(width: 110, height: 13, borderRadius: 4),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      ShimmerLoading(width: 34, height: 14, borderRadius: 3),
-                      SizedBox(width: 10),
-                      ShimmerLoading(width: 24, height: 14, borderRadius: 3),
-                    ],
-                  ),
+                  ShimmerLoading(width: 50, height: 13, borderRadius: 4),
+                  ShimmerLoading(width: 110, height: 13, borderRadius: 2),
                 ],
               ),
             ],
@@ -1479,69 +1472,193 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
         ),
         const SizedBox(height: 10),
 
-        // 2. No HP kiri dan tombol action kanan
+        // 2. No. HP di kiri dan nomor HP kurir di kanan dengan border bawah
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Expanded(
-              child: Text(
-                hasPhone ? _formatPhone(courierPhone) : '-',
-                style: TextStyle(
-                  fontFamily: 'PlusJakartaSans',
-                  fontSize: 13,
-                  fontWeight: hasPhone ? FontWeight.w600 : FontWeight.w400,
-                  color: hasPhone
-                      ? AppColors.brandEspresso
-                      : AppColors.brandWarmGray,
-                ),
+            const Text(
+              'No. HP',
+              style: TextStyle(
+                fontFamily: 'PlusJakartaSans',
+                fontSize: 13.5,
+                fontWeight: FontWeight.w500,
+                color: AppColors.brandWarmGray,
               ),
             ),
+            const SizedBox(width: 8),
             if (hasPhone)
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Tombol Action: Salin (Teks only, tanpa background)
-                  InkWell(
-                    onTap: () => _copyPhoneToClipboard(context, courierPhone),
-                    borderRadius: BorderRadius.circular(4),
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                      child: Text(
-                        'Salin',
-                        style: TextStyle(
-                          fontFamily: 'PlusJakartaSans',
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.brandPrimary,
-                        ),
+              GestureDetector(
+                onTap: () => _showCourierContactModal(
+                  context,
+                  courierPhone,
+                  courierName,
+                ),
+                child: Container(
+                  padding: const EdgeInsets.only(bottom: 2),
+                  decoration: const BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(
+                        color: Colors.black,
+                        width: 1.0,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  // Tombol Action: WA (Teks only, tanpa background)
-                  InkWell(
-                    onTap: () =>
-                        _openWhatsApp(context, courierPhone, courierName),
-                    borderRadius: BorderRadius.circular(4),
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                      child: Text(
-                        'WA',
-                        style: TextStyle(
-                          fontFamily: 'PlusJakartaSans',
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF16A34A),
-                        ),
-                      ),
+                  child: Text(
+                    _formatPhone(courierPhone),
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(
+                      fontFamily: 'PlusJakartaSans',
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black,
                     ),
                   ),
-                ],
+                ),
+              )
+            else
+              const Text(
+                '-',
+                style: TextStyle(
+                  fontFamily: 'PlusJakartaSans',
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w400,
+                  color: AppColors.brandWarmGray,
+                ),
               ),
           ],
         ),
       ],
+    );
+  }
+
+  /// Dialog modal pilihan aksi kontak kurir (Salin & WhatsApp)
+  /// Komponen action modal memakai teks berwarna hitam, tanpa badge, tanpa banyak warna
+  void _showCourierContactModal(
+    BuildContext context,
+    String phone,
+    String courierName,
+  ) {
+    final formattedPhone = _formatPhone(phone);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Drag handle
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.brandBorder,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Teks informasi nomor & kurir (Hitam, tanpa badge, tanpa warna-warni)
+                Text(
+                  formattedPhone,
+                  style: const TextStyle(
+                    fontFamily: 'PlusJakartaSans',
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Kurir: $courierName',
+                  style: const TextStyle(
+                    fontFamily: 'PlusJakartaSans',
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                const Divider(height: 1, color: AppColors.brandBorder),
+                const SizedBox(height: 6),
+
+                // Opsi 1: Salin Nomor HP
+                InkWell(
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _copyPhoneToClipboard(context, phone);
+                  },
+                  borderRadius: BorderRadius.circular(8),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 14, horizontal: 4),
+                    child: Row(
+                      children: [
+                        Icon(
+                          TablerIcons.copy,
+                          size: 20,
+                          color: Colors.black,
+                        ),
+                        SizedBox(width: 14),
+                        Text(
+                          'Salin Nomor HP',
+                          style: TextStyle(
+                            fontFamily: 'PlusJakartaSans',
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const Divider(height: 1, color: AppColors.brandBorder),
+
+                // Opsi 2: Hubungi WhatsApp
+                InkWell(
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _openWhatsApp(context, phone, courierName);
+                  },
+                  borderRadius: BorderRadius.circular(8),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 14, horizontal: 4),
+                    child: Row(
+                      children: [
+                        Icon(
+                          TablerIcons.brand_whatsapp,
+                          size: 20,
+                          color: Colors.black,
+                        ),
+                        SizedBox(width: 14),
+                        Text(
+                          'Hubungi WhatsApp',
+                          style: TextStyle(
+                            fontFamily: 'PlusJakartaSans',
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
