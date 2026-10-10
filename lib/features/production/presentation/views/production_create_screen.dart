@@ -221,108 +221,35 @@ class _ProductionCreateScreenState
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // 1. Pilih Produk yang Dimasak
-                      const Text(
-                        'Pilih Produk yang Dimasak *',
-                        style: TextStyle(
-                          fontFamily: 'PlusJakartaSans',
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.brandEspresso,
+                      AppDropdownSearchField<ProductionProductOptionModel>(
+                        labelText: 'Pilih Produk yang Dimasak *',
+                        hintText: 'Pilih atau cari produk jadi...',
+                        prefixIcon: const Icon(
+                          TablerIcons.box,
+                          size: 18,
+                          color: AppColors.brandWarmGray,
                         ),
-                      ),
-                      const SizedBox(height: 6),
-
-                      FormField<int>(
-                        initialValue: _selectedProductId,
-                        validator: (val) {
-                          if (val == null) {
+                        items: products,
+                        initialValue: selectedProduct,
+                        enabled: !isSubmitting,
+                        itemEquals: (a, b) => a?.id == b?.id,
+                        itemLabel: (p) => '${p.name} (Kemasan: ${p.unit})',
+                        itemSubtitle: (p) => p.hasRecipe
+                            ? '${p.recipes.length} bahan baku resep BOM'
+                            : 'Belum memiliki resep bahan baku',
+                        searchMatcher: (p, query) =>
+                            p.name.toLowerCase().contains(query.toLowerCase()) ||
+                            p.unit.toLowerCase().contains(query.toLowerCase()),
+                        validator: (p) {
+                          if (p == null) {
                             return 'Pilih produk yang akan dimasak.';
                           }
                           return null;
                         },
-                        builder: (fieldState) {
-                          final hasError = fieldState.hasError;
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    color: hasError
-                                        ? AppColors.error
-                                        : AppColors.brandBorder,
-                                    width: hasError ? 1.5 : 1.0,
-                                  ),
-                                ),
-                                child: DropdownButtonHideUnderline(
-                                  child: DropdownButton<int>(
-                                    isExpanded: true,
-                                    value: _selectedProductId,
-                                    hint: const Padding(
-                                      padding:
-                                          EdgeInsets.symmetric(horizontal: 14),
-                                      child: Text(
-                                        '-- Pilih Produk Jadi --',
-                                        style: TextStyle(
-                                          fontFamily: 'PlusJakartaSans',
-                                          fontSize: 13,
-                                          color: AppColors.brandPlaceholder,
-                                        ),
-                                      ),
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 8),
-                                    items: products.map((prod) {
-                                      return DropdownMenuItem<int>(
-                                        value: prod.id,
-                                        child: Text(
-                                          '${prod.name} (Kemasan: ${prod.unit})',
-                                          style: const TextStyle(
-                                            fontFamily: 'PlusJakartaSans',
-                                            fontSize: 13.5,
-                                            fontWeight: FontWeight.w600,
-                                            color: AppColors.brandEspresso,
-                                          ),
-                                        ),
-                                      );
-                                    }).toList(),
-                                    onChanged: isSubmitting
-                                        ? null
-                                        : (val) {
-                                            fieldState.didChange(val);
-                                            setState(() {
-                                              _selectedProductId = val;
-                                            });
-                                          },
-                                  ),
-                                ),
-                              ),
-                              if (hasError) ...[
-                                const SizedBox(height: 5),
-                                Row(
-                                  children: [
-                                    const Icon(
-                                      TablerIcons.alert_circle,
-                                      size: 14,
-                                      color: AppColors.error,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      fieldState.errorText!,
-                                      style: const TextStyle(
-                                        fontFamily: 'PlusJakartaSans',
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w500,
-                                        color: AppColors.error,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ],
-                          );
+                        onSelected: (p) {
+                          setState(() {
+                            _selectedProductId = p?.id;
+                          });
                         },
                       ),
 
