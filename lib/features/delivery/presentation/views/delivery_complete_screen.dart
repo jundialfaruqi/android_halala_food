@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/widgets.dart';
@@ -30,7 +31,7 @@ class _DeliveryCompleteScreenState extends ConsumerState<DeliveryCompleteScreen>
 
   Uint8List? _photoBytes;
   String? _photoDataUrl;
-  String? _compressionInfo;
+  String? _photoCompressionInfo;
   bool _isProcessingPhoto = false;
   bool _isSubmitting = false;
 
@@ -60,73 +61,191 @@ class _DeliveryCompleteScreenState extends ConsumerState<DeliveryCompleteScreen>
     super.dispose();
   }
 
-  Future<void> _pickPhoto(ImageSource source) async {
+  /// Tampilkan notifikasi snackbar menggunakan Core Widget AppSnackBar
+  void _showSnackbar(String message, {bool isError = false}) {
+    if (!mounted) return;
+    if (isError) {
+      AppSnackBar.showError(
+        context,
+        message: message,
+        duration: const Duration(seconds: 4),
+      );
+    } else {
+      AppSnackBar.showSuccess(
+        context,
+        message: message,
+        duration: const Duration(seconds: 3),
+      );
+    }
+  }
+
+  /// Memilih foto bukti serah terima dan melakukan kompresi otomatis (persis seperti create product)
+  Future<void> _pickAndProcessPhoto(ImageSource source) async {
     try {
       final picker = ImagePicker();
-      final picked = await picker.pickImage(
+      final file = await picker.pickImage(
         source: source,
         maxWidth: 2400,
         maxHeight: 2400,
         imageQuality: 90,
       );
 
-      if (picked == null) return;
+      if (file == null) return;
 
       setState(() {
         _isProcessingPhoto = true;
       });
 
-      final bytes = await picked.readAsBytes();
+      final bytes = await file.readAsBytes();
       final result = await ProductPhotoCompressor.processAndCompress(
         bytes,
-        originalFilename: picked.name,
+        originalFilename: file.name,
       );
 
       setState(() {
-        _photoBytes = result.bytes;
         _photoDataUrl = result.dataUrl;
-        _compressionInfo =
+        _photoBytes = result.bytes;
+        _photoCompressionInfo =
             '${result.originalSizeFormatted} ➔ ${result.compressedSizeFormatted}';
-        _isProcessingPhoto = false;
       });
 
-      if (mounted) {
-        AppSnackBar.showSuccess(
-          context,
-          message:
-              'Foto bukti berhasil dimuat (${result.compressedSizeFormatted})',
-        );
-      }
+      _showSnackbar(
+        'Foto bukti berhasil dimuat & dikompresi (${result.compressedSizeFormatted})',
+      );
     } catch (e) {
-      setState(() {
-        _isProcessingPhoto = false;
-      });
+      _showSnackbar(
+        e.toString().replaceAll('Exception: ', ''),
+        isError: true,
+      );
+    } finally {
       if (mounted) {
-        AppSnackBar.showError(
-          context,
-          message: e.toString().replaceFirst('Exception: ', ''),
-        );
+        setState(() {
+          _isProcessingPhoto = false;
+        });
       }
     }
   }
 
-  void _showPhotoSourceSheet() {
-    AppImageUploadCanvas.showSourceBottomSheet(
+  /// Menghapus foto bukti serah terima yang dipilih
+  void _removePhoto() {
+    setState(() {
+      _photoDataUrl = null;
+      _photoBytes = null;
+      _photoCompressionInfo = null;
+    });
+    _showSnackbar('Foto bukti serah terima dihapus.');
+  }
+
+  /// Modal Bottom Sheet untuk pemilihan sumber foto (Kamera atau Galeri)
+  void _showPhotoSourceBottomSheet() {
+    showModalBottomSheet(
       context: context,
-      title: 'Pilih Sumber Foto Bukti',
-      cameraTitle: 'Ambil Foto dari Kamera',
-      galleryTitle: 'Pilih dari Galeri',
-      onCameraSelected: () => _pickPhoto(ImageSource.camera),
-      onGallerySelected: () => _pickPhoto(ImageSource.gallery),
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Pilih Sumber Foto Bukti',
+                    style: TextStyle(
+                      fontFamily: 'PlusJakartaSans',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.brandEspresso,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(TablerIcons.x, size: 20),
+                    onPressed: () => Navigator.pop(ctx),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.brandSoftCream,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    TablerIcons.camera,
+                    color: AppColors.brandPrimary,
+                  ),
+                ),
+                title: const Text(
+                  'Ambil dari Kamera',
+                  style: TextStyle(
+                    fontFamily: 'PlusJakartaSans',
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.brandEspresso,
+                  ),
+                ),
+                subtitle: const Text(
+                  'Buka kamera perangkat untuk foto bukti serah terima langsung',
+                  style: TextStyle(fontSize: 12),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickAndProcessPhoto(ImageSource.camera);
+                },
+              ),
+              const Divider(height: 1),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.brandSoftCream,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    TablerIcons.photo,
+                    color: AppColors.brandPrimary,
+                  ),
+                ),
+                title: const Text(
+                  'Pilih dari Galeri',
+                  style: TextStyle(
+                    fontFamily: 'PlusJakartaSans',
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.brandEspresso,
+                  ),
+                ),
+                subtitle: const Text(
+                  'Pilih berkas gambar foto bukti yang ada di galeri ponsel',
+                  style: TextStyle(fontSize: 12),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickAndProcessPhoto(ImageSource.gallery);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
   Future<void> _submitHandover() async {
     final formState = _formKey.currentState;
     if (formState == null || !formState.validate()) {
-      AppSnackBar.showError(
-        context,
-        message: 'Mohon lengkapi data penerima yang diperlukan.',
+      _showSnackbar(
+        'Mohon lengkapi data penerima yang diperlukan.',
+        isError: true,
       );
       return;
     }
@@ -163,9 +282,9 @@ class _DeliveryCompleteScreenState extends ConsumerState<DeliveryCompleteScreen>
         setState(() {
           _isSubmitting = false;
         });
-        AppSnackBar.showError(
-          context,
-          message: e.toString().replaceFirst('Exception: ', ''),
+        _showSnackbar(
+          e.toString().replaceAll('Exception: ', ''),
+          isError: true,
         );
       }
     }
@@ -176,10 +295,10 @@ class _DeliveryCompleteScreenState extends ConsumerState<DeliveryCompleteScreen>
     return AppStatusBar(
       child: AppScaffold(
         appBar: const AppAppBar(
-          title: 'Serah Terima Pengantaran',
+          title: 'Selesaikan Serah Terima',
         ),
         bottomNavigationBar: AppBottomActionBar(
-          confirmText: 'Selesaikan Pengantaran',
+          confirmText: 'Selesaikan Serah Terima',
           isLoading: _isSubmitting,
           onConfirm: _submitHandover,
           onCancel: () => Navigator.pop(context),
@@ -189,7 +308,7 @@ class _DeliveryCompleteScreenState extends ConsumerState<DeliveryCompleteScreen>
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
             children: [
-              // Info Ringkas Pengantaran
+              // 1. Info Ringkas Pengantaran
               AppCard(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -226,9 +345,9 @@ class _DeliveryCompleteScreenState extends ConsumerState<DeliveryCompleteScreen>
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
 
-              // Form Bukti Penerima
+              // 2. Identitas Penerima di Toko
               const Text(
                 'Identitas Penerima di Toko',
                 style: TextStyle(
@@ -242,7 +361,7 @@ class _DeliveryCompleteScreenState extends ConsumerState<DeliveryCompleteScreen>
 
               AppTextField(
                 controller: _recipientNameController,
-                labelText: 'Nama Penerima',
+                labelText: 'Nama Penerima *',
                 hintText: 'Nama staf atau pemilik yang menerima barang',
                 validator: (val) {
                   if (val == null || val.trim().isEmpty) {
@@ -255,14 +374,14 @@ class _DeliveryCompleteScreenState extends ConsumerState<DeliveryCompleteScreen>
 
               AppTextField(
                 controller: _recipientRoleController,
-                labelText: 'Jabatan / Hubungan',
+                labelText: 'Jabatan / Hubungan (Opsional)',
                 hintText: 'Contoh: Pemilik Toko / Karyawan / Kasir',
               ),
               const SizedBox(height: 14),
 
               AppTextField(
                 controller: _recipientPhoneController,
-                labelText: 'Nomor WhatsApp / Telepon Penerima',
+                labelText: 'Nomor WhatsApp / Telepon Penerima (Opsional)',
                 hintText: '81234567890',
                 keyboardType: TextInputType.phone,
                 prefixIcon: const Padding(
@@ -290,27 +409,24 @@ class _DeliveryCompleteScreenState extends ConsumerState<DeliveryCompleteScreen>
                 hintText: 'Contoh: Titip 10 box, kondisi baik dan lengkap.',
                 maxLines: 3,
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 20),
 
-              // Canvas Upload Foto Bukti Serah Terima
+              // 3. Canvas Upload Foto Bukti Serah Terima (Opsional)
               AppImageUploadCanvas(
-                label: 'Foto Bukti Serah Terima / Nota Fisik',
+                label: 'Foto Bukti Serah Terima (Opsional)',
                 helperText:
-                    'Ambil foto barang di toko mitra atau nota tanda tangan fisik sebagai arsip.',
+                    'Ambil foto barang di toko mitra atau nota tanda tangan fisik sebagai arsip digital.',
                 imageBytes: _photoBytes,
                 isProcessing: _isProcessingPhoto,
-                compressionInfo: _compressionInfo,
-                placeholderTitle: 'Ambil / Pilih Foto Bukti',
-                placeholderSubtitle: 'Format JPG, PNG, atau WEBP (Maksimal 10MB)',
-                onPickPhoto: _showPhotoSourceSheet,
-                onRemovePhoto: () {
-                  setState(() {
-                    _photoBytes = null;
-                    _photoDataUrl = null;
-                    _compressionInfo = null;
-                  });
-                },
+                processingMessage: 'Memproses & mengompresi foto bukti...',
+                compressionInfo: _photoCompressionInfo,
+                placeholderTitle: 'Pilih atau Ambil Foto Bukti',
+                placeholderSubtitle:
+                    'Format JPG, PNG, atau WEBP (Maksimal 10MB)',
+                onPickPhoto: _showPhotoSourceBottomSheet,
+                onRemovePhoto: _removePhoto,
               ),
+              const SizedBox(height: 24),
             ],
           ),
         ),
