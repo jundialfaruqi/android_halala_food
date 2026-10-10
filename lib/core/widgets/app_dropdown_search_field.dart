@@ -107,8 +107,12 @@ class _AppDropdownSearchFieldState<T> extends State<AppDropdownSearchField<T>> {
         _textController.clear();
       }
     }
-    if (widget.items != oldWidget.items && !_focusNode.hasFocus) {
-      _resetFilteredItems();
+    if (widget.items != oldWidget.items ||
+        widget.items.length != oldWidget.items.length) {
+      if (!_focusNode.hasFocus || _textController.text.trim().isEmpty) {
+        _resetFilteredItems();
+      }
+      _overlayEntry?.markNeedsBuild();
     }
   }
 
@@ -124,6 +128,7 @@ class _AppDropdownSearchFieldState<T> extends State<AppDropdownSearchField<T>> {
 
   void _handleFocusChange() {
     if (_focusNode.hasFocus) {
+      _resetFilteredItems();
       _showOverlay();
     } else {
       _hideOverlay();
@@ -257,6 +262,16 @@ class _AppDropdownSearchFieldState<T> extends State<AppDropdownSearchField<T>> {
   void _onTextChanged(String text) {
     _debounceTimer?.cancel();
     final trimmed = text.trim();
+
+    if (_selectedItem != null &&
+        trimmed.toLowerCase() ==
+            widget.itemLabel(_selectedItem as T).trim().toLowerCase()) {
+      setState(() {
+        _resetFilteredItems();
+      });
+      _overlayEntry?.markNeedsBuild();
+      return;
+    }
 
     if (widget.asyncSearch != null) {
       if (trimmed.isEmpty) {
@@ -502,6 +517,7 @@ class _AppDropdownSearchFieldState<T> extends State<AppDropdownSearchField<T>> {
                   if (!_focusNode.hasFocus) {
                     _focusNode.requestFocus();
                   } else {
+                    _resetFilteredItems();
                     _showOverlay();
                   }
                 },

@@ -40,6 +40,13 @@ class ProductionRemoteDataSourceImpl implements ProductionRemoteDataSource {
   ProductionRemoteDataSourceImpl({required DioClient dioClient})
       : _dioClient = dioClient;
 
+  Map<String, dynamic> _resolveResponse(dynamic response) {
+    if (response is Map<String, dynamic>) {
+      return response;
+    }
+    return <String, dynamic>{};
+  }
+
   @override
   Future<({List<ProductionBatchModel> batches, ProductionStatsModel? stats})>
       getBatches({
@@ -59,7 +66,8 @@ class ProductionRemoteDataSourceImpl implements ProductionRemoteDataSource {
       queryParameters: queryParams,
     );
 
-    final data = response.data['data'] as Map<String, dynamic>? ?? {};
+    final res = _resolveResponse(response);
+    final data = res['data'] as Map<String, dynamic>? ?? {};
     final batchesList = (data['batches'] as List<dynamic>?)
             ?.map((b) => ProductionBatchModel.fromJson(b as Map<String, dynamic>))
             .toList() ??
@@ -100,7 +108,8 @@ class ProductionRemoteDataSourceImpl implements ProductionRemoteDataSource {
       queryParameters: queryParams,
     );
 
-    final list = (response.data['data'] as List<dynamic>?)
+    final res = _resolveResponse(response);
+    final list = (res['data'] as List<dynamic>?)
             ?.map((m) => StockMutationModel.fromJson(m as Map<String, dynamic>))
             .toList() ??
         const [];
@@ -111,7 +120,8 @@ class ProductionRemoteDataSourceImpl implements ProductionRemoteDataSource {
   @override
   Future<ProductionOptionsModel> getOptions() async {
     final response = await _dioClient.get(ApiEndpoints.productionOptions);
-    final data = response.data['data'] as Map<String, dynamic>? ?? {};
+    final res = _resolveResponse(response);
+    final data = res['data'] as Map<String, dynamic>? ?? {};
     return ProductionOptionsModel.fromJson(data);
   }
 
@@ -121,21 +131,24 @@ class ProductionRemoteDataSourceImpl implements ProductionRemoteDataSource {
       ApiEndpoints.productions,
       data: data,
     );
-    final batchData = response.data['data'] as Map<String, dynamic>;
+    final res = _resolveResponse(response);
+    final batchData = res['data'] as Map<String, dynamic>? ?? res;
     return ProductionBatchModel.fromJson(batchData);
   }
 
   @override
   Future<ProductionBatchModel> getBatchDetail(int id) async {
     final response = await _dioClient.get(ApiEndpoints.productionDetail(id));
-    final batchData = response.data['data'] as Map<String, dynamic>;
+    final res = _resolveResponse(response);
+    final batchData = res['data'] as Map<String, dynamic>? ?? res;
     return ProductionBatchModel.fromJson(batchData);
   }
 
   @override
   Future<ProductionBatchModel> cancelBatch(int id) async {
     final response = await _dioClient.post(ApiEndpoints.productionCancel(id));
-    final batchData = response.data['data'] as Map<String, dynamic>;
+    final res = _resolveResponse(response);
+    final batchData = res['data'] as Map<String, dynamic>? ?? res;
     return ProductionBatchModel.fromJson(batchData);
   }
 }

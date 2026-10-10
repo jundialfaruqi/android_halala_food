@@ -6,6 +6,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../../auth/presentation/viewmodels/auth_viewmodel.dart';
 import '../../data/models/production_batch_model.dart';
+import '../../data/models/production_options_model.dart';
 import '../../data/models/stock_mutation_model.dart';
 import '../viewmodels/production_viewmodel.dart';
 import 'production_create_screen.dart';
@@ -587,7 +588,37 @@ class _ProductionScreenState extends ConsumerState<ProductionScreen> {
     BuildContext context,
     ProductionState state,
   ) {
-    final rawMaterials = state.options?.rawMaterials ?? [];
+    final optionsRawMaterials = state.options?.rawMaterials ?? [];
+    final List<ProductionRawMaterialOptionModel> rawMaterials;
+    if (optionsRawMaterials.isNotEmpty) {
+      rawMaterials = optionsRawMaterials;
+    } else {
+      final seenIds = <int>{};
+      final extracted = <ProductionRawMaterialOptionModel>[];
+      for (final m in state.mutations) {
+        if (!seenIds.contains(m.rawMaterialId)) {
+          seenIds.add(m.rawMaterialId);
+          extracted.add(
+            ProductionRawMaterialOptionModel(
+              id: m.rawMaterialId,
+              name: m.rawMaterialName,
+              stock: 0,
+              unit: m.unit,
+              costPerUnit: m.costPerUnit,
+            ),
+          );
+        }
+      }
+      rawMaterials = extracted;
+    }
+
+    final selectedMaterial = state.mutationMaterialFilter == 'all' ||
+            state.mutationMaterialFilter == null
+        ? null
+        : rawMaterials
+            .where((m) =>
+                m.id.toString() == state.mutationMaterialFilter.toString())
+            .firstOrNull;
 
     return Column(
       children: [
@@ -597,137 +628,78 @@ class _ProductionScreenState extends ConsumerState<ProductionScreen> {
           child: AppTextField(
             controller: _mutationSearchController,
             hintText: 'Cari nama bahan, nomor referensi, keterangan...',
-            prefixIcon: const Icon(TablerIcons.search, color: Colors.black, size: 20),
+            prefixIcon: const Icon(
+              TablerIcons.search,
+              color: AppColors.brandWarmGray,
+              size: 20,
+            ),
             suffixIcon: _mutationSearchController.text.isNotEmpty
                 ? IconButton(
-                    icon: const Icon(TablerIcons.x, color: Colors.black, size: 18),
+                    icon: const Icon(
+                      TablerIcons.x,
+                      color: AppColors.brandWarmGray,
+                      size: 18,
+                    ),
                     onPressed: () {
                       _mutationSearchController.clear();
-                      ref.read(productionViewModelProvider.notifier).setMutationSearch('');
+                      ref
+                          .read(productionViewModelProvider.notifier)
+                          .setMutationSearch('');
                     },
                   )
                 : null,
             onChanged: (val) {
-              ref.read(productionViewModelProvider.notifier).setMutationSearch(val);
+              ref
+                  .read(productionViewModelProvider.notifier)
+                  .setMutationSearch(val);
             },
           ),
         ),
 
-        // 2. Filter Dropdown Bahan Baku & Arah Mutasi
+        // 2. Filter Dropdown Bahan Baku & Arah Mutasi (AppFilterDropdown seperti Filter Rute di Kordinat)
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-          child: Row(
-            children: [
-              // Filter Bahan Baku
-              Expanded(
-                flex: 3,
-                child: Container(
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.brandBorder),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<dynamic>(
-                      isExpanded: true,
-                      value: state.mutationMaterialFilter,
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      items: [
-                        const DropdownMenuItem(
-                          value: 'all',
-                          child: Text(
-                            'Semua Bahan',
-                            style: TextStyle(
-                              fontFamily: 'PlusJakartaSans',
-                              fontSize: 12,
-                              color: AppColors.brandEspresso,
-                            ),
-                          ),
-                        ),
-                        ...rawMaterials.map((m) {
-                          return DropdownMenuItem(
-                            value: m.id,
-                            child: Text(
-                              m.name,
-                              style: const TextStyle(
-                                fontFamily: 'PlusJakartaSans',
-                                fontSize: 12,
-                                color: AppColors.brandEspresso,
-                              ),
-                            ),
-                          );
-                        }),
-                      ],
-                      onChanged: (val) {
-                        ref.read(productionViewModelProvider.notifier).setMutationMaterial(val);
-                      },
-                    ),
-                  ),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                // Filter Bahan Baku
+                AppFilterDropdown<ProductionRawMaterialOptionModel>(
+                  selectedValue: selectedMaterial,
+                  items: rawMaterials,
+                  allLabel: 'Semua Bahan',
+                  prefixLabel: 'Bahan: ',
+                  tooltip: 'Filter Bahan Baku',
+                  fontSize: 12,
+                  itemLabel: (m) => m.name,
+                  onSelected: (m) {
+                    ref
+                        .read(productionViewModelProvider.notifier)
+                        .setMutationMaterial(m?.id ?? 'all');
+                  },
                 ),
-              ),
-              const SizedBox(width: 8),
+                const SizedBox(width: 8),
 
-              // Filter Arah Mutasi (Semua, Keluar, Masuk)
-              Expanded(
-                flex: 2,
-                child: Container(
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.brandBorder),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      isExpanded: true,
-                      value: state.mutationTypeFilter,
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      items: const [
-                        DropdownMenuItem(
-                          value: 'all',
-                          child: Text(
-                            'Semua Arah',
-                            style: TextStyle(
-                              fontFamily: 'PlusJakartaSans',
-                              fontSize: 12,
-                              color: AppColors.brandEspresso,
-                            ),
-                          ),
-                        ),
-                        DropdownMenuItem(
-                          value: 'out',
-                          child: Text(
-                            'Keluar (Produksi)',
-                            style: TextStyle(
-                              fontFamily: 'PlusJakartaSans',
-                              fontSize: 12,
-                              color: AppColors.brandEspresso,
-                            ),
-                          ),
-                        ),
-                        DropdownMenuItem(
-                          value: 'in',
-                          child: Text(
-                            'Masuk (Koreksi)',
-                            style: TextStyle(
-                              fontFamily: 'PlusJakartaSans',
-                              fontSize: 12,
-                              color: AppColors.brandEspresso,
-                            ),
-                          ),
-                        ),
-                      ],
-                      onChanged: (val) {
-                        if (val != null) {
-                          ref.read(productionViewModelProvider.notifier).setMutationType(val);
-                        }
-                      },
-                    ),
-                  ),
+                // Filter Arah Mutasi
+                AppFilterDropdown<String>(
+                  selectedValue: state.mutationTypeFilter == 'all'
+                      ? null
+                      : state.mutationTypeFilter,
+                  items: const ['out', 'in'],
+                  allLabel: 'Semua Arah',
+                  prefixLabel: 'Arah: ',
+                  tooltip: 'Filter Arah Mutasi',
+                  fontSize: 12,
+                  itemLabel: (val) =>
+                      val == 'out' ? 'Keluar (Produksi)' : 'Masuk (Koreksi)',
+                  onSelected: (val) {
+                    ref
+                        .read(productionViewModelProvider.notifier)
+                        .setMutationType(val ?? 'all');
+                  },
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
         const SizedBox(height: 6),
