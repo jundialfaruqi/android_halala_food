@@ -402,7 +402,7 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
     }
 
     final hasActions = canEditProduct || canDeleteProduct;
-    final contentHeight = hasActions ? 136.0 : 96.0;
+    final contentHeight = hasActions ? 132.0 : 92.0;
     final screenWidth = MediaQuery.sizeOf(context).width;
     final cardWidth = (screenWidth - 32 - 12) / 2;
     final childAspectRatio = cardWidth / (cardWidth + contentHeight);
