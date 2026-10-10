@@ -389,7 +389,7 @@ class _InvoiceReconciliationDialogState
             children: [
               Expanded(
                 child: Text(
-                  it.item.productName,
+                  '${index + 1}. ${it.item.productName}',
                   style: const TextStyle(
                     fontFamily: 'PlusJakartaSans',
                     fontSize: 13.5,

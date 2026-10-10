@@ -675,6 +675,7 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
                           for (int i = 0; i < _invoice.items.length; i++)
                             _buildItemRow(
                               _invoice.items[i],
+                              index: i + 1,
                               isLast: i == _invoice.items.length - 1,
                             ),
                         ],
@@ -947,7 +948,11 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
     );
   }
 
-  Widget _buildItemRow(InvoiceItemModel item, {bool isLast = false}) {
+  Widget _buildItemRow(
+    InvoiceItemModel item, {
+    int? index,
+    bool isLast = false,
+  }) {
     final hasReconcileDetails =
         _invoice.isReconciled &&
         (item.remainingQuantity > 0 ||
@@ -971,6 +976,23 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            // Penomoran Item List Rincian Produk
+            if (index != null) ...[
+              SizedBox(
+                width: 22,
+                child: Text(
+                  '$index.',
+                  style: const TextStyle(
+                    fontFamily: 'PlusJakartaSans',
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.brandWarmGray,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
+            ],
+
             // Avatar rounded circle foto produk
             _buildProductAvatar(item),
             const SizedBox(width: 12),
