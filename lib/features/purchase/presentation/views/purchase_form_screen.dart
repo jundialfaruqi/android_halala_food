@@ -9,14 +9,14 @@ import '../../data/models/purchase_options_model.dart';
 import '../viewmodels/purchase_viewmodel.dart';
 
 class PurchaseFormRowItem {
-  int? rawMaterialId;
+  PurchaseRawMaterialOption? selectedMaterial;
   final TextEditingController quantityController;
   final TextEditingController costController;
   final TextEditingController notesController;
   double subtotal;
 
   PurchaseFormRowItem({
-    this.rawMaterialId,
+    this.selectedMaterial,
     required this.quantityController,
     required this.costController,
     required this.notesController,
@@ -39,7 +39,7 @@ class PurchaseFormScreen extends ConsumerStatefulWidget {
 }
 
 class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
-  final _formKey = GlobalKey<FormState>();
+  final _formKey = GlobalKey<AppDynamicValidationFormState>();
   final _currencyFormat = NumberFormat.currency(
     locale: 'id_ID',
     symbol: 'Rp ',
@@ -50,8 +50,13 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
   final _supplierController = TextEditingController();
   final _notesController = TextEditingController();
 
-  DateTime _purchaseDate = DateTime.now();
-  String _selectedPaymentMethod = 'tunai'; // 'tunai', 'transfer_bank', 'tempo'
+  // 2. Select date saat halaman dibuka adalah null dengan teks placeholder "Pilih Tanggal"
+  DateTime? _purchaseDate;
+
+  // 3. Select metode pembayaran defaultnya "Pilih Metode Bayar" (null)
+  String? _selectedPaymentMethod; // 'tunai', 'transfer_bank', 'tempo'
+
+  // 4. Select Akun Kas defaultnya "Pilih Akun Kas" (null)
   int? _selectedAccountId;
 
   List<PurchaseRawMaterialOption> _rawMaterials = [];
@@ -89,9 +94,8 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
         _rawMaterials = opts.rawMaterials;
         _accounts = opts.accounts;
 
-        if (_accounts.isNotEmpty) {
-          _selectedAccountId = _accounts.first.id;
-        }
+        // Default akun kas tetap null sesuai permintaan user
+        _selectedAccountId = null;
 
         // Tambahkan 1 baris item awal tanpa memicu nested setState
         _createRowItem();
@@ -116,20 +120,12 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
     final costCtrl = TextEditingController(text: '0');
     final notesCtrl = TextEditingController();
 
-    int? initialMatId;
-    if (_rawMaterials.isNotEmpty) {
-      initialMatId = _rawMaterials.first.id;
-      costCtrl.text = ThousandsSeparatorInputFormatter.format(
-        _rawMaterials.first.costPerUnit,
-      );
-    }
-
     final row = PurchaseFormRowItem(
-      rawMaterialId: initialMatId,
+      selectedMaterial: null,
       quantityController: qtyCtrl,
       costController: costCtrl,
       notesController: notesCtrl,
-      subtotal: _calculateRowSubtotal(qtyCtrl.text, costCtrl.text),
+      subtotal: 0.0,
     );
 
     qtyCtrl.addListener(() => _onRowValuesChanged(row));
@@ -184,11 +180,11 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
     return sum;
   }
 
-  Future<void> _pickDate() async {
+  Future<DateTime?> _pickDate(BuildContext context) async {
     final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
-      initialDate: _purchaseDate,
+      initialDate: _purchaseDate ?? now,
       firstDate: DateTime(now.year - 2),
       lastDate: DateTime(now.year + 1),
       builder: (context, child) {
@@ -206,18 +202,32 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
       },
     );
 
-    if (picked != null) {
-      setState(() => _purchaseDate = picked);
-    }
+    return picked;
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    if (_supplierController.text.trim().isEmpty) {
+    // 1. Pakaikan validasi dinamis AppDynamicValidationForm
+    final isValid = _formKey.currentState?.validate() ?? false;
+    if (!isValid) {
       AppSnackBar.showError(
         context,
-        message: 'Nama supplier / toko penyedia wajib diisi.',
+        message: 'Mohon lengkapi dan periksa kembali kolom formulir yang masih belum sesuai.',
+      );
+      return;
+    }
+
+    if (_purchaseDate == null) {
+      AppSnackBar.showError(
+        context,
+        message: 'Tanggal pembelian wajib dipilih.',
+      );
+      return;
+    }
+
+    if (_selectedPaymentMethod == null) {
+      AppSnackBar.showError(
+        context,
+        message: 'Pilih metode pembayaran terlebih dahulu.',
       );
       return;
     }
@@ -225,7 +235,7 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
     if (_selectedPaymentMethod != 'tempo' && _selectedAccountId == null) {
       AppSnackBar.showError(
         context,
-        message: 'Pilih rekening kas pembayaran terlebih dahulu.',
+        message: 'Pilih rekening akun kas pembayaran terlebih dahulu.',
       );
       return;
     }
@@ -241,7 +251,7 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
     final itemsPayload = <Map<String, dynamic>>[];
     for (int i = 0; i < _items.length; i++) {
       final it = _items[i];
-      if (it.rawMaterialId == null) {
+      if (it.selectedMaterial == null) {
         AppSnackBar.showError(
           context,
           message: 'Pilih bahan baku untuk baris #${i + 1}.',
@@ -258,7 +268,7 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
       }
       final cost = _parseNumber(it.costController.text);
       itemsPayload.add({
-        'raw_material_id': it.rawMaterialId,
+        'raw_material_id': it.selectedMaterial!.id,
         'quantity': qty,
         'cost_per_unit': cost,
         'notes': it.notesController.text.trim(),
@@ -270,7 +280,7 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
     final payload = {
       'purchase_number': _purchaseNumberController.text.trim(),
       'supplier_name': _supplierController.text.trim(),
-      'purchase_date': DateFormat('yyyy-MM-dd').format(_purchaseDate),
+      'purchase_date': DateFormat('yyyy-MM-dd').format(_purchaseDate!),
       'payment_method': _selectedPaymentMethod,
       'account_id': _selectedPaymentMethod != 'tempo' ? _selectedAccountId : null,
       'notes': _notesController.text.trim(),
@@ -389,7 +399,7 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
     );
   }
 
-  /// Card 1: Informasi Faktur, Supplier, dan Pembayaran
+  /// Card 1: Informasi Faktur, Tanggal, Supplier, dan Pembayaran
   Widget _buildInvoiceInfoCard() {
     return Container(
       width: double.infinity,
@@ -412,8 +422,9 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
           ),
           const SizedBox(height: 14),
 
-          // No Faktur & Tanggal
+          // No Faktur & Tanggal (FormField Validasi Dinamis)
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 flex: 3,
@@ -439,7 +450,7 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
               ),
               const SizedBox(width: 12),
               Expanded(
-                flex: 2,
+                flex: 3,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -453,37 +464,85 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    InkWell(
-                      onTap: _pickDate,
-                      borderRadius: BorderRadius.circular(10),
-                      child: Container(
-                        height: 48,
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF9FAFB),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: AppColors.brandBorder),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    // 2. Select date default null dengan Teks Placeholder "Pilih Tanggal"
+                    FormField<DateTime?>(
+                      initialValue: _purchaseDate,
+                      validator: (val) {
+                        if (_purchaseDate == null) {
+                          return 'Pilih tanggal pembelian.';
+                        }
+                        return null;
+                      },
+                      builder: (fieldState) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              DateFormat('dd/MM/yyyy').format(_purchaseDate),
-                              style: const TextStyle(
-                                fontFamily: 'PlusJakartaSans',
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.brandEspresso,
+                            InkWell(
+                              onTap: () async {
+                                final picked = await _pickDate(context);
+                                if (picked != null) {
+                                  setState(() => _purchaseDate = picked);
+                                  fieldState.didChange(picked);
+                                }
+                              },
+                              borderRadius: BorderRadius.circular(10),
+                              child: Container(
+                                height: 48,
+                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF9FAFB),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: fieldState.hasError
+                                        ? AppColors.error
+                                        : AppColors.brandBorder,
+                                    width: fieldState.hasError ? 1.2 : 1.0,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        _purchaseDate != null
+                                            ? DateFormat('dd/MM/yyyy').format(_purchaseDate!)
+                                            : 'Pilih Tanggal',
+                                        style: TextStyle(
+                                          fontFamily: 'PlusJakartaSans',
+                                          fontSize: 13,
+                                          fontWeight: _purchaseDate != null
+                                              ? FontWeight.w600
+                                              : FontWeight.w500,
+                                          color: _purchaseDate != null
+                                              ? AppColors.brandEspresso
+                                              : AppColors.brandWarmGray,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    const Icon(
+                                      TablerIcons.calendar,
+                                      size: 16,
+                                      color: AppColors.brandWarmGray,
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
-                            const Icon(
-                              TablerIcons.calendar,
-                              size: 16,
-                              color: AppColors.brandWarmGray,
-                            ),
+                            if (fieldState.hasError) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                fieldState.errorText ?? '',
+                                style: const TextStyle(
+                                  fontFamily: 'PlusJakartaSans',
+                                  fontSize: 11,
+                                  color: AppColors.error,
+                                ),
+                              ),
+                            ],
                           ],
-                        ),
-                      ),
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -492,7 +551,7 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
           ),
           const SizedBox(height: 14),
 
-          // Supplier
+          // Supplier (Validasi Dinamis)
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -516,7 +575,7 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
                 ),
                 validator: (val) {
                   if (val == null || val.trim().isEmpty) {
-                    return 'Nama supplier wajib diisi.';
+                    return 'Nama supplier / penyedia wajib diisi.';
                   }
                   return null;
                 },
@@ -525,10 +584,11 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
           ),
           const SizedBox(height: 14),
 
-          // Metode Pembayaran & Rekening
+          // 3 & 4. Metode Pembayaran & Akun Kas (FormField Validasi Dinamis)
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // 3. Select metode pembayaran defaultnya "Pilih Metode Bayar"
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -543,32 +603,68 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    AppFilterDropdown<String>(
-                      isExpanded: true,
-                      showAllOption: false,
-                      selectedValue: _selectedPaymentMethod,
-                      items: const ['tunai', 'transfer_bank', 'tempo'],
-                      itemLabel: (val) {
-                        switch (val) {
-                          case 'tunai':
-                            return 'Tunai (Cash)';
-                          case 'transfer_bank':
-                            return 'Transfer Bank';
-                          case 'tempo':
-                            return 'Tempo (Kredit)';
-                          default:
-                            return val;
+                    FormField<String?>(
+                      initialValue: _selectedPaymentMethod,
+                      validator: (val) {
+                        if (_selectedPaymentMethod == null ||
+                            _selectedPaymentMethod!.isEmpty) {
+                          return 'Pilih metode bayar.';
                         }
+                        return null;
                       },
-                      onSelected: (val) {
-                        if (val != null) {
-                          setState(() => _selectedPaymentMethod = val);
-                        }
+                      builder: (fieldState) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            AppFilterDropdown<String>(
+                              isExpanded: true,
+                              showAllOption: false,
+                              hasError: fieldState.hasError,
+                              allLabel: 'Pilih Metode Bayar',
+                              selectedValue: _selectedPaymentMethod,
+                              items: const ['tunai', 'transfer_bank', 'tempo'],
+                              itemLabel: (val) {
+                                switch (val) {
+                                  case 'tunai':
+                                    return 'Tunai (Cash)';
+                                  case 'transfer_bank':
+                                    return 'Transfer Bank';
+                                  case 'tempo':
+                                    return 'Tempo (Kredit)';
+                                  default:
+                                    return val;
+                                }
+                              },
+                              onSelected: (val) {
+                                setState(() {
+                                  _selectedPaymentMethod = val;
+                                  if (val == 'tempo') {
+                                    _selectedAccountId = null;
+                                  }
+                                });
+                                fieldState.didChange(val);
+                              },
+                            ),
+                            if (fieldState.hasError) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                fieldState.errorText ?? '',
+                                style: const TextStyle(
+                                  fontFamily: 'PlusJakartaSans',
+                                  fontSize: 11,
+                                  color: AppColors.error,
+                                ),
+                              ),
+                            ],
+                          ],
+                        );
                       },
                     ),
                   ],
                 ),
               ),
+
+              // 4. Select Akun Kas defaultnya "Pilih Akun Kas"
               if (_selectedPaymentMethod != 'tempo') ...[
                 const SizedBox(width: 12),
                 Expanded(
@@ -585,24 +681,56 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
                         ),
                       ),
                       const SizedBox(height: 6),
-                      AppFilterDropdown<String>(
-                        isExpanded: true,
-                        showAllOption: false,
-                        allLabel: 'Pilih Akun',
-                        selectedValue: _selectedAccountId?.toString(),
-                        items: _accounts.map((a) => a.id.toString()).toList(),
-                        itemLabel: (idStr) {
-                          final matches =
-                              _accounts.where((a) => a.id.toString() == idStr);
-                          return matches.isNotEmpty
-                              ? matches.first.name
-                              : 'Pilih Akun';
-                        },
-                        onSelected: (val) {
-                          if (val != null) {
-                            setState(() =>
-                                _selectedAccountId = int.tryParse(val));
+                      FormField<int?>(
+                        initialValue: _selectedAccountId,
+                        validator: (val) {
+                          if (_selectedPaymentMethod != null &&
+                              _selectedPaymentMethod != 'tempo' &&
+                              _selectedAccountId == null) {
+                            return 'Pilih akun kas.';
                           }
+                          return null;
+                        },
+                        builder: (fieldState) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              AppFilterDropdown<String>(
+                                isExpanded: true,
+                                showAllOption: false,
+                                hasError: fieldState.hasError,
+                                allLabel: 'Pilih Akun Kas',
+                                selectedValue: _selectedAccountId?.toString(),
+                                items: _accounts
+                                    .map((a) => a.id.toString())
+                                    .toList(),
+                                itemLabel: (idStr) {
+                                  final matches = _accounts.where(
+                                    (a) => a.id.toString() == idStr,
+                                  );
+                                  return matches.isNotEmpty
+                                      ? matches.first.name
+                                      : 'Pilih Akun Kas';
+                                },
+                                onSelected: (val) {
+                                  setState(() => _selectedAccountId =
+                                      int.tryParse(val ?? ''));
+                                  fieldState.didChange(_selectedAccountId);
+                                },
+                              ),
+                              if (fieldState.hasError) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  fieldState.errorText ?? '',
+                                  style: const TextStyle(
+                                    fontFamily: 'PlusJakartaSans',
+                                    fontSize: 11,
+                                    color: AppColors.error,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          );
                         },
                       ),
                     ],
@@ -613,7 +741,7 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
           ),
           const SizedBox(height: 14),
 
-          // Catatan Faktur
+          // Catatan Faktur (Opsional)
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -643,7 +771,7 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
     );
   }
 
-  /// Section 2: Baris Item Bahan Baku yang Dibeli
+  /// Section 2: Baris Item Bahan Baku yang Dibeli (AppDropdownSearchField)
   Widget _buildItemsSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -719,6 +847,7 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
     );
   }
 
+  /// 5. Baris Item Menggunakan AppDropdownSearchField
   Widget _buildRowItemWidget(int index, PurchaseFormRowItem item) {
     return Container(
       width: double.infinity,
@@ -761,47 +890,54 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
           ),
           const SizedBox(height: 10),
 
-          // Dropdown Pilih Bahan Baku
-          AppFilterDropdown<String>(
-            isExpanded: true,
-            showAllOption: false,
-            allLabel: 'Pilih Bahan Baku',
-            selectedValue: item.rawMaterialId?.toString(),
-            items: _rawMaterials.map((rm) => rm.id.toString()).toList(),
-            itemLabel: (idStr) {
-              final matches =
-                  _rawMaterials.where((m) => m.id.toString() == idStr);
-              if (matches.isNotEmpty) {
-                final rm = matches.first;
-                return '${rm.name} (Stok: ${rm.stock} ${rm.displayUnit})';
+          // 5. Item Bahan Baku Menggunakan AppDropdownSearchField
+          AppDropdownSearchField<PurchaseRawMaterialOption>(
+            labelText: 'PILIH BAHAN BAKU *',
+            hintText: 'Cari atau pilih bahan baku...',
+            prefixIcon: const Icon(
+              TablerIcons.archive,
+              size: 18,
+              color: AppColors.brandWarmGray,
+            ),
+            items: _rawMaterials,
+            initialValue: item.selectedMaterial,
+            itemEquals: (a, b) => a?.id == b?.id,
+            itemLabel: (m) => '${m.name} (${m.stock} ${m.displayUnit})',
+            itemSubtitle: (m) =>
+                'Stok: ${m.stock} ${m.displayUnit} • Standar: Rp ${ThousandsSeparatorInputFormatter.format(m.costPerUnit)}',
+            searchMatcher: (m, query) =>
+                m.name.toLowerCase().contains(query.toLowerCase()) ||
+                m.displayUnit.toLowerCase().contains(query.toLowerCase()),
+            validator: (val) {
+              if (val == null) {
+                return 'Pilih bahan baku untuk baris #${index + 1}.';
               }
-              return 'Pilih Bahan Baku';
+              return null;
             },
-            onSelected: (val) {
-              if (val != null) {
-                final id = int.tryParse(val);
-                final matches = _rawMaterials.where((m) => m.id == id);
-                if (matches.isNotEmpty) {
-                  final rm = matches.first;
-                  setState(() {
-                    item.rawMaterialId = id;
+            onSelected: (m) {
+              setState(() {
+                item.selectedMaterial = m;
+                if (m != null) {
+                  if (item.costController.text == '0' ||
+                      item.costController.text.isEmpty) {
                     item.costController.text =
                         ThousandsSeparatorInputFormatter.format(
-                      rm.costPerUnit,
+                      m.costPerUnit,
                     );
-                    item.subtotal = _calculateRowSubtotal(
-                      item.quantityController.text,
-                      item.costController.text,
-                    );
-                  });
+                  }
+                  item.subtotal = _calculateRowSubtotal(
+                    item.quantityController.text,
+                    item.costController.text,
+                  );
                 }
-              }
+              });
             },
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
 
           // Qty & Harga Satuan
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 flex: 2,
@@ -817,7 +953,7 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
                         color: AppColors.brandWarmGray,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
                     AppTextField(
                       controller: item.quantityController,
                       keyboardType: const TextInputType.numberWithOptions(
@@ -826,7 +962,7 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
                       hintText: '1',
                       validator: (val) {
                         if (val == null || val.trim().isEmpty) {
-                          return 'Wajib.';
+                          return 'Qty wajib.';
                         }
                         if (_parseNumber(val) <= 0) {
                           return '> 0.';
@@ -852,34 +988,40 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
                         color: AppColors.brandWarmGray,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
                     AppTextField(
                       controller: item.costController,
                       keyboardType: TextInputType.number,
-                      textAlign: TextAlign.center,
+                      textAlign: TextAlign.left,
                       inputFormatters: [
                         FilteringTextInputFormatter.digitsOnly,
                         const ThousandsSeparatorInputFormatter(),
                       ],
                       prefixIcon: const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 8),
+                        padding: EdgeInsets.symmetric(horizontal: 10),
                         child: Text(
                           'Rp',
                           style: TextStyle(
                             fontFamily: 'PlusJakartaSans',
-                            fontSize: 12.5,
+                            fontSize: 13,
                             fontWeight: FontWeight.w700,
                             color: AppColors.brandWarmGray,
                           ),
                         ),
                       ),
+                      validator: (val) {
+                        if (val == null || val.trim().isEmpty) {
+                          return 'Harga wajib diisi.';
+                        }
+                        return null;
+                      },
                     ),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
 
           // Subtotal Baris
           Container(
@@ -979,20 +1121,26 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
                 decoration: BoxDecoration(
                   color: _selectedPaymentMethod == 'tempo'
                       ? AppColors.warning.withValues(alpha: 0.12)
-                      : AppColors.success.withValues(alpha: 0.12),
+                      : _selectedPaymentMethod != null
+                          ? AppColors.success.withValues(alpha: 0.12)
+                          : const Color(0xFFF3F4F6),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
                   _selectedPaymentMethod == 'tempo'
                       ? 'Belum Lunas (Tempo)'
-                      : 'Lunas',
+                      : _selectedPaymentMethod != null
+                          ? 'Lunas'
+                          : 'Belum Dipilih',
                   style: TextStyle(
                     fontFamily: 'PlusJakartaSans',
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
                     color: _selectedPaymentMethod == 'tempo'
                         ? const Color(0xFFB45309)
-                        : AppColors.success,
+                        : _selectedPaymentMethod != null
+                            ? AppColors.success
+                            : AppColors.brandWarmGray,
                   ),
                 ),
               ),
