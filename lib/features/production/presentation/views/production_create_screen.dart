@@ -7,15 +7,19 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../viewmodels/production_viewmodel.dart';
 import '../../data/models/production_options_model.dart';
+import '../../data/models/production_batch_model.dart';
 
-/// Halaman Penuh Mulai Batch Masak Baru
+/// Halaman Penuh Mulai Batch Masak Baru & Edit Batch
 /// Mengikuti aturan standar desain core Halala Food:
 /// - AppStatusBar, AppScaffold, AppAppBar
 /// - AppBottomActionBar (Batal & Eksekusi Batch)
 /// - Kalkulasi kebutuhan bahan baku (BOM) live real-time
 /// - Clean UI tanpa badge warna-warni & icon ber-background
 class ProductionCreateScreen extends ConsumerStatefulWidget {
-  const ProductionCreateScreen({super.key});
+  /// Data batch jika dibuka dalam mode edit (opsional)
+  final ProductionBatchModel? batch;
+
+  const ProductionCreateScreen({super.key, this.batch});
 
   @override
   ConsumerState<ProductionCreateScreen> createState() =>
@@ -25,6 +29,8 @@ class ProductionCreateScreen extends ConsumerStatefulWidget {
 class _ProductionCreateScreenState
     extends ConsumerState<ProductionCreateScreen> {
   final _formKey = GlobalKey<AppDynamicValidationFormState>();
+
+  bool get isEdit => widget.batch != null;
 
   int? _selectedProductId;
   final TextEditingController _plannedQtyController =
@@ -39,6 +45,14 @@ class _ProductionCreateScreenState
   @override
   void initState() {
     super.initState();
+    if (widget.batch != null) {
+      final b = widget.batch!;
+      _selectedProductId = b.productId;
+      _plannedQtyController.text = b.plannedQty.toString();
+      _actualGoodController.text = b.actualQtyGood.toString();
+      _actualBadController.text = b.actualQtyBad.toString();
+      _notesController.text = b.notes ?? '';
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(productionViewModelProvider.notifier).fetchOptions();
     });
@@ -199,20 +213,20 @@ class _ProductionCreateScreenState
 
     return AppStatusBar(
       child: AppScaffold(
-        appBar: const AppAppBar(
-          title: 'Mulai Batch Masak Baru',
+        appBar: AppAppBar(
+          title: isEdit ? 'Edit Batch Masak' : 'Mulai Batch Masak Baru',
         ),
         bottomNavigationBar: AppBottomActionBar(
-          confirmText: 'Eksekusi & Potong Stok',
+          confirmText: isEdit ? 'Simpan Perubahan' : 'Eksekusi & Potong Stok',
           cancelText: 'Batal',
           isLoading: isSubmitting,
-          onConfirm: isSubmitting ? null : _submitBatch,
+          onConfirm: (isSubmitting || prodState.isLoadingOptions)
+              ? null
+              : _submitBatch,
           onCancel: isSubmitting ? null : () => Navigator.of(context).maybePop(),
         ),
         body: prodState.isLoadingOptions
-            ? const Center(
-                child: CircularProgressIndicator(color: AppColors.brandPrimary),
-              )
+            ? _buildShimmerLoading()
             : SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                 child: AppDynamicValidationForm(
@@ -688,6 +702,186 @@ class _ProductionCreateScreenState
                 ),
               ),
       ),
+    );
+  }
+
+  /// Skeleton shimmer loading saat memuat data opsi produk dan bahan baku (BOM)
+  Widget _buildShimmerLoading() {
+    return ListView(
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+      children: [
+        // 1. Skeleton Pilih Produk yang Dimasak
+        const ShimmerLoading(width: 170, height: 14, borderRadius: 4),
+        const SizedBox(height: 8),
+        const ShimmerLoading(
+          width: double.infinity,
+          height: 48,
+          borderRadius: 12,
+        ),
+        const SizedBox(height: 18),
+
+        // 2. Skeleton Target Masak & Hasil QC (3 Kolom Horizontal)
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Target Masak
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  ShimmerLoading(width: 80, height: 14, borderRadius: 4),
+                  SizedBox(height: 8),
+                  ShimmerLoading(
+                    width: double.infinity,
+                    height: 48,
+                    borderRadius: 12,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+
+            // Lolos QC (Bagus)
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  ShimmerLoading(width: 95, height: 14, borderRadius: 4),
+                  SizedBox(height: 8),
+                  ShimmerLoading(
+                    width: double.infinity,
+                    height: 48,
+                    borderRadius: 12,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+
+            // Reject / Rusak
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  ShimmerLoading(width: 85, height: 14, borderRadius: 4),
+                  SizedBox(height: 8),
+                  ShimmerLoading(
+                    width: double.infinity,
+                    height: 48,
+                    borderRadius: 12,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+
+        // 3. Skeleton Card Kalkulasi Alokasi Bahan Baku (BOM)
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF9FAFB),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.brandBorder),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header Card BOM
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: const [
+                  ShimmerLoading(width: 200, height: 13, borderRadius: 4),
+                  ShimmerLoading(width: 75, height: 13, borderRadius: 4),
+                ],
+              ),
+              const SizedBox(height: 14),
+
+              // Mock Skeleton 3 Item Bahan Baku
+              ...List.generate(
+                3,
+                (index) => Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.brandBorder),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ShimmerLoading(
+                            width: index == 0 ? 110 : (index == 1 ? 140 : 95),
+                            height: 13,
+                            borderRadius: 4,
+                          ),
+                          const SizedBox(height: 6),
+                          const ShimmerLoading(
+                            width: 100,
+                            height: 11,
+                            borderRadius: 3,
+                          ),
+                        ],
+                      ),
+                      const Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          ShimmerLoading(width: 70, height: 13, borderRadius: 4),
+                          SizedBox(height: 6),
+                          ShimmerLoading(width: 60, height: 11, borderRadius: 3),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 6),
+              const Divider(height: 1, color: AppColors.brandBorder),
+              const SizedBox(height: 12),
+
+              // Financial Summary Shimmer
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: const [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ShimmerLoading(width: 95, height: 11, borderRadius: 3),
+                      SizedBox(height: 6),
+                      ShimmerLoading(width: 85, height: 14, borderRadius: 4),
+                    ],
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      ShimmerLoading(width: 110, height: 11, borderRadius: 3),
+                      SizedBox(height: 6),
+                      ShimmerLoading(width: 90, height: 15, borderRadius: 4),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+
+        // 4. Skeleton Catatan Produksi
+        const ShimmerLoading(width: 150, height: 14, borderRadius: 4),
+        const SizedBox(height: 8),
+        const ShimmerLoading(
+          width: double.infinity,
+          height: 64,
+          borderRadius: 12,
+        ),
+      ],
     );
   }
 }
