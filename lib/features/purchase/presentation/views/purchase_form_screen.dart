@@ -997,17 +997,12 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
                         FilteringTextInputFormatter.digitsOnly,
                         const ThousandsSeparatorInputFormatter(),
                       ],
-                      prefixIcon: const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 10),
-                        child: Text(
-                          'Rp',
-                          style: TextStyle(
-                            fontFamily: 'PlusJakartaSans',
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.brandWarmGray,
-                          ),
-                        ),
+                      prefixText: 'Rp ',
+                      prefixStyle: const TextStyle(
+                        fontFamily: 'PlusJakartaSans',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.brandWarmGray,
                       ),
                       validator: (val) {
                         if (val == null || val.trim().isEmpty) {
