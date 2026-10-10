@@ -43,7 +43,6 @@ class _RawMaterialFormScreenState extends ConsumerState<RawMaterialFormScreen> {
   late final TextEditingController _calcPricePerPackageController;
   late final TextEditingController _calcTotalPriceController;
 
-  bool _showCalculator = false;
   _CalcResult? _calcResult;
   String? _calcError;
   int? _calcSelectedUnitId;
@@ -343,36 +342,33 @@ class _RawMaterialFormScreenState extends ConsumerState<RawMaterialFormScreen> {
                       ),
                     ),
                     InkWell(
-                      onTap: () {
-                        setState(() {
-                          _showCalculator = !_showCalculator;
-                          if (_showCalculator && _calcSelectedUnitId == null) {
-                            _calcSelectedUnitId = _selectedUnitId;
-                          }
-                        });
-                      },
+                      onTap: () =>
+                          _openPackagingCalculatorModal(context, units),
                       borderRadius: BorderRadius.circular(6),
-                      child: Padding(
+                      child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 4),
-                        child: Row(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF9FAFB),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: AppColors.brandBorder),
+                        ),
+                        child: const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(
+                            Icon(
                               TablerIcons.calculator,
-                              size: 15,
-                              color: AppColors.brandPrimary,
+                              size: 14,
+                              color: Colors.black,
                             ),
-                            const SizedBox(width: 4),
+                            SizedBox(width: 5),
                             Text(
-                              _showCalculator
-                                  ? 'Tutup Kalkulator'
-                                  : 'Hitung dari Pembelian Kemasan',
-                              style: const TextStyle(
+                              'Hitung dari Pembelian Kemasan',
+                              style: TextStyle(
                                 fontFamily: 'PlusJakartaSans',
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.brandPrimary,
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.brandEspresso,
                               ),
                             ),
                           ],
@@ -398,10 +394,6 @@ class _RawMaterialFormScreenState extends ConsumerState<RawMaterialFormScreen> {
                     return null;
                   },
                 ),
-
-                // 5. Smart Calculator Card (Konversi Grosir/Kemasan)
-                if (_showCalculator)
-                  _buildPackagingCalculatorCard(units),
               ],
             ),
           ),
@@ -410,535 +402,709 @@ class _RawMaterialFormScreenState extends ConsumerState<RawMaterialFormScreen> {
     );
   }
 
-  /// Card Kalkulator Konversi Pembelian Grosir/Kemasan
-  Widget _buildPackagingCalculatorCard(List<RawMaterialUnitOptionModel> units) {
-    return Container(
-      margin: const EdgeInsets.only(top: 10, bottom: 14),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.brandBorder, width: 1),
+  /// Modal Bottom Sheet Kalkulator Konversi Pembelian Grosir/Kemasan
+  void _openPackagingCalculatorModal(
+    BuildContext context,
+    List<RawMaterialUnitOptionModel> units,
+  ) {
+    _calcSelectedUnitId ??=
+        _selectedUnitId ?? (units.isNotEmpty ? units.first.id : null);
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header
-          const Row(
-            children: [
-              Icon(TablerIcons.calculator, size: 16, color: Colors.black),
-              SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  'Kalkulator Konversi Pembelian Kemasan',
-                  style: TextStyle(
-                    fontFamily: 'PlusJakartaSans',
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.brandEspresso,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
+              ),
+              child: SafeArea(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight:
+                        MediaQuery.of(sheetContext).size.height * 0.85,
                   ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          // Row 1: Beli Berapa Kemasan & Isi per Kemasan
-          Row(
-            children: [
-              Expanded(
-                child: AppTextField(
-                  controller: _calcPackageCountController,
-                  labelText: 'Beli Kemasan *',
-                  hintText: 'Misal: 20',
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                  onChanged: (val) {
-                    setState(() {
-                      final cnt = double.tryParse(val) ?? 0;
-                      final prc =
-                          double.tryParse(_calcPricePerPackageController.text) ??
-                              0;
-                      if (cnt > 0 && prc > 0) {
-                        _calcTotalPriceController.text =
-                            (cnt * prc).toStringAsFixed(0);
-                      }
-                    });
-                  },
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: AppTextField(
-                  controller: _calcContentPerPackageController,
-                  labelText: 'Isi per Kemasan *',
-                  hintText: 'Misal: 1000',
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-
-          // Dropdown Satuan Dasar
-          const Text(
-            'Satuan Dasar *',
-            style: TextStyle(
-              fontFamily: 'PlusJakartaSans',
-              fontSize: 11.5,
-              fontWeight: FontWeight.w600,
-              color: AppColors.brandEspresso,
-            ),
-          ),
-          const SizedBox(height: 4),
-          AppFilterDropdown<RawMaterialUnitOptionModel>(
-            selectedValue: units
-                .cast<RawMaterialUnitOptionModel?>()
-                .firstWhere(
-                  (u) => u?.id == (_calcSelectedUnitId ?? _selectedUnitId),
-                  orElse: () => null,
-                ),
-            items: units,
-            allLabel: 'Pilih Satuan',
-            showAllOption: false,
-            isExpanded: true,
-            showShadow: false,
-            height: 44,
-            itemLabel: (u) => '${u.name} (${u.shortName})',
-            onSelected: (u) {
-              if (u != null) {
-                setState(() {
-                  _calcSelectedUnitId = u.id;
-                  _calcResult = null;
-                  _calcError = null;
-                });
-              }
-            },
-          ),
-          const SizedBox(height: 10),
-
-          // Row 2: Harga Beli per Kemasan & Atau Total Belanja
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    AppTextField(
-                      controller: _calcPricePerPackageController,
-                      labelText: 'Harga / Kemasan *',
-                      hintText: 'Misal: 25000',
-                      prefixText: 'Rp ',
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                      onChanged: (val) {
-                        setState(() {
-                          final cnt = double.tryParse(
-                                  _calcPackageCountController.text) ??
-                              0;
-                          final prc = double.tryParse(val) ?? 0;
-                          if (cnt > 0 && prc > 0) {
-                            _calcTotalPriceController.text =
-                                (cnt * prc).toStringAsFixed(0);
-                          }
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 2),
-                    const Text(
-                      'Harga 1 kemasan / sak / dus',
-                      style: TextStyle(
-                        fontFamily: 'PlusJakartaSans',
-                        fontSize: 10.5,
-                        color: AppColors.brandWarmGray,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    AppTextField(
-                      controller: _calcTotalPriceController,
-                      labelText: 'Atau Total Belanja',
-                      hintText: 'Misal: 500000',
-                      prefixText: 'Rp ',
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                      onChanged: (val) {
-                        setState(() {
-                          final cnt = double.tryParse(
-                                  _calcPackageCountController.text) ??
-                              0;
-                          final tot = double.tryParse(val) ?? 0;
-                          if (cnt > 0 && tot > 0) {
-                            _calcPricePerPackageController.text =
-                                (tot / cnt).toStringAsFixed(0);
-                          }
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 2),
-                    const Text(
-                      'Total nota belanja',
-                      style: TextStyle(
-                        fontFamily: 'PlusJakartaSans',
-                        fontSize: 10.5,
-                        color: AppColors.brandWarmGray,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-
-          // Pesan Error jika ada
-          if (_calcError != null) ...[
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFEF2F2),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFFFECACA)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(TablerIcons.alert_circle,
-                      size: 14, color: AppColors.error),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      _calcError!,
-                      style: const TextStyle(
-                        fontFamily: 'PlusJakartaSans',
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.error,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-
-          // Hasil Perhitungan (Tampil jika sudah dihitung)
-          if (_calcResult != null) ...[
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.brandBorder),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        'Hasil Perhitungan Konversi',
-                        style: TextStyle(
-                          fontFamily: 'PlusJakartaSans',
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.brandEspresso,
+                      // Handle bar drag indicator
+                      Container(
+                        width: 40,
+                        height: 4,
+                        margin: const EdgeInsets.only(top: 10, bottom: 8),
+                        decoration: BoxDecoration(
+                          color: AppColors.brandBorder,
+                          borderRadius: BorderRadius.circular(2),
                         ),
                       ),
-                      Row(
-                        children: [
-                          Icon(TablerIcons.check,
-                              size: 13, color: AppColors.brandNaturalGreen),
-                          SizedBox(width: 3),
-                          Text(
-                            'Siap Diterapkan',
-                            style: TextStyle(
-                              fontFamily: 'PlusJakartaSans',
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.brandNaturalGreen,
+
+                      // Header Modal
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 4, 16, 12),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF3F4F6),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                TablerIcons.calculator,
+                                size: 20,
+                                color: Colors.black,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  const Divider(height: 1, color: AppColors.brandBorder),
-                  const SizedBox(height: 8),
-                  // Total Stok
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Total Stok Didapat:',
-                        style: TextStyle(
-                          fontFamily: 'PlusJakartaSans',
-                          fontSize: 11.5,
-                          color: AppColors.brandWarmGray,
-                        ),
-                      ),
-                      Text(
-                        '${NumberFormat.decimalPattern('id_ID').format(_calcResult!.totalStock)} ${_calcResult!.unitShort}',
-                        style: const TextStyle(
-                          fontFamily: 'PlusJakartaSans',
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.brandEspresso,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Text(
-                      '(${_calcResult!.packageCount.toInt()} kemasan × ${_calcResult!.contentPerPackage.toInt()} ${_calcResult!.unitShort})',
-                      style: const TextStyle(
-                        fontFamily: 'PlusJakartaSans',
-                        fontSize: 10.5,
-                        color: AppColors.brandWarmGray,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  // Harga Pokok per Satuan
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Harga Pokok per Satuan:',
-                        style: TextStyle(
-                          fontFamily: 'PlusJakartaSans',
-                          fontSize: 11.5,
-                          color: AppColors.brandWarmGray,
-                        ),
-                      ),
-                      Text(
-                        'Rp ${NumberFormat.decimalPattern('id_ID').format(_calcResult!.costPerUnit)} / ${_calcResult!.unitShort}',
-                        style: const TextStyle(
-                          fontFamily: 'PlusJakartaSans',
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.brandPrimary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  // Total Belanja
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Total Belanja:',
-                        style: TextStyle(
-                          fontFamily: 'PlusJakartaSans',
-                          fontSize: 11.5,
-                          color: AppColors.brandWarmGray,
-                        ),
-                      ),
-                      Text(
-                        'Rp ${NumberFormat.decimalPattern('id_ID').format(_calcResult!.totalCost)}',
-                        style: const TextStyle(
-                          fontFamily: 'PlusJakartaSans',
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.brandEspresso,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-
-          // Tombol Aksi: Hitung & Gunakan (Border Abu, Teks)
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              // Tombol Hitung
-              Expanded(
-                child: InkWell(
-                  onTap: () {
-                    final count = double.tryParse(
-                            _calcPackageCountController.text) ??
-                        0;
-                    final content = double.tryParse(
-                            _calcContentPerPackageController.text) ??
-                        0;
-                    var price = double.tryParse(
-                            _calcPricePerPackageController.text) ??
-                        0;
-                    final totalPrice = double.tryParse(
-                            _calcTotalPriceController.text) ??
-                        0;
-                    final uId = _calcSelectedUnitId ?? _selectedUnitId;
-
-                    if (price <= 0 && totalPrice > 0 && count > 0) {
-                      price = totalPrice / count;
-                      _calcPricePerPackageController.text =
-                          price.toStringAsFixed(0);
-                    }
-
-                    if (count <= 0) {
-                      setState(() {
-                        _calcError = 'Jumlah kemasan harus lebih dari 0.';
-                        _calcResult = null;
-                      });
-                      return;
-                    }
-
-                    if (content <= 0) {
-                      setState(() {
-                        _calcError = 'Isi per kemasan harus lebih dari 0.';
-                        _calcResult = null;
-                      });
-                      return;
-                    }
-
-                    if (uId == null) {
-                      setState(() {
-                        _calcError = 'Pilih satuan dasar terlebih dahulu.';
-                        _calcResult = null;
-                      });
-                      return;
-                    }
-
-                    if (price <= 0) {
-                      setState(() {
-                        _calcError =
-                            'Harga per kemasan atau total belanja wajib diisi.';
-                        _calcResult = null;
-                      });
-                      return;
-                    }
-
-                    final unitObj = units.firstWhere((u) => u.id == uId,
-                        orElse: () => units.first);
-                    final totalStock = count * content;
-                    final costPerUnit =
-                        content > 0 ? (price / content) : 0.0;
-                    final finalTotalCost =
-                        totalPrice > 0 ? totalPrice : (count * price);
-
-                    setState(() {
-                      _calcError = null;
-                      _calcResult = _CalcResult(
-                        totalStock: totalStock,
-                        costPerUnit: costPerUnit,
-                        totalCost: finalTotalCost,
-                        unitId: uId,
-                        unitName: unitObj.name,
-                        unitShort: unitObj.shortName,
-                        packageCount: count,
-                        contentPerPackage: content,
-                        pricePerPackage: price,
-                      );
-                    });
-                  },
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.brandBorder),
-                    ),
-                    alignment: Alignment.center,
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(TablerIcons.calculator,
-                            size: 15, color: Colors.black),
-                        SizedBox(width: 5),
-                        Text(
-                          'Hitung',
-                          style: TextStyle(
-                            fontFamily: 'PlusJakartaSans',
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.brandEspresso,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              // Tombol Gunakan
-              Expanded(
-                child: InkWell(
-                  onTap: (_calcResult == null)
-                      ? null
-                      : () {
-                          setState(() {
-                            _stockController.text = _calcResult!.totalStock
-                                        .truncateToDouble() ==
-                                    _calcResult!.totalStock
-                                ? _calcResult!.totalStock.toInt().toString()
-                                : _calcResult!.totalStock.toStringAsFixed(2);
-                            _costController.text = _calcResult!.costPerUnit
-                                        .truncateToDouble() ==
-                                    _calcResult!.costPerUnit
-                                ? _calcResult!.costPerUnit.toInt().toString()
-                                : _calcResult!.costPerUnit.toStringAsFixed(2);
-                            _selectedUnitId = _calcResult!.unitId;
-                            _showCalculator = false;
-                          });
-                          AppSnackBar.showSuccess(
-                            context,
-                            message:
-                                'Hasil perhitungan berhasil diterapkan ke formulir!',
-                          );
-                        },
-                  borderRadius: BorderRadius.circular(8),
-                  child: Opacity(
-                    opacity: _calcResult != null ? 1.0 : 0.45,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.brandBorder),
-                      ),
-                      alignment: Alignment.center,
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(TablerIcons.check,
-                              size: 15, color: Colors.black),
-                          SizedBox(width: 5),
-                          Text(
-                            'Gunakan',
-                            style: TextStyle(
-                              fontFamily: 'PlusJakartaSans',
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w600,
+                            const SizedBox(width: 12),
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Kalkulator Konversi Kemasan',
+                                    style: TextStyle(
+                                      fontFamily: 'PlusJakartaSans',
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.brandEspresso,
+                                    ),
+                                  ),
+                                  SizedBox(height: 2),
+                                  Text(
+                                    'Hitung stok & harga satuan dari pembelian grosir',
+                                    style: TextStyle(
+                                      fontFamily: 'PlusJakartaSans',
+                                      fontSize: 12,
+                                      color: AppColors.brandWarmGray,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () => Navigator.pop(sheetContext),
+                              icon: const Icon(TablerIcons.x, size: 20),
                               color: AppColors.brandEspresso,
+                              splashRadius: 20,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(
+                                minWidth: 32,
+                                minHeight: 32,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
+                      const Divider(height: 1, color: AppColors.brandBorder),
+
+                      // Form Content
+                      Flexible(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Row 1: Beli Kemasan & Isi per Kemasan
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: AppTextField(
+                                      controller:
+                                          _calcPackageCountController,
+                                      labelText: 'Beli Kemasan *',
+                                      hintText: 'Misal: 20',
+                                      keyboardType:
+                                          const TextInputType.numberWithOptions(
+                                              decimal: true),
+                                      onChanged: (val) {
+                                        setModalState(() {
+                                          final cnt =
+                                              double.tryParse(val) ?? 0;
+                                          final prc = double.tryParse(
+                                                  _calcPricePerPackageController
+                                                      .text) ??
+                                              0;
+                                          if (cnt > 0 && prc > 0) {
+                                            _calcTotalPriceController.text =
+                                                (cnt * prc)
+                                                    .toStringAsFixed(0);
+                                          }
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: AppTextField(
+                                      controller:
+                                          _calcContentPerPackageController,
+                                      labelText: 'Isi per Kemasan *',
+                                      hintText: 'Misal: 1000',
+                                      keyboardType:
+                                          const TextInputType.numberWithOptions(
+                                              decimal: true),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+
+                              // Dropdown Satuan Dasar
+                              const Text(
+                                'Satuan Dasar *',
+                                style: TextStyle(
+                                  fontFamily: 'PlusJakartaSans',
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.brandEspresso,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              AppFilterDropdown<RawMaterialUnitOptionModel>(
+                                selectedValue: units
+                                    .cast<RawMaterialUnitOptionModel?>()
+                                    .firstWhere(
+                                      (u) =>
+                                          u?.id ==
+                                          (_calcSelectedUnitId ??
+                                              _selectedUnitId),
+                                      orElse: () => null,
+                                    ),
+                                items: units,
+                                allLabel: 'Pilih Satuan',
+                                showAllOption: false,
+                                isExpanded: true,
+                                showShadow: false,
+                                height: 44,
+                                itemLabel: (u) =>
+                                    '${u.name} (${u.shortName})',
+                                onSelected: (u) {
+                                  if (u != null) {
+                                    setModalState(() {
+                                      _calcSelectedUnitId = u.id;
+                                      _calcResult = null;
+                                      _calcError = null;
+                                    });
+                                  }
+                                },
+                              ),
+                              const SizedBox(height: 12),
+
+                              // Row 2: Harga / Kemasan & Atau Total Belanja
+                              Row(
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        AppTextField(
+                                          controller:
+                                              _calcPricePerPackageController,
+                                          labelText: 'Harga / Kemasan *',
+                                          hintText: 'Misal: 25000',
+                                          prefixText: 'Rp ',
+                                          keyboardType:
+                                              const TextInputType
+                                                  .numberWithOptions(
+                                                  decimal: true),
+                                          onChanged: (val) {
+                                            setModalState(() {
+                                              final cnt = double.tryParse(
+                                                      _calcPackageCountController
+                                                          .text) ??
+                                                  0;
+                                              final prc =
+                                                  double.tryParse(val) ?? 0;
+                                              if (cnt > 0 && prc > 0) {
+                                                _calcTotalPriceController
+                                                        .text =
+                                                    (cnt * prc)
+                                                        .toStringAsFixed(0);
+                                              }
+                                            });
+                                          },
+                                        ),
+                                        const SizedBox(height: 2),
+                                        const Text(
+                                          'Harga 1 kemasan / sak / dus',
+                                          style: TextStyle(
+                                            fontFamily: 'PlusJakartaSans',
+                                            fontSize: 10.5,
+                                            color: AppColors.brandWarmGray,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        AppTextField(
+                                          controller:
+                                              _calcTotalPriceController,
+                                          labelText: 'Atau Total Belanja',
+                                          hintText: 'Misal: 500000',
+                                          prefixText: 'Rp ',
+                                          keyboardType:
+                                              const TextInputType
+                                                  .numberWithOptions(
+                                                  decimal: true),
+                                          onChanged: (val) {
+                                            setModalState(() {
+                                              final cnt = double.tryParse(
+                                                      _calcPackageCountController
+                                                          .text) ??
+                                                  0;
+                                              final tot =
+                                                  double.tryParse(val) ?? 0;
+                                              if (cnt > 0 && tot > 0) {
+                                                _calcPricePerPackageController
+                                                        .text =
+                                                    (tot / cnt)
+                                                        .toStringAsFixed(0);
+                                              }
+                                            });
+                                          },
+                                        ),
+                                        const SizedBox(height: 2),
+                                        const Text(
+                                          'Total nota belanja',
+                                          style: TextStyle(
+                                            fontFamily: 'PlusJakartaSans',
+                                            fontSize: 10.5,
+                                            color: AppColors.brandWarmGray,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              // Pesan Error jika ada
+                              if (_calcError != null) ...[
+                                const SizedBox(height: 12),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFEF2F2),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                        color: const Color(0xFFFECACA)),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(TablerIcons.alert_circle,
+                                          size: 16,
+                                          color: AppColors.error),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          _calcError!,
+                                          style: const TextStyle(
+                                            fontFamily: 'PlusJakartaSans',
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w500,
+                                            color: AppColors.error,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+
+                              // Hasil Perhitungan (Tampil jika sudah dihitung)
+                              if (_calcResult != null) ...[
+                                const SizedBox(height: 14),
+                                Container(
+                                  padding: const EdgeInsets.all(14),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF9FAFB),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                        color: AppColors.brandBorder),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            'Hasil Perhitungan Konversi',
+                                            style: TextStyle(
+                                              fontFamily: 'PlusJakartaSans',
+                                              fontSize: 12.5,
+                                              fontWeight: FontWeight.w700,
+                                              color: AppColors.brandEspresso,
+                                            ),
+                                          ),
+                                          Row(
+                                            children: [
+                                              Icon(TablerIcons.check,
+                                                  size: 14,
+                                                  color: AppColors
+                                                      .brandNaturalGreen),
+                                              SizedBox(width: 4),
+                                              Text(
+                                                'Siap Diterapkan',
+                                                style: TextStyle(
+                                                  fontFamily:
+                                                      'PlusJakartaSans',
+                                                  fontSize: 11.5,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: AppColors
+                                                      .brandNaturalGreen,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 10),
+                                      const Divider(
+                                          height: 1,
+                                          color: AppColors.brandBorder),
+                                      const SizedBox(height: 10),
+                                      // Total Stok
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          const Text(
+                                            'Total Stok Didapat:',
+                                            style: TextStyle(
+                                              fontFamily: 'PlusJakartaSans',
+                                              fontSize: 12,
+                                              color: AppColors.brandWarmGray,
+                                            ),
+                                          ),
+                                          Text(
+                                            '${NumberFormat.decimalPattern('id_ID').format(_calcResult!.totalStock)} ${_calcResult!.unitShort}',
+                                            style: const TextStyle(
+                                              fontFamily: 'PlusJakartaSans',
+                                              fontSize: 12.5,
+                                              fontWeight: FontWeight.w700,
+                                              color: AppColors.brandEspresso,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Align(
+                                        alignment: Alignment.centerRight,
+                                        child: Text(
+                                          '(${_calcResult!.packageCount.toInt()} kemasan × ${_calcResult!.contentPerPackage.toInt()} ${_calcResult!.unitShort})',
+                                          style: const TextStyle(
+                                            fontFamily: 'PlusJakartaSans',
+                                            fontSize: 11,
+                                            color: AppColors.brandWarmGray,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      // Harga Pokok per Satuan
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          const Text(
+                                            'Harga Pokok per Satuan:',
+                                            style: TextStyle(
+                                              fontFamily: 'PlusJakartaSans',
+                                              fontSize: 12,
+                                              color: AppColors.brandWarmGray,
+                                            ),
+                                          ),
+                                          Text(
+                                            'Rp ${NumberFormat.decimalPattern('id_ID').format(_calcResult!.costPerUnit)} / ${_calcResult!.unitShort}',
+                                            style: const TextStyle(
+                                              fontFamily: 'PlusJakartaSans',
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w700,
+                                              color: AppColors.brandPrimary,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 8),
+                                      // Total Belanja
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          const Text(
+                                            'Total Belanja:',
+                                            style: TextStyle(
+                                              fontFamily: 'PlusJakartaSans',
+                                              fontSize: 12,
+                                              color: AppColors.brandWarmGray,
+                                            ),
+                                          ),
+                                          Text(
+                                            'Rp ${NumberFormat.decimalPattern('id_ID').format(_calcResult!.totalCost)}',
+                                            style: const TextStyle(
+                                              fontFamily: 'PlusJakartaSans',
+                                              fontSize: 12.5,
+                                              fontWeight: FontWeight.w600,
+                                              color: AppColors.brandEspresso,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                              const SizedBox(height: 16),
+
+                              // Tombol Aksi Modal (Hitung & Terapkan)
+                              Row(
+                                children: [
+                                  // Tombol Hitung
+                                  Expanded(
+                                    child: InkWell(
+                                      onTap: () {
+                                        final count = double.tryParse(
+                                                _calcPackageCountController
+                                                    .text) ??
+                                            0;
+                                        final content = double.tryParse(
+                                                _calcContentPerPackageController
+                                                    .text) ??
+                                            0;
+                                        var price = double.tryParse(
+                                                _calcPricePerPackageController
+                                                    .text) ??
+                                            0;
+                                        final totalPrice = double.tryParse(
+                                                _calcTotalPriceController
+                                                    .text) ??
+                                            0;
+                                        final uId = _calcSelectedUnitId ??
+                                            _selectedUnitId;
+
+                                        if (price <= 0 &&
+                                            totalPrice > 0 &&
+                                            count > 0) {
+                                          price = totalPrice / count;
+                                          _calcPricePerPackageController
+                                                  .text =
+                                              price.toStringAsFixed(0);
+                                        }
+
+                                        if (count <= 0) {
+                                          setModalState(() {
+                                            _calcError =
+                                                'Jumlah kemasan harus lebih dari 0.';
+                                            _calcResult = null;
+                                          });
+                                          return;
+                                        }
+
+                                        if (content <= 0) {
+                                          setModalState(() {
+                                            _calcError =
+                                                'Isi per kemasan harus lebih dari 0.';
+                                            _calcResult = null;
+                                          });
+                                          return;
+                                        }
+
+                                        if (uId == null) {
+                                          setModalState(() {
+                                            _calcError =
+                                                'Pilih satuan dasar terlebih dahulu.';
+                                            _calcResult = null;
+                                          });
+                                          return;
+                                        }
+
+                                        if (price <= 0) {
+                                          setModalState(() {
+                                            _calcError =
+                                                'Harga per kemasan atau total belanja wajib diisi.';
+                                            _calcResult = null;
+                                          });
+                                          return;
+                                        }
+
+                                        final unitObj = units.firstWhere(
+                                            (u) => u.id == uId,
+                                            orElse: () => units.first);
+                                        final totalStock = count * content;
+                                        final costPerUnit = content > 0
+                                            ? (price / content)
+                                            : 0.0;
+                                        final finalTotalCost = totalPrice > 0
+                                            ? totalPrice
+                                            : (count * price);
+
+                                        setModalState(() {
+                                          _calcError = null;
+                                          _calcResult = _CalcResult(
+                                            totalStock: totalStock,
+                                            costPerUnit: costPerUnit,
+                                            totalCost: finalTotalCost,
+                                            unitId: uId,
+                                            unitName: unitObj.name,
+                                            unitShort: unitObj.shortName,
+                                            packageCount: count,
+                                            contentPerPackage: content,
+                                            pricePerPackage: price,
+                                          );
+                                        });
+                                      },
+                                      borderRadius: BorderRadius.circular(10),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 11),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                          border: Border.all(
+                                              color: AppColors.brandBorder),
+                                        ),
+                                        alignment: Alignment.center,
+                                        child: const Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Icon(TablerIcons.calculator,
+                                                size: 16,
+                                                color: Colors.black),
+                                            SizedBox(width: 6),
+                                            Text(
+                                              'Hitung',
+                                              style: TextStyle(
+                                                fontFamily:
+                                                    'PlusJakartaSans',
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600,
+                                                color: AppColors.brandEspresso,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+
+                                  // Tombol Gunakan / Terapkan ke Formulir
+                                  Expanded(
+                                    child: InkWell(
+                                      onTap: (_calcResult == null)
+                                          ? null
+                                          : () {
+                                              setState(() {
+                                                _stockController.text =
+                                                    _calcResult!.totalStock
+                                                                .truncateToDouble() ==
+                                                            _calcResult!
+                                                                .totalStock
+                                                        ? _calcResult!
+                                                            .totalStock
+                                                            .toInt()
+                                                            .toString()
+                                                        : _calcResult!
+                                                            .totalStock
+                                                            .toStringAsFixed(2);
+                                                _costController.text =
+                                                    _calcResult!.costPerUnit
+                                                                .truncateToDouble() ==
+                                                            _calcResult!
+                                                                .costPerUnit
+                                                        ? _calcResult!
+                                                            .costPerUnit
+                                                            .toInt()
+                                                            .toString()
+                                                        : _calcResult!
+                                                            .costPerUnit
+                                                            .toStringAsFixed(2);
+                                                _selectedUnitId =
+                                                    _calcResult!.unitId;
+                                              });
+                                              Navigator.pop(sheetContext);
+                                              AppSnackBar.showSuccess(
+                                                context,
+                                                message:
+                                                    'Hasil perhitungan berhasil diterapkan ke formulir!',
+                                              );
+                                            },
+                                      borderRadius: BorderRadius.circular(10),
+                                      child: Opacity(
+                                        opacity:
+                                            _calcResult != null ? 1.0 : 0.45,
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 11),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius:
+                                                BorderRadius.circular(10),
+                                            border: Border.all(
+                                              color: AppColors.brandBorder,
+                                            ),
+                                          ),
+                                          alignment: Alignment.center,
+                                          child: const Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Icon(TablerIcons.check,
+                                                  size: 16,
+                                                  color: Colors.black),
+                                              SizedBox(width: 6),
+                                              Text(
+                                                'Terapkan ke Form',
+                                                style: TextStyle(
+                                                  fontFamily:
+                                                      'PlusJakartaSans',
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w600,
+                                                  color:
+                                                      AppColors.brandEspresso,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-            ],
-          ),
-        ],
-      ),
+            );
+          },
+        );
+      },
     );
   }
 }
