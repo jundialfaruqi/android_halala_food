@@ -402,7 +402,7 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
     }
 
     final hasActions = canEditProduct || canDeleteProduct;
-    final contentHeight = hasActions ? 218.0 : 174.0;
+    final contentHeight = hasActions ? 172.0 : 132.0;
     final screenWidth = MediaQuery.sizeOf(context).width;
     final cardWidth = (screenWidth - 32 - 12) / 2;
     final childAspectRatio = cardWidth / (cardWidth + contentHeight);
@@ -462,7 +462,7 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
   Widget _buildShimmerLoadingList() {
     final screenWidth = MediaQuery.sizeOf(context).width;
     final cardWidth = (screenWidth - 32 - 12) / 2;
-    final childAspectRatio = cardWidth / (cardWidth + 218.0);
+    final childAspectRatio = cardWidth / (cardWidth + 172.0);
 
     return GridView.builder(
       physics: const NeverScrollableScrollPhysics(),
@@ -490,17 +490,57 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
       padding: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          // Baris 1: Foto Thumbnail Shimmer (Flush Top, Left, Right)
+        children: [
+          // Baris 1: Foto Thumbnail Shimmer (Flush Top, Left, Right) + Gradient Overlay Nama Shimmer
           AspectRatio(
             aspectRatio: 1,
-            child: ClipRRect(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-              child: ShimmerLoading(
-                width: double.infinity,
-                height: double.infinity,
-                borderRadius: 0,
-              ),
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                    child: const ShimmerLoading(
+                      width: double.infinity,
+                      height: double.infinity,
+                      borderRadius: 0,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(10, 18, 10, 8),
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.bottomCenter,
+                        end: Alignment.topCenter,
+                        colors: [
+                          Color(0x59000000),
+                          Color(0x00000000),
+                        ],
+                      ),
+                    ),
+                    child: const Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ShimmerLoading(
+                          width: 90,
+                          height: 11,
+                          borderRadius: 3,
+                        ),
+                        SizedBox(height: 3),
+                        ShimmerLoading(
+                          width: 60,
+                          height: 9,
+                          borderRadius: 3,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           Padding(
@@ -508,30 +548,17 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Baris 2 - 1: Shimmer Nama & Deskripsi
-                ShimmerLoading(
-                  width: double.infinity,
-                  height: 14,
-                  borderRadius: 4,
-                ),
-                SizedBox(height: 4),
-                ShimmerLoading(
-                  width: 80,
-                  height: 10,
-                  borderRadius: 3,
-                ),
-                SizedBox(height: 6),
-                // Baris 2 - 2: Harga Konsinyasi
+                // Baris 2 - 1: Harga Konsinyasi
                 ShimmerLoading(width: 75, height: 9, borderRadius: 3),
                 SizedBox(height: 3),
                 ShimmerLoading(width: 90, height: 13, borderRadius: 4),
                 SizedBox(height: 6),
-                // Baris 2 - 3: Harga Eceran Toko
+                // Baris 2 - 2: Harga Eceran Toko
                 ShimmerLoading(width: 85, height: 9, borderRadius: 3),
                 SizedBox(height: 3),
                 ShimmerLoading(width: 90, height: 13, borderRadius: 4),
                 SizedBox(height: 6),
-                // Baris 2 - 4: Stok
+                // Baris 2 - 3: Stok
                 ShimmerLoading(width: 40, height: 9, borderRadius: 3),
                 SizedBox(height: 3),
                 ShimmerLoading(width: 60, height: 12, borderRadius: 4),
@@ -662,68 +689,96 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
                   ),
                 ),
 
+                // Overlay Hitam Memudar (Gradient) dari Sisi Bawah Gambar ke Atas
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(10, 24, 10, 8),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.bottomCenter,
+                        end: Alignment.topCenter,
+                        colors: [
+                          Colors.black.withValues(alpha: 0.85),
+                          Colors.black.withValues(alpha: 0.5),
+                          Colors.transparent,
+                        ],
+                        stops: const [0.0, 0.65, 1.0],
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          product.name,
+                          style: const TextStyle(
+                            fontFamily: 'PlusJakartaSans',
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                            height: 1.25,
+                            shadows: [
+                              Shadow(
+                                color: Colors.black45,
+                                blurRadius: 3,
+                                offset: Offset(0, 1),
+                              ),
+                            ],
+                          ),
+                          maxLines: (product.description != null &&
+                                  product.description != '-' &&
+                                  product.description!.trim().isNotEmpty)
+                              ? 1
+                              : 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (product.description != null &&
+                            product.description != '-' &&
+                            product.description!.trim().isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            product.description!,
+                            style: TextStyle(
+                              fontFamily: 'PlusJakartaSans',
+                              fontSize: 10,
+                              color: Colors.white.withValues(alpha: 0.9),
+                              height: 1.2,
+                              shadows: const [
+                                Shadow(
+                                  color: Colors.black38,
+                                  blurRadius: 2,
+                                  offset: Offset(0, 1),
+                                ),
+                              ],
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
 
           // =================================================================
-          // BARIS 2 (BAWAH) -> 4 BARIS + TOMBOL AKSI (DIBUNGKUS PADDING):
-          // 1. Nama Produk, deskripsi
-          // 2. Harga konsinyasi
-          // 3. Harga Eceran Toko
-          // 4. Stok
-          // 5. Tombol Hapus (Kiri) & Ubah (Kanan)
+          // BARIS 2 (BAWAH) -> 3 BARIS + TOMBOL AKSI (DIBUNGKUS PADDING):
+          // 1. Harga konsinyasi
+          // 2. Harga Eceran Toko
+          // 3. Stok
+          // 4. Tombol Hapus (Kiri) & Ubah (Kanan)
           // =================================================================
           Padding(
             padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 1. Nama Produk, deskripsi
-                SizedBox(
-                  height: 38,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        product.name,
-                        style: const TextStyle(
-                          fontFamily: 'PlusJakartaSans',
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.brandEspresso,
-                          height: 1.25,
-                        ),
-                        maxLines: (product.description != null &&
-                                product.description != '-' &&
-                                product.description!.trim().isNotEmpty)
-                            ? 1
-                            : 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      if (product.description != null &&
-                          product.description != '-' &&
-                          product.description!.trim().isNotEmpty) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          product.description!,
-                          style: const TextStyle(
-                            fontFamily: 'PlusJakartaSans',
-                            fontSize: 10.5,
-                            color: AppColors.brandWarmGray,
-                            height: 1.2,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 6),
-
-                // 2. Harga konsinyasi
+                // 1. Harga konsinyasi
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
