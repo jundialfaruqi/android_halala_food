@@ -661,7 +661,7 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
                   ),
                 ),
 
-                // Badge Status Float Left & Badge Stok di sampingnya (Tanpa teks "stok")
+                // Badge Status Float Left & Badge Stok di sampingnya (Background Putih No Border, Teks Hitam)
                 Positioned(
                   top: 8,
                   left: 8,
@@ -676,14 +676,11 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
                           vertical: 3.5,
                         ),
                         decoration: BoxDecoration(
-                          color: (product.isActive
-                                  ? AppColors.brandNaturalGreen
-                                  : AppColors.brandWarmGray)
-                              .withValues(alpha: 0.92),
+                          color: Colors.white,
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.14),
+                              color: Colors.black.withValues(alpha: 0.12),
                               blurRadius: 4,
                               offset: const Offset(0, 1.5),
                             ),
@@ -695,7 +692,7 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
                             fontFamily: 'PlusJakartaSans',
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
-                            color: Colors.white,
+                            color: Colors.black,
                             letterSpacing: 0.2,
                           ),
                         ),
@@ -710,13 +707,11 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
                             vertical: 3.5,
                           ),
                           decoration: BoxDecoration(
-                            color: (product.stockReady > 0
-                                    ? Colors.black.withValues(alpha: 0.60)
-                                    : AppColors.error.withValues(alpha: 0.90)),
+                            color: Colors.white,
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.14),
+                                color: Colors.black.withValues(alpha: 0.12),
                                 blurRadius: 4,
                                 offset: const Offset(0, 1.5),
                               ),
@@ -730,7 +725,7 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
                               fontFamily: 'PlusJakartaSans',
                               fontSize: 10,
                               fontWeight: FontWeight.w700,
-                              color: Colors.white,
+                              color: Colors.black,
                               letterSpacing: 0.2,
                             ),
                             maxLines: 1,
