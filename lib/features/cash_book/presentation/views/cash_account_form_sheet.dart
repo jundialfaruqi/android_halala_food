@@ -196,42 +196,26 @@ class _CashAccountFormSheetState extends ConsumerState<CashAccountFormSheet> {
                         color: AppColors.brandWarmGray,
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: AppColors.brandBorder),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: _selectedType,
-                          isExpanded: true,
-                          icon: const Icon(TablerIcons.chevron_down, size: 16),
-                          style: const TextStyle(
-                            fontFamily: 'PlusJakartaSans',
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.brandEspresso,
-                          ),
-                          items: const [
-                            DropdownMenuItem(
-                              value: 'business',
-                              child: Text('Kas Usaha (Operasional / Hasil Tagihan)'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'personal',
-                              child: Text('Kas Pribadi (Kebutuhan Belanja Keluarga)'),
-                            ),
-                          ],
-                          onChanged: (val) {
-                            if (val != null) {
-                              setState(() => _selectedType = val);
-                            }
-                          },
-                        ),
-                      ),
+                    AppFilterDropdown<String>(
+                      isExpanded: true,
+                      showAllOption: false,
+                      selectedValue: _selectedType,
+                      items: const ['business', 'personal'],
+                      itemLabel: (val) {
+                        switch (val) {
+                          case 'business':
+                            return 'Kas Usaha (Operasional / Hasil Tagihan)';
+                          case 'personal':
+                            return 'Kas Pribadi (Kebutuhan Belanja Keluarga)';
+                          default:
+                            return val;
+                        }
+                      },
+                      onSelected: (val) {
+                        if (val != null) {
+                          setState(() => _selectedType = val);
+                        }
+                      },
                     ),
                     const SizedBox(height: 16),
 

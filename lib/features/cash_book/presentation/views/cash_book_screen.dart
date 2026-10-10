@@ -365,7 +365,6 @@ class _CashBookScreenState extends ConsumerState<CashBookScreen> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.brandBorder),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -454,7 +453,6 @@ class _CashBookScreenState extends ConsumerState<CashBookScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.brandBorder),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -515,7 +513,6 @@ class _CashBookScreenState extends ConsumerState<CashBookScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.brandBorder),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
