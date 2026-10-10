@@ -10,6 +10,7 @@ import '../../../auth/presentation/views/profile_screen.dart';
 import '../../../delivery/presentation/views/delivery_screen.dart';
 import '../../../invoice/presentation/views/invoice_screen.dart';
 import '../../../product/presentation/views/product_screen.dart';
+import '../../../raw_material/presentation/views/raw_material_screen.dart';
 import '../../../store/presentation/views/store_coordinates_screen.dart';
 import '../../../store/presentation/views/store_screen.dart';
 import '../../../user/presentation/views/user_screen.dart';
@@ -478,6 +479,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
 
             if (menu.title == 'Faktur') {
               _navigateTo(const InvoiceScreen());
+              return;
+            }
+
+            if (menu.title == 'Bahan Baku') {
+              _navigateTo(const RawMaterialScreen());
               return;
             }
 

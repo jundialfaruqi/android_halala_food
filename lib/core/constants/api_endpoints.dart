@@ -37,6 +37,17 @@ class ApiEndpoints {
       '/invoices/$invoiceId/payments/$paymentId';
   static String invoiceReconcile(int id) => '/invoices/$id/reconcile';
 
+  // Raw Materials (Bahan Baku) & Resep (BOM)
+  static const String rawMaterials = '/raw-materials';
+  static const String rawMaterialOptions = '/raw-materials/options';
+  static String rawMaterialDetail(int id) => '/raw-materials/$id';
+  static String rawMaterialAdjustStock(int id) =>
+      '/raw-materials/$id/adjust-stock';
+
+  // Recipes (Resep Produk BOM)
+  static const String recipes = '/recipes';
+  static String recipeSave(int productId) => '/recipes/$productId';
+
   // Dashboard & Profile
   static const String dashboard = '/dashboard';
 }
