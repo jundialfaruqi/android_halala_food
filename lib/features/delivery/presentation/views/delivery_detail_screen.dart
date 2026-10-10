@@ -862,12 +862,33 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                 ],
               ),
               SizedBox(height: 16),
+              Divider(height: 1, color: AppColors.brandBorder),
+              SizedBox(height: 14),
 
-              // Baris 3 Shimmer: Box Info Kurir
-              ShimmerLoading(
-                width: double.infinity,
-                height: 52,
-                borderRadius: 10,
+              // Baris 1 Shimmer: Teks kurir kiri dan nama kurir kanan
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  ShimmerLoading(width: 45, height: 14, borderRadius: 4),
+                  ShimmerLoading(width: 120, height: 14, borderRadius: 4),
+                ],
+              ),
+              SizedBox(height: 10),
+
+              // Baris 2 Shimmer: No HP kiri dan tombol action kanan
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  ShimmerLoading(width: 110, height: 13, borderRadius: 4),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ShimmerLoading(width: 34, height: 14, borderRadius: 3),
+                      SizedBox(width: 10),
+                      ShimmerLoading(width: 24, height: 14, borderRadius: 3),
+                    ],
+                  ),
+                ],
               ),
             ],
           ),
@@ -1411,140 +1432,116 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
     }
   }
 
-  /// Baris 3: Teks informasi kurir pengantar
+  /// Baris 3: Teks informasi kurir pengantar (tanpa card pembungkus, di bawah border divider)
+  /// Terdiri dari 2 baris item:
+  /// 1. Teks kurir di kiri dan nama kurir di kanan
+  /// 2. No HP di kiri dan tombol action di kanan
   Widget _buildCourierInfoSection(DeliveryModel d) {
     final courierName = d.courier?.name ?? 'Belum Ditugaskan';
     final courierPhone = d.courier?.phone;
-    final hasPhone = courierPhone != null && courierPhone.isNotEmpty;
+    final hasPhone = courierPhone != null && courierPhone.trim().isNotEmpty;
 
-    return Container(
-      margin: const EdgeInsets.only(top: 14),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.brandSoftCreamLight,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.brandBorder),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: AppColors.brandPrimary.withValues(alpha: 0.12),
-              shape: BoxShape.circle,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 16),
+        const Divider(height: 1, color: AppColors.brandBorder),
+        const SizedBox(height: 14),
+
+        // 1. Teks kurir kiri dan nama kurir kanan
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const Text(
+              'Kurir',
+              style: TextStyle(
+                fontFamily: 'PlusJakartaSans',
+                fontSize: 13.5,
+                fontWeight: FontWeight.w500,
+                color: AppColors.brandWarmGray,
+              ),
             ),
-            child: const Icon(
-              TablerIcons.steering_wheel,
-              size: 17,
-              color: AppColors.brandPrimary,
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                courierName,
+                textAlign: TextAlign.right,
+                style: const TextStyle(
+                  fontFamily: 'PlusJakartaSans',
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.brandEspresso,
+                ),
+              ),
             ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Kurir Bertugas',
-                  style: TextStyle(
-                    fontFamily: 'PlusJakartaSans',
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.brandWarmGray,
-                  ),
+          ],
+        ),
+        const SizedBox(height: 10),
+
+        // 2. No HP kiri dan tombol action kanan
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Text(
+                hasPhone ? _formatPhone(courierPhone) : '-',
+                style: TextStyle(
+                  fontFamily: 'PlusJakartaSans',
+                  fontSize: 13,
+                  fontWeight: hasPhone ? FontWeight.w600 : FontWeight.w400,
+                  color: hasPhone
+                      ? AppColors.brandEspresso
+                      : AppColors.brandWarmGray,
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  courierName,
-                  style: const TextStyle(
-                    fontFamily: 'PlusJakartaSans',
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.brandEspresso,
+              ),
+            ),
+            if (hasPhone)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Tombol Action: Salin (Teks only, tanpa background)
+                  InkWell(
+                    onTap: () => _copyPhoneToClipboard(context, courierPhone),
+                    borderRadius: BorderRadius.circular(4),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                      child: Text(
+                        'Salin',
+                        style: TextStyle(
+                          fontFamily: 'PlusJakartaSans',
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.brandPrimary,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-                if (hasPhone) ...[
-                  const SizedBox(height: 1),
-                  Text(
-                    _formatPhone(courierPhone),
-                    style: const TextStyle(
-                      fontFamily: 'PlusJakartaSans',
-                      fontSize: 12,
-                      color: AppColors.brandWarmGray,
+                  const SizedBox(width: 10),
+                  // Tombol Action: WA (Teks only, tanpa background)
+                  InkWell(
+                    onTap: () =>
+                        _openWhatsApp(context, courierPhone, courierName),
+                    borderRadius: BorderRadius.circular(4),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                      child: Text(
+                        'WA',
+                        style: TextStyle(
+                          fontFamily: 'PlusJakartaSans',
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF16A34A),
+                        ),
+                      ),
                     ),
                   ),
                 ],
-              ],
-            ),
-          ),
-          if (hasPhone) ...[
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Tombol Salin
-                InkWell(
-                  onTap: () => _copyPhoneToClipboard(context, courierPhone),
-                  borderRadius: BorderRadius.circular(4),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 5, vertical: 4),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          TablerIcons.copy,
-                          size: 14,
-                          color: AppColors.brandPrimary,
-                        ),
-                        SizedBox(width: 3),
-                        Text(
-                          'Salin',
-                          style: TextStyle(
-                            fontFamily: 'PlusJakartaSans',
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.brandPrimary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 4),
-                // Tombol WhatsApp
-                InkWell(
-                  onTap: () =>
-                      _openWhatsApp(context, courierPhone, courierName),
-                  borderRadius: BorderRadius.circular(4),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 5, vertical: 4),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          TablerIcons.brand_whatsapp,
-                          size: 15,
-                          color: Color(0xFF25D366),
-                        ),
-                        SizedBox(width: 3),
-                        Text(
-                          'WA',
-                          style: TextStyle(
-                            fontFamily: 'PlusJakartaSans',
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF16A34A),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
+              ),
           ],
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
