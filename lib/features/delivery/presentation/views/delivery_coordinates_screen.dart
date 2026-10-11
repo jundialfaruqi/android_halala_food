@@ -1573,43 +1573,30 @@ class _DeliveryCoordinatesScreenState
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Baris Nama Toko & Badge Status
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            store?.name ?? 'Toko Mitra',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontFamily: 'PlusJakartaSans',
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.brandEspresso,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: statusColor.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            delivery.statusLabel,
-                            style: TextStyle(
-                              fontFamily: 'PlusJakartaSans',
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: statusColor,
-                            ),
-                          ),
-                        ),
-                      ],
+                    // Status Pengantaran (Teks Saja)
+                    Text(
+                      delivery.statusLabel,
+                      style: TextStyle(
+                        fontFamily: 'PlusJakartaSans',
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
+                        color: statusColor,
+                      ),
+                    ),
+
+                    const SizedBox(height: 2),
+
+                    // Nama Toko
+                    Text(
+                      store?.name ?? 'Toko Mitra',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily: 'PlusJakartaSans',
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.brandEspresso,
+                      ),
                     ),
 
                     const SizedBox(height: 3),
