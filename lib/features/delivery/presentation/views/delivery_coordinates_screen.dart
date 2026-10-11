@@ -13,6 +13,7 @@ import '../../../../core/services/routing_service.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../data/datasources/delivery_remote_datasource.dart';
 import '../../data/models/delivery_model.dart';
+import 'delivery_detail_screen.dart';
 
 /// Halaman Titik Kordinat Pengantaran
 /// Menampilkan semua titik lokasi pengantaran mitra toko pada peta interaktif,
@@ -1788,51 +1789,106 @@ class _DeliveryCoordinatesScreenState
 
               const SizedBox(width: 10),
 
-              // 3. TOMBOL AKSI RUTE
-              // Menghubungkan titik dengan pengguna melalui garis jalan melekuk OSRM
-              InkWell(
-                onTap: () {
-                  if (isSelected) {
-                    _clearRouteAndSelection();
-                  } else {
-                    _selectDeliveryAndShowRoute(delivery);
-                  }
-                },
-                borderRadius: BorderRadius.circular(8),
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? AppColors.brandPrimary
-                        : AppColors.brandPrimary.withValues(alpha: 0.12),
+              // 3. TOMBOL AKSI: RUTE & SURAT JALAN
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Tombol Rute
+                  InkWell(
+                    onTap: () {
+                      if (isSelected) {
+                        _clearRouteAndSelection();
+                      } else {
+                        _selectDeliveryAndShowRoute(delivery);
+                      }
+                    },
                     borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        TablerIcons.route,
-                        size: 15,
+                    child: Container(
+                      width: 66,
+                      padding: const EdgeInsets.symmetric(vertical: 5.5),
+                      decoration: BoxDecoration(
                         color: isSelected
-                            ? Colors.white
-                            : AppColors.brandPrimary,
+                            ? AppColors.brandPrimary
+                            : AppColors.brandPrimary.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Rute',
-                        style: TextStyle(
-                          fontFamily: 'PlusJakartaSans',
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w700,
-                          color: isSelected
-                              ? Colors.white
-                              : AppColors.brandPrimary,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            TablerIcons.route,
+                            size: 13.5,
+                            color: isSelected
+                                ? Colors.white
+                                : AppColors.brandPrimary,
+                          ),
+                          const SizedBox(width: 3.5),
+                          Text(
+                            'Rute',
+                            style: TextStyle(
+                              fontFamily: 'PlusJakartaSans',
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: isSelected
+                                  ? Colors.white
+                                  : AppColors.brandPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 6),
+
+                  // Tombol Surat (Buka Rincian Surat Jalan)
+                  InkWell(
+                    onTap: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => DeliveryDetailScreen(
+                            deliveryId: delivery.id,
+                          ),
+                        ),
+                      );
+                      _loadDeliveries();
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      width: 66,
+                      padding: const EdgeInsets.symmetric(vertical: 5.5),
+                      decoration: BoxDecoration(
+                        color: AppColors.background,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: AppColors.brandBorder,
+                          width: 1,
                         ),
                       ),
-                    ],
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            TablerIcons.file_text,
+                            size: 13.5,
+                            color: AppColors.brandEspresso,
+                          ),
+                          SizedBox(width: 3.5),
+                          Text(
+                            'Surat',
+                            style: TextStyle(
+                              fontFamily: 'PlusJakartaSans',
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.brandEspresso,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
             ],
           ),
