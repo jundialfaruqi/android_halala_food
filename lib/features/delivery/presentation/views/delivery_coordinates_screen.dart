@@ -1340,79 +1340,138 @@ class _DeliveryCoordinatesScreenState
           ),
           child: Column(
             children: [
-              // Drag Handle Pill
-              Center(
-                child: Container(
-                  margin: const EdgeInsets.only(top: 10, bottom: 6),
-                  width: 38,
-                  height: 4.5,
-                  decoration: BoxDecoration(
-                    color: AppColors.brandBorder,
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                ),
-              ),
+              // Area Header yang Bisa Ditarik / Digeser (Draggable Header)
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onVerticalDragUpdate: (details) {
+                  if (!_sheetController.isAttached) return;
+                  final screenHeight = MediaQuery.of(context).size.height;
+                  if (screenHeight <= 0) return;
+                  final delta = -details.primaryDelta! / screenHeight;
+                  final newSize =
+                      (_sheetController.size + delta).clamp(0.16, 0.82);
+                  _sheetController.jumpTo(newSize);
+                },
+                onVerticalDragEnd: (details) {
+                  if (!_sheetController.isAttached) return;
+                  final screenHeight = MediaQuery.of(context).size.height;
+                  final velocity =
+                      details.primaryVelocity != null && screenHeight > 0
+                          ? -details.primaryVelocity! / screenHeight
+                          : 0.0;
+                  final currentSize = _sheetController.size;
 
-              // Header Sheet: Judul & Subtitle Pengurutan Terdekat
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                child: Row(
+                  const snapSizes = [0.16, 0.34, 0.82];
+                  double targetSize;
+
+                  if (velocity > 0.4) {
+                    targetSize = currentSize < 0.34 ? 0.34 : 0.82;
+                  } else if (velocity < -0.4) {
+                    targetSize = currentSize > 0.34 ? 0.34 : 0.16;
+                  } else {
+                    targetSize = snapSizes.reduce((a, b) =>
+                        (a - currentSize).abs() < (b - currentSize).abs()
+                            ? a
+                            : b);
+                  }
+
+                  _sheetController.animateTo(
+                    targetSize,
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeOutCubic,
+                  );
+                },
+                onTap: () {
+                  if (!_sheetController.isAttached) return;
+                  final currentSize = _sheetController.size;
+                  final targetSize = currentSize < 0.25
+                      ? 0.34
+                      : (currentSize < 0.5 ? 0.82 : 0.16);
+                  _sheetController.animateTo(
+                    targetSize,
+                    duration: const Duration(milliseconds: 280),
+                    curve: Curves.easeOutCubic,
+                  );
+                },
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    // Drag Handle Pill
+                    Center(
+                      child: Container(
+                        margin: const EdgeInsets.only(top: 10, bottom: 6),
+                        width: 38,
+                        height: 4.5,
+                        decoration: BoxDecoration(
+                          color: AppColors.brandBorder,
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      ),
+                    ),
+
+                    // Header Sheet: Judul & Subtitle Pengurutan Terdekat
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                      child: Row(
                         children: [
-                          Text(
-                            'Daftar Pengantaran Toko (${sortedList.length})',
-                            style: const TextStyle(
-                              fontFamily: 'PlusJakartaSans',
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.brandEspresso,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Daftar Pengantaran Toko (${sortedList.length})',
+                                  style: const TextStyle(
+                                    fontFamily: 'PlusJakartaSans',
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.brandEspresso,
+                                  ),
+                                ),
+                                const SizedBox(height: 1),
+                                Row(
+                                  children: [
+                                    Icon(
+                                      TablerIcons.location,
+                                      size: 12,
+                                      color: _myLocation != null
+                                          ? AppColors.brandPrimary
+                                          : AppColors.brandWarmGray,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      _myLocation != null
+                                          ? 'Diurutkan dari posisi GPS terdekat'
+                                          : 'Menunggu deteksi GPS posisi Anda...',
+                                      style: TextStyle(
+                                        fontFamily: 'PlusJakartaSans',
+                                        fontSize: 11,
+                                        color: _myLocation != null
+                                            ? AppColors.brandPrimary
+                                            : AppColors.brandWarmGray,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
                           ),
-                          const SizedBox(height: 1),
-                          Row(
-                            children: [
-                              Icon(
-                                TablerIcons.location,
-                                size: 12,
-                                color: _myLocation != null
-                                    ? AppColors.brandPrimary
-                                    : AppColors.brandWarmGray,
+                          if (_isLoadingRoute)
+                            const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppColors.brandPrimary,
                               ),
-                              const SizedBox(width: 4),
-                              Text(
-                                _myLocation != null
-                                    ? 'Diurutkan dari posisi GPS terdekat'
-                                    : 'Menunggu deteksi GPS posisi Anda...',
-                                style: TextStyle(
-                                  fontFamily: 'PlusJakartaSans',
-                                  fontSize: 11,
-                                  color: _myLocation != null
-                                      ? AppColors.brandPrimary
-                                      : AppColors.brandWarmGray,
-                                ),
-                              ),
-                            ],
-                          ),
+                            ),
                         ],
                       ),
                     ),
-                    if (_isLoadingRoute)
-                      const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: AppColors.brandPrimary,
-                        ),
-                      ),
+
+                    const Divider(height: 1, color: AppColors.brandBorder),
                   ],
                 ),
               ),
-
-              const Divider(height: 1, color: AppColors.brandBorder),
 
               // Konten List Toko
               Expanded(
@@ -1431,18 +1490,24 @@ class _DeliveryCoordinatesScreenState
     List<DeliveryModel> sortedList,
   ) {
     if (_isLoadingDeliveries) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(24.0),
-          child: CircularProgressIndicator(
-            color: AppColors.brandPrimary,
+      return SingleChildScrollView(
+        controller: scrollController,
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: const SizedBox(
+          height: 180,
+          child: Center(
+            child: CircularProgressIndicator(
+              color: AppColors.brandPrimary,
+            ),
           ),
         ),
       );
     }
 
     if (_errorMessage != null) {
-      return Center(
+      return SingleChildScrollView(
+        controller: scrollController,
+        physics: const AlwaysScrollableScrollPhysics(),
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
@@ -1477,7 +1542,9 @@ class _DeliveryCoordinatesScreenState
     }
 
     if (sortedList.isEmpty) {
-      return Center(
+      return SingleChildScrollView(
+        controller: scrollController,
+        physics: const AlwaysScrollableScrollPhysics(),
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
