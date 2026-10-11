@@ -19,6 +19,8 @@ import '../../../store/presentation/views/store_coordinates_screen.dart';
 import '../../../store/presentation/views/store_screen.dart';
 import '../../../user/presentation/views/user_screen.dart';
 
+import '../widgets/home_bottom_navigation_bar.dart';
+
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
@@ -27,6 +29,8 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
+  int _currentNavIndex = 0;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -76,6 +80,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.dark,
       appBar: null,
+      bottomNavigationBar: HomeBottomNavigationBar(
+        currentIndex: _currentNavIndex,
+        onTap: (index) {
+          setState(() {
+            _currentNavIndex = index;
+          });
+        },
+      ),
       body: LayoutBuilder(
         builder: (context, constraints) {
           final headerHeight = constraints.maxWidth * 9 / 16;
