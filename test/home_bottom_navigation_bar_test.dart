@@ -82,9 +82,9 @@ void main() {
       expect(qrIcon.color, equals(Colors.white));
       expect(qrIcon.size, greaterThan(24.0)); // Larger than the 24px standard icons
 
-      // Verify Scan QR text is white
+      // Verify Scan QR text is black and outside the circular card
       final scanQrText = tester.widget<Text>(find.text('Scan QR'));
-      expect(scanQrText.style?.color, equals(Colors.white));
+      expect(scanQrText.style?.color, equals(Colors.black));
     });
 
     testWidgets('Navbar container has no top border', (WidgetTester tester) async {

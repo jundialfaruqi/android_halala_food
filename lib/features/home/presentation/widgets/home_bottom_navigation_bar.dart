@@ -112,63 +112,62 @@ class HomeBottomNavigationBar extends StatelessWidget {
   }
 
   /// Membangun tombol Scan QR di tengah:
-  /// - Rounded circle dengan background primary
-  /// - Icon Scan QR warna putih (ukuran sedikit lebih besar dari yang lain)
-  /// - Teks Scan QR warna putih
+  /// Membangun tombol Scan QR di tengah:
+  /// - Card bulat berisi hanya icon Scan QR putih
+  /// - Card bulat dinaikkan ke atas agar ada jarak dengan teks di bawahnya
+  /// - Teks "Scan QR" di luar card, sejajar dengan teks menu lainnya, warna hitam
   Widget _buildCenterQrItem() {
     return Expanded(
-      child: Center(
-        child: Transform.translate(
-          offset: const Offset(0, -14),
-          child: Material(
-            color: Colors.transparent,
-            shape: const CircleBorder(),
-            child: InkWell(
-              onTap: () => onTap?.call(2),
-              customBorder: const CircleBorder(),
-              splashColor: Colors.white.withValues(alpha: 0.25),
-              highlightColor: Colors.white.withValues(alpha: 0.15),
-              child: Container(
-                width: 78,
-                height: 78,
-                decoration: BoxDecoration(
-                  color: AppColors.brandPrimary,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Colors.white,
-                    width: 5.0,
-                  ),
-                ),
-                child: const Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(TablerIcons.qrcode, size: 26, color: Colors.white),
-                      SizedBox(height: 2),
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 8),
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            'Scan QR',
-                            maxLines: 1,
-                            softWrap: false,
-                            style: TextStyle(
-                              fontFamily: 'PlusJakartaSans',
-                              fontSize: 9.5,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                              letterSpacing: -0.2,
-                              height: 1.1,
-                            ),
-                          ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => onTap?.call(2),
+          splashColor: Colors.black.withValues(alpha: 0.05),
+          highlightColor: Colors.transparent,
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  height: 24,
+                  child: OverflowBox(
+                    maxHeight: 80,
+                    maxWidth: 80,
+                    child: Transform.translate(
+                      offset: const Offset(0, -14),
+                      child: Container(
+                        width: 58,
+                        height: 58,
+                        decoration: BoxDecoration(
+                          color: AppColors.brandPrimary,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 4.5),
+                        ),
+                        alignment: Alignment.center,
+                        child: const Icon(
+                          TablerIcons.qrcode,
+                          size: 28,
+                          color: Colors.white,
                         ),
                       ),
-                    ],
+                    ),
                   ),
                 ),
-              ),
+                const SizedBox(height: 3),
+                const Text(
+                  'Scan QR',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: 'PlusJakartaSans',
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black,
+                    letterSpacing: -0.1,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
