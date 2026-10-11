@@ -7,6 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/services/routing_service.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../data/models/delivery_model.dart';
 import '../../data/repositories/delivery_repository_impl.dart';
@@ -41,6 +42,13 @@ class _DeliveryTrackingScreenState extends ConsumerState<DeliveryTrackingScreen>
   LatLng? _myLocation;
   bool _isFetchingLocation = true;
   double? _distanceMeters;
+
+  // State untuk Rute Jalan Raya OSRM
+  List<LatLng> _routePoints = [];
+  double? _routeDistanceMeters;
+  double? _routeDurationSeconds;
+  bool _isLoadingRoute = false;
+  LatLng? _lastRoutedLocation;
 
   // Titik default jika belum ada koordinat
   static const LatLng _defaultLocation = LatLng(-7.983908, 112.630852);
@@ -93,7 +101,7 @@ class _DeliveryTrackingScreenState extends ConsumerState<DeliveryTrackingScreen>
           _delivery = updated;
           _isLoadingDelivery = false;
         });
-        _calculateDistance();
+        _calculateDistance(forceRoute: true);
         _fitCameraToBounds();
       }
     } catch (e) {
@@ -168,7 +176,7 @@ class _DeliveryTrackingScreenState extends ConsumerState<DeliveryTrackingScreen>
           _isFetchingLocation = false;
         });
 
-        _calculateDistance();
+        _calculateDistance(forceRoute: true);
         _fitCameraToBounds();
       }
 
@@ -187,7 +195,7 @@ class _DeliveryTrackingScreenState extends ConsumerState<DeliveryTrackingScreen>
         setState(() {
           _myLocation = LatLng(pos.latitude, pos.longitude);
         });
-        _calculateDistance();
+        _calculateDistance(forceRoute: false);
       });
     } catch (_) {
       if (mounted) {
@@ -196,7 +204,7 @@ class _DeliveryTrackingScreenState extends ConsumerState<DeliveryTrackingScreen>
     }
   }
 
-  void _calculateDistance() {
+  void _calculateDistance({bool forceRoute = false}) {
     if (_myLocation != null && _storeLocation != null) {
       final meters = Geolocator.distanceBetween(
         _myLocation!.latitude,
@@ -207,18 +215,90 @@ class _DeliveryTrackingScreenState extends ConsumerState<DeliveryTrackingScreen>
       setState(() {
         _distanceMeters = meters;
       });
+      _fetchRoute(force: forceRoute);
+    }
+  }
+
+  Future<void> _fetchRoute({bool force = false}) async {
+    final origin = _myLocation;
+    final destination = _storeLocation;
+    if (origin == null || destination == null) return;
+
+    // Hemat kuota & request: jika bukan force dan pergeseran < 100m, tidak perlu re-fetch
+    if (!force && _lastRoutedLocation != null) {
+      final moved = Geolocator.distanceBetween(
+        _lastRoutedLocation!.latitude,
+        _lastRoutedLocation!.longitude,
+        origin.latitude,
+        origin.longitude,
+      );
+      if (moved < 100 && _routePoints.isNotEmpty) {
+        return;
+      }
+    }
+
+    if (_isLoadingRoute) return;
+    _isLoadingRoute = true;
+
+    try {
+      final routingService = ref.read(routingServiceProvider);
+      final result = await routingService.getRoute(
+        origin: origin,
+        destination: destination,
+      );
+
+      if (mounted) {
+        if (result != null && result.polylinePoints.isNotEmpty) {
+          setState(() {
+            _routePoints = result.polylinePoints;
+            _routeDistanceMeters = result.distanceMeters;
+            _routeDurationSeconds = result.durationSeconds;
+            _lastRoutedLocation = origin;
+            _isLoadingRoute = false;
+          });
+          // Update frame kamera agar menyesuaikan seluruh lekukan rute baru
+          if (force) {
+            _fitCameraToBounds();
+          }
+        } else {
+          // Fallback ke garis lurus jika API rute sedang timeout/offline
+          setState(() {
+            _routePoints = [origin, destination];
+            _isLoadingRoute = false;
+          });
+        }
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _routePoints = [origin, destination];
+          _isLoadingRoute = false;
+        });
+      }
     }
   }
 
   String _formatDistance() {
-    if (_distanceMeters == null) {
+    final dist = _routeDistanceMeters ?? _distanceMeters;
+    if (dist == null) {
       return _isFetchingLocation ? 'Mendeteksi GPS...' : 'Menghitung jarak...';
     }
-    if (_distanceMeters! < 1000) {
-      return '± ${_distanceMeters!.round()} m ke toko';
+    if (dist < 1000) {
+      return '± ${dist.round()} m';
     }
-    final km = _distanceMeters! / 1000;
-    return '± ${km.toStringAsFixed(1)} km ke toko';
+    final km = dist / 1000;
+    return '± ${km.toStringAsFixed(1)} km';
+  }
+
+  String? _formatDuration() {
+    if (_routeDurationSeconds == null) return null;
+    final totalMinutes = (_routeDurationSeconds! / 60).round();
+    if (totalMinutes < 1) return '< 1 mnt';
+    if (totalMinutes < 60) return '$totalMinutes mnt';
+    final hours = totalMinutes ~/ 60;
+    final mins = totalMinutes % 60;
+    if (mins == 0) return '$hours jam';
+    return '$hours jam $mins mnt';
   }
 
   void _fitCameraToBounds() {
@@ -228,9 +308,12 @@ class _DeliveryTrackingScreenState extends ConsumerState<DeliveryTrackingScreen>
       final myLoc = _myLocation;
 
       if (storeLoc != null && myLoc != null) {
+        final coords = _routePoints.isNotEmpty
+            ? _routePoints
+            : [myLoc, storeLoc];
         _mapController.fitCamera(
           CameraFit.coordinates(
-            coordinates: [myLoc, storeLoc],
+            coordinates: coords,
             // Padding bawah besar (270) agar titik tidak tertutup card info bawah
             padding: const EdgeInsets.fromLTRB(48, 120, 48, 270),
             maxZoom: 16.5,
@@ -333,18 +416,8 @@ class _DeliveryTrackingScreenState extends ConsumerState<DeliveryTrackingScreen>
 
     return AppStatusBar(
       child: AppScaffold(
-        appBar: AppAppBar(
+        appBar: const AppAppBar(
           title: 'Lacak Pengantaran',
-          actions: [
-            IconButton(
-              icon: const Icon(TablerIcons.refresh, size: 20),
-              tooltip: 'Muat Ulang Data',
-              onPressed: () {
-                _fetchDeliveryDetail();
-                _initGpsAndStartTracking();
-              },
-            ),
-          ],
         ),
         body: Stack(
           children: [
@@ -370,14 +443,27 @@ class _DeliveryTrackingScreenState extends ConsumerState<DeliveryTrackingScreen>
                   ),
                 ),
 
-                // Polyline Rute antara Kurir dan Toko
+                // Polyline Rute Jalan Raya antara Kurir dan Toko (OSRM Engine)
                 if (myLoc != null && storeLoc != null)
                   PolylineLayer(
                     polylines: [
+                      // Layer 1: Glow / Bayangan rute untuk visibilitas maksimal
                       Polyline(
-                        points: [myLoc, storeLoc],
-                        strokeWidth: 3.8,
-                        color: AppColors.brandPrimary.withValues(alpha: 0.85),
+                        points: _routePoints.isNotEmpty
+                            ? _routePoints
+                            : [myLoc, storeLoc],
+                        strokeWidth: 6.5,
+                        color: AppColors.brandPrimary.withValues(alpha: 0.25),
+                        strokeCap: StrokeCap.round,
+                        strokeJoin: StrokeJoin.round,
+                      ),
+                      // Layer 2: Garis rute utama jalan raya
+                      Polyline(
+                        points: _routePoints.isNotEmpty
+                            ? _routePoints
+                            : [myLoc, storeLoc],
+                        strokeWidth: 4.2,
+                        color: AppColors.brandPrimary,
                         strokeCap: StrokeCap.round,
                         strokeJoin: StrokeJoin.round,
                       ),
@@ -755,14 +841,22 @@ class _DeliveryTrackingScreenState extends ConsumerState<DeliveryTrackingScreen>
                       ),
                     ),
                     const SizedBox(height: 2),
-                    Text(
-                      '${_formatDistance()} • ${store?.route ?? 'Rute -'}',
-                      style: const TextStyle(
-                        fontFamily: 'PlusJakartaSans',
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.brandPrimary,
-                      ),
+                    Builder(
+                      builder: (context) {
+                        final duration = _formatDuration();
+                        final distText = duration != null
+                            ? '${_formatDistance()} (~$duration)'
+                            : _formatDistance();
+                        return Text(
+                          '$distText ke toko • ${store?.route ?? 'Rute -'}',
+                          style: const TextStyle(
+                            fontFamily: 'PlusJakartaSans',
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.brandPrimary,
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
