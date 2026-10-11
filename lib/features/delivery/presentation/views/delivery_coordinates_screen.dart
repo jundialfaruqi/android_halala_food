@@ -33,7 +33,8 @@ class DeliveryCoordinatesScreen extends ConsumerStatefulWidget {
 }
 
 class _DeliveryCoordinatesScreenState
-    extends ConsumerState<DeliveryCoordinatesScreen> {
+    extends ConsumerState<DeliveryCoordinatesScreen>
+    with WidgetsBindingObserver {
   final MapController _mapController = MapController();
   final DraggableScrollableController _sheetController =
       DraggableScrollableController();
@@ -62,28 +63,67 @@ class _DeliveryCoordinatesScreenState
   RouteResult? _routeResult;
   bool _isLoadingRoute = false;
 
+  // State untuk perizinan GPS & Lokasi
+  bool _isCheckingGps = false;
+  bool _isGpsModalOpen = false;
+  bool _isOpeningGpsSettings = false;
+  BuildContext? _gpsModalContext;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _selectedDate = widget.initialDate ?? DateTime.now();
-    _initGpsAndStartTracking();
     _loadDeliveries();
+
+    // Periksa status GPS perangkat & izin lokasi setelah frame pertama
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _initGpsAndStartTracking();
+      }
+    });
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _positionStreamSub?.cancel();
     _sheetController.dispose();
     super.dispose();
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Saat user kembali dari menu pengaturan HP untuk mengaktifkan GPS / izin lokasi
+      _initGpsAndStartTracking(isResumed: true);
+    }
+  }
+
   // -------------------------------------------------------------
   // GPS & Lokasi Pengguna
   // -------------------------------------------------------------
-  Future<void> _initGpsAndStartTracking() async {
+  Future<void> _initGpsAndStartTracking({
+    bool isResumed = false,
+    bool focusCamera = false,
+  }) async {
+    if (_isCheckingGps) return;
+    _isCheckingGps = true;
+
     try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
+      bool isServiceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!isServiceEnabled && isResumed) {
+        // Beri jeda singkat untuk OS Android memperbarui status GPS service saat kembali dari Setting HP
+        await Future.delayed(const Duration(milliseconds: 400));
+        if (!mounted) return;
+        isServiceEnabled = await Geolocator.isLocationServiceEnabled();
+      }
+
+      if (!isServiceEnabled) {
+        _isOpeningGpsSettings = false;
+        if (mounted && !_isGpsModalOpen) {
+          _showGpsPromptModal();
+        }
         return;
       }
 
@@ -92,12 +132,32 @@ class _DeliveryCoordinatesScreenState
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied ||
             permission == LocationPermission.deniedForever) {
+          _isOpeningGpsSettings = false;
+          if (mounted && !_isGpsModalOpen) {
+            _showGpsPromptModal(isPermissionDenied: true);
+          }
           return;
         }
       }
 
       if (permission == LocationPermission.deniedForever) {
+        _isOpeningGpsSettings = false;
+        if (mounted && !_isGpsModalOpen) {
+          _showGpsPromptModal(isPermissionDenied: true);
+        }
         return;
+      }
+
+      // GPS & Permission aktif -> reset flag pembukaan settings
+      _isOpeningGpsSettings = false;
+
+      // Jika modal prompt masih terbuka, tutup hanya modalnya
+      if (_isGpsModalOpen &&
+          _gpsModalContext != null &&
+          _gpsModalContext!.mounted) {
+        Navigator.of(_gpsModalContext!).pop();
+        _isGpsModalOpen = false;
+        _gpsModalContext = null;
       }
 
       Position? position;
@@ -122,11 +182,15 @@ class _DeliveryCoordinatesScreenState
           _myLocation = myLoc;
         });
 
-        // Jika rute belum difokuskan, pusatkan kamera
-        if (_deliveries.isNotEmpty) {
-          _fitCameraToBounds();
-        } else {
-          _mapController.move(myLoc, 14.5);
+        if (focusCamera) {
+          _mapController.move(myLoc, 16.5);
+        } else if (_routePoints.isEmpty) {
+          // Jika rute belum difokuskan, pusatkan kamera
+          if (_deliveries.isNotEmpty) {
+            _fitCameraToBounds();
+          } else {
+            _mapController.move(myLoc, 14.5);
+          }
         }
       }
 
@@ -146,7 +210,133 @@ class _DeliveryCoordinatesScreenState
           _myLocation = LatLng(pos.latitude, pos.longitude);
         });
       });
-    } catch (_) {}
+    } catch (_) {
+    } finally {
+      _isCheckingGps = false;
+    }
+  }
+
+  /// Modal Tampilkan Lokasi Saya di Maps saat GPS atau izin lokasi tidak aktif
+  void _showGpsPromptModal({bool isPermissionDenied = false}) {
+    if (_isGpsModalOpen) return;
+    _isGpsModalOpen = true;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isDismissible: false,
+      enableDrag: false,
+      builder: (modalContext) {
+        _gpsModalContext = modalContext;
+        return PopScope(
+          canPop: true,
+          onPopInvokedWithResult: (didPop, result) {
+            _isGpsModalOpen = false;
+            _gpsModalContext = null;
+            // Jika modal ditutup bukan karena menuju setting GPS (misal: tombol back HP atau cancel),
+            // tutup halaman titik pengantaran menuju screen sebelumnya sesuai requirement
+            if (!_isOpeningGpsSettings && mounted) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  Navigator.of(context).maybePop();
+                }
+              });
+            }
+          },
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: AppCard(
+                backgroundColor: Colors.white,
+                borderRadius: 20,
+                padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Handle bar minimalis
+                    Center(
+                      child: Container(
+                        width: 36,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: AppColors.brandBorder,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+
+                    // Judul Modal
+                    const Text(
+                      'Tampilkan Lokasi Saya',
+                      style: TextStyle(
+                        fontFamily: 'PlusJakartaSans',
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.brandEspresso,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Deskripsi Informasi GPS
+                    Text(
+                      isPermissionDenied
+                          ? 'Izin akses lokasi belum diberikan. Aktifkan izin lokasi untuk menampilkan posisi Anda saat ini di peta.'
+                          : 'Layanan GPS perangkat belum aktif. Hidupkan GPS untuk menampilkan lokasi Anda di peta dan otomatis memusatkan kordinat saya.',
+                      style: const TextStyle(
+                        fontFamily: 'PlusJakartaSans',
+                        fontSize: 13,
+                        color: AppColors.brandWarmGray,
+                        height: 1.45,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Tombol Call to Action: "Ya, hidupkan GPS" / "Buka Pengaturan Izin"
+                    AppButton(
+                      text: isPermissionDenied
+                          ? 'Buka Pengaturan Izin'
+                          : 'Ya, hidupkan GPS',
+                      onPressed: () async {
+                        _isOpeningGpsSettings = true;
+                        _isGpsModalOpen = false;
+                        _gpsModalContext = null;
+                        Navigator.of(modalContext).pop();
+
+                        if (isPermissionDenied) {
+                          await Geolocator.openAppSettings();
+                        } else {
+                          await Geolocator.openLocationSettings();
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Tombol Call to Action: "Tutup / Cancel"
+                    AppButton.outline(
+                      text: 'Tutup / Cancel',
+                      onPressed: () {
+                        _isOpeningGpsSettings = false;
+                        _isGpsModalOpen = false;
+                        _gpsModalContext = null;
+                        Navigator.of(modalContext).pop();
+                        if (mounted) {
+                          Navigator.of(context).maybePop();
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    ).then((_) {
+      _isGpsModalOpen = false;
+      _gpsModalContext = null;
+    });
   }
 
   // -------------------------------------------------------------
@@ -734,14 +924,18 @@ class _DeliveryCoordinatesScreenState
                   const SizedBox(height: 8),
 
                   // Fokus ke Lokasi Saya
-                  if (_myLocation != null) ...[
-                    _buildFloatingMapButton(
-                      icon: TablerIcons.moped,
-                      tooltip: 'Fokus ke Lokasi Saya',
-                      onTap: () => _mapController.move(_myLocation!, 16.5),
-                    ),
-                    const SizedBox(height: 8),
-                  ],
+                  _buildFloatingMapButton(
+                    icon: TablerIcons.moped,
+                    tooltip: 'Fokus ke Lokasi Saya',
+                    onTap: () {
+                      if (_myLocation != null) {
+                        _mapController.move(_myLocation!, 16.5);
+                      } else {
+                        _initGpsAndStartTracking(focusCamera: true);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 8),
 
                   // Tutup Rute Aktif & Batalkan Seleksi
                   if (_routePoints.isNotEmpty || _selectedDelivery != null)
