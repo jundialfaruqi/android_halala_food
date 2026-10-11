@@ -12,6 +12,7 @@ import '../../data/repositories/delivery_repository_impl.dart';
 import '../viewmodels/delivery_viewmodel.dart';
 import 'delivery_complete_screen.dart';
 import 'delivery_edit_screen.dart';
+import 'delivery_tracking_screen.dart';
 import '../../../invoice/data/repositories/invoice_repository_impl.dart';
 import '../../../invoice/presentation/views/invoice_detail_sheet.dart';
 
@@ -469,27 +470,69 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  Text(
-                    d.store!.name,
-                    style: const TextStyle(
-                      fontFamily: 'PlusJakartaSans',
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.brandEspresso,
-                    ),
-                  ),
-                  if (d.store!.ownerName != null &&
-                      d.store!.ownerName!.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      'Pemilik: ${d.store!.ownerName}',
-                      style: const TextStyle(
-                        fontFamily: 'PlusJakartaSans',
-                        fontSize: 13.5,
-                        color: AppColors.brandWarmGray,
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Container(
+                          width: 48,
+                          height: 48,
+                          color: AppColors.brandSoftCream,
+                          child: (d.store!.photoUrl != null &&
+                                  d.store!.photoUrl!.trim().isNotEmpty)
+                              ? AppCachedImage(
+                                  imageUrl: d.store!.photoUrl!,
+                                  width: 48,
+                                  height: 48,
+                                  fit: BoxFit.cover,
+                                )
+                              : Center(
+                                  child: Text(
+                                    d.store!.name.isNotEmpty
+                                        ? d.store!.name[0].toUpperCase()
+                                        : 'T',
+                                    style: const TextStyle(
+                                      fontFamily: 'PlusJakartaSans',
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.brandEspresso,
+                                    ),
+                                  ),
+                                ),
+                        ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              d.store!.name,
+                              style: const TextStyle(
+                                fontFamily: 'PlusJakartaSans',
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.brandEspresso,
+                              ),
+                            ),
+                            if (d.store!.ownerName != null &&
+                                d.store!.ownerName!.isNotEmpty) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                'Pemilik: ${d.store!.ownerName}',
+                                style: const TextStyle(
+                                  fontFamily: 'PlusJakartaSans',
+                                  fontSize: 13,
+                                  color: AppColors.brandWarmGray,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                   if (d.store!.phone != null && d.store!.phone!.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     _buildPhoneRow(
@@ -1223,7 +1266,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Baris 1: Titel teks Status & Tombol teks Lacak
-        _buildStatusStepperHeader(context),
+        _buildStatusStepperHeader(context, d),
 
         // Baris 2: Stepper vertical
         _buildVerticalStepper(d),
@@ -1235,7 +1278,7 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
   }
 
   /// Baris 1: Header status dengan judul 'Status' dan tombol aksi 'Lacak'
-  Widget _buildStatusStepperHeader(BuildContext context) {
+  Widget _buildStatusStepperHeader(BuildContext context, DeliveryModel d) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -1251,9 +1294,14 @@ class _DeliveryDetailScreenState extends ConsumerState<DeliveryDetailScreen> {
         ),
         InkWell(
           onTap: () {
-            AppSnackBar.showInfo(
+            Navigator.push(
               context,
-              message: 'Fitur pelacakan pengantaran sedang disiapkan.',
+              MaterialPageRoute(
+                builder: (_) => DeliveryTrackingScreen(
+                  deliveryId: d.id,
+                  initialDelivery: d,
+                ),
+              ),
             );
           },
           borderRadius: BorderRadius.circular(6),

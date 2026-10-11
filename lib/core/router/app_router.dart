@@ -6,6 +6,7 @@ import '../../features/auth/presentation/viewmodels/auth_viewmodel.dart';
 import '../../features/auth/presentation/views/login_screen.dart';
 import '../../features/auth/presentation/views/splash_screen.dart';
 import '../../features/delivery/presentation/views/delivery_detail_screen.dart';
+import '../../features/delivery/presentation/views/delivery_tracking_screen.dart';
 import '../../features/home/presentation/views/home_screen.dart';
 import '../../features/invoice/presentation/views/invoice_detail_screen.dart';
 import '../../features/report/presentation/views/report_screen.dart';
@@ -75,6 +76,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           final idStr = state.pathParameters['id'];
           final deliveryId = int.tryParse(idStr ?? '') ?? 0;
           return DeliveryDetailScreen(deliveryId: deliveryId);
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.deliveryTracking,
+        builder: (context, state) {
+          final idStr = state.pathParameters['id'];
+          final deliveryId = int.tryParse(idStr ?? '') ?? 0;
+          return DeliveryTrackingScreen(deliveryId: deliveryId);
         },
       ),
       GoRoute(

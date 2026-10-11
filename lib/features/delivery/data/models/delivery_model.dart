@@ -7,6 +7,8 @@ class DeliveryStoreModel {
   final String? route;
   final double? latitude;
   final double? longitude;
+  final String? photo;
+  final String? photoUrl;
 
   const DeliveryStoreModel({
     required this.id,
@@ -17,6 +19,8 @@ class DeliveryStoreModel {
     this.route,
     this.latitude,
     this.longitude,
+    this.photo,
+    this.photoUrl,
   });
 
   factory DeliveryStoreModel.fromJson(Map<String, dynamic> json) {
@@ -33,6 +37,8 @@ class DeliveryStoreModel {
       longitude: json['longitude'] != null
           ? double.tryParse(json['longitude'].toString())
           : null,
+      photo: json['photo']?.toString(),
+      photoUrl: json['photo_url']?.toString(),
     );
   }
 }
