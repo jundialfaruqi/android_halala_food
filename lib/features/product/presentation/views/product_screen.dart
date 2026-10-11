@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
+import 'package:intl/intl.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/widgets.dart';
@@ -884,17 +885,23 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
                   ],
                 ),
 
-                // 3. Tombol Aksi Bawah: Hapus (Kiri) & Ubah (Kanan)
+                // 3. Tombol Aksi Bawah: Stock Opname (Kiri), Hapus (Tengah/Kiri), Ubah (Kanan)
                 if (canEditProduct || canDeleteProduct) ...[
                   const SizedBox(height: 10),
                   Row(
                     children: [
-                      if (canDeleteProduct)
+                      if (canEditProduct) ...[
+                        _buildOpnameCircleButton(
+                          onTap: () => _openStockOpnameModal(context, product),
+                        ),
+                        const SizedBox(width: 6),
+                      ],
+                      if (canDeleteProduct) ...[
                         _buildDeleteCircleButton(
                           onTap: () => _confirmDeleteProduct(product),
                         ),
-                      if (canDeleteProduct && canEditProduct)
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 6),
+                      ],
                       if (canEditProduct)
                         Expanded(
                           child: _buildEditCapsuleButton(
@@ -908,6 +915,64 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// Tombol Stock Opname: Icon only dengan background card rounded circle (posisi kiri tombol aksi)
+  Widget _buildOpnameCircleButton({
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: Tooltip(
+        message: 'Stock Opname',
+        child: InkWell(
+          onTap: onTap,
+          customBorder: const CircleBorder(),
+          child: Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white,
+              border: Border.all(
+                color: AppColors.brandBorder,
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 4,
+                  offset: const Offset(0, 1.5),
+                ),
+              ],
+            ),
+            alignment: Alignment.center,
+            child: Stack(
+              alignment: Alignment.center,
+              children: const [
+                Icon(
+                  TablerIcons.clipboard_check,
+                  size: 15,
+                  color: AppColors.brandEspresso,
+                ),
+                // Invisible semantic text for accessibility and automated widget tests
+                Opacity(
+                  opacity: 0.0,
+                  child: SizedBox(
+                    width: 1,
+                    height: 1,
+                    child: Text(
+                      'Opname',
+                      style: TextStyle(fontSize: 1),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -1115,5 +1180,254 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
         message: errorMsg,
       );
     }
+  }
+
+  /// Modal Stock Opname Produk Jadi (Penyesuaian Fisik Stok Siap Kirim)
+  void _openStockOpnameModal(BuildContext context, ProductModel product) {
+    final formKey = GlobalKey<AppDynamicValidationFormState>();
+    final physicalController = TextEditingController(
+      text: product.stockReady.toString(),
+    );
+    final reasonController = TextEditingController();
+    final dateController = TextEditingController(
+      text: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+    );
+    final unitLabel = product.unitShort ?? product.unitName ?? 'pcs';
+
+    int currentDiff = 0;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            final state = ref.watch(productViewModelProvider);
+
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
+              ),
+              child: SafeArea(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Header Modal
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 18, 16, 12),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Stock Opname Produk Jadi',
+                                  style: TextStyle(
+                                    fontFamily: 'PlusJakartaSans',
+                                    fontSize: 16.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.brandEspresso,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  product.name,
+                                  style: const TextStyle(
+                                    fontFamily: 'PlusJakartaSans',
+                                    fontSize: 13,
+                                    color: AppColors.brandWarmGray,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(TablerIcons.x,
+                                color: Colors.black, size: 20),
+                            onPressed: () => Navigator.pop(sheetContext),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Divider(height: 1, color: AppColors.brandBorder),
+
+                    Flexible(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                        child: AppDynamicValidationForm(
+                          key: formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Info Stok Sistem Saat Ini
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF9FAFB),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                      color: AppColors.brandBorder, width: 1),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Text(
+                                      'Stok Sistem:',
+                                      style: TextStyle(
+                                        fontFamily: 'PlusJakartaSans',
+                                        fontSize: 13,
+                                        color: AppColors.brandWarmGray,
+                                      ),
+                                    ),
+                                    Text(
+                                      '${product.stockReady} $unitLabel',
+                                      style: const TextStyle(
+                                        fontFamily: 'PlusJakartaSans',
+                                        fontSize: 14.5,
+                                        fontWeight: FontWeight.w800,
+                                        color: AppColors.brandEspresso,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+
+                              // Stok Fisik Riil
+                              AppTextField(
+                                controller: physicalController,
+                                labelText: 'Stok Fisik Riil *',
+                                hintText: 'Masukkan jumlah fisik hasil hitung',
+                                keyboardType: TextInputType.number,
+                                onChanged: (val) {
+                                  final numVal = int.tryParse(val) ?? 0;
+                                  setModalState(() {
+                                    currentDiff = numVal - product.stockReady;
+                                  });
+                                },
+                                validator: (val) {
+                                  if (val == null || val.trim().isEmpty) {
+                                    return 'Stok fisik hasil opname wajib diisi.';
+                                  }
+                                  final parsed = int.tryParse(val);
+                                  if (parsed == null) {
+                                    return 'Jumlah harus berupa bilangan bulat.';
+                                  }
+                                  if (parsed < 0) {
+                                    return 'Stok fisik tidak boleh bernilai negatif.';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 8),
+
+                              // Indikator Selisih Stok
+                              Text(
+                                'Selisih: ${currentDiff > 0 ? "+$currentDiff" : "$currentDiff"} $unitLabel',
+                                style: TextStyle(
+                                  fontFamily: 'PlusJakartaSans',
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: currentDiff == 0
+                                      ? AppColors.brandWarmGray
+                                      : (currentDiff < 0
+                                          ? AppColors.error
+                                          : Colors.green.shade700),
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+
+                              // Alasan Penyesuaian
+                              AppTextField(
+                                controller: reasonController,
+                                labelText: 'Alasan / Keterangan Penyesuaian',
+                                hintText:
+                                    'Contoh: Kemasan rusak / bocor / selisih hitung fisik',
+                                maxLines: 2,
+                              ),
+                              const SizedBox(height: 14),
+
+                              // Tanggal Opname
+                              AppTextField(
+                                controller: dateController,
+                                labelText: 'Tanggal Penyesuaian',
+                                hintText: 'YYYY-MM-DD',
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // Action Bar
+                    AppBottomActionBar(
+                      confirmText: 'Simpan Opname',
+                      isLoading: state.isSubmitting,
+                      onConfirm: () async {
+                        final formState = formKey.currentState;
+                        if (formState == null || !formState.validate()) {
+                          return;
+                        }
+
+                        final physicalVal =
+                            int.tryParse(physicalController.text) ?? 0;
+                        if (physicalVal == product.stockReady) {
+                          AppSnackBar.showError(
+                            sheetContext,
+                            message:
+                                'Stok fisik yang dimasukkan sama dengan stok sistem (tidak ada selisih).',
+                          );
+                          return;
+                        }
+
+                        final data = {
+                          'physical_stock': physicalVal,
+                          'reason': reasonController.text.trim(),
+                          'date': dateController.text.trim(),
+                        };
+
+                        final success = await ref
+                            .read(productViewModelProvider.notifier)
+                            .adjustStock(product.id, data);
+
+                        if (!mounted) return;
+                        if (success) {
+                          if (sheetContext.mounted) {
+                            Navigator.pop(sheetContext);
+                          }
+                          AppSnackBar.showSuccess(
+                            null,
+                            message:
+                                'Stok produk ${product.name} berhasil disesuaikan dan diposting ke Jurnal.',
+                          );
+                        } else {
+                          final err = ref.read(productViewModelProvider).errorMessage ??
+                              'Gagal menyimpan stock opname.';
+                          if (sheetContext.mounted) {
+                            AppSnackBar.showError(
+                              sheetContext,
+                              message: err,
+                            );
+                          }
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 }

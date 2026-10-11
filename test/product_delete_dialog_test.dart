@@ -63,6 +63,10 @@ class MockProductRepoForDeleteTest implements ProductRepository {
   Future<void> deleteProduct(int id) async {
     deletedProductId = id;
   }
+
+  @override
+  Future<ProductModel> adjustStock(int id, Map<String, dynamic> data) async =>
+      dummyProduct;
 }
 
 class FakeAuthViewModelWithPermissions extends AuthViewModel {

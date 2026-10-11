@@ -84,6 +84,10 @@ class MockProductRepoForEditTest implements ProductRepository {
 
   @override
   Future<void> deleteProduct(int id) async {}
+
+  @override
+  Future<ProductModel> adjustStock(int id, Map<String, dynamic> data) async =>
+      dummyProduct;
 }
 
 class FakeAuthViewModelWithPermission extends AuthViewModel {

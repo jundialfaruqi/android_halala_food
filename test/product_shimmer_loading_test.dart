@@ -52,6 +52,11 @@ class DelayedProductRepository implements ProductRepository {
   Future<void> deleteProduct(int id) async {
     throw UnimplementedError();
   }
+
+  @override
+  Future<ProductModel> adjustStock(int id, Map<String, dynamic> data) async {
+    throw UnimplementedError();
+  }
 }
 
 class FakeAuthViewModel extends AuthViewModel {

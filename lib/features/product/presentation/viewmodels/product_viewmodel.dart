@@ -6,6 +6,7 @@ import '../../domain/repositories/product_repository.dart';
 class ProductState {
   final bool isLoading;
   final bool isLoadingMore;
+  final bool isSubmitting;
   final List<ProductModel> products;
   final ProductPaginationModel? pagination;
   final String searchQuery;
@@ -17,6 +18,7 @@ class ProductState {
   const ProductState({
     this.isLoading = false,
     this.isLoadingMore = false,
+    this.isSubmitting = false,
     this.products = const [],
     this.pagination,
     this.searchQuery = '',
@@ -37,6 +39,7 @@ class ProductState {
   ProductState copyWith({
     bool? isLoading,
     bool? isLoadingMore,
+    bool? isSubmitting,
     List<ProductModel>? products,
     ProductPaginationModel? pagination,
     String? searchQuery,
@@ -50,6 +53,7 @@ class ProductState {
     return ProductState(
       isLoading: isLoading ?? this.isLoading,
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+      isSubmitting: isSubmitting ?? this.isSubmitting,
       products: products ?? this.products,
       pagination: pagination ?? this.pagination,
       searchQuery: searchQuery ?? this.searchQuery,
@@ -194,5 +198,22 @@ class ProductViewModel extends Notifier<ProductState> {
   Future<void> deleteProduct(int id) async {
     await _repository.deleteProduct(id);
     await fetchProducts(refresh: true);
+  }
+
+  /// Stock Opname: Penyesuaian fisik stok produk jadi dan posting jurnal otomatis
+  Future<bool> adjustStock(int id, Map<String, dynamic> data) async {
+    state = state.copyWith(isSubmitting: true, clearError: true);
+    try {
+      await _repository.adjustStock(id, data);
+      state = state.copyWith(isSubmitting: false);
+      await fetchProducts(refresh: true);
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+        isSubmitting: false,
+        errorMessage: e.toString().replaceFirst('Exception: ', ''),
+      );
+      return false;
+    }
   }
 }

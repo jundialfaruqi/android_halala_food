@@ -111,6 +111,18 @@ class MockProductRepoForCreateTest implements ProductRepository {
 
   @override
   Future<void> deleteProduct(int id) async {}
+
+  @override
+  Future<ProductModel> adjustStock(int id, Map<String, dynamic> data) async =>
+      const ProductModel(
+        id: 1,
+        name: 'Dummy',
+        consignmentPrice: 10000,
+        consignmentPriceFormatted: 'Rp 10.000',
+        retailPrice: 12000,
+        retailPriceFormatted: 'Rp 12.000',
+        stockReady: 5,
+      );
 }
 
 void main() {

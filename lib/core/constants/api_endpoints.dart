@@ -10,6 +10,7 @@ class ApiEndpoints {
   // Products
   static const String products = '/products';
   static const String productUnits = '/products/units';
+  static String productAdjustStock(int id) => '$products/$id/adjust-stock';
   
   // Stores (Toko Mitra)
   static const String stores = '/stores';

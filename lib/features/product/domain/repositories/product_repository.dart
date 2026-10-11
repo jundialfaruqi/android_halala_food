@@ -16,4 +16,5 @@ abstract class ProductRepository {
   Future<ProductModel> createProduct(Map<String, dynamic> data);
   Future<ProductModel> updateProduct(int id, Map<String, dynamic> data);
   Future<void> deleteProduct(int id);
+  Future<ProductModel> adjustStock(int id, Map<String, dynamic> data);
 }
