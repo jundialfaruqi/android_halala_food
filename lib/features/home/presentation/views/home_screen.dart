@@ -14,6 +14,7 @@ import '../../../product/presentation/views/product_screen.dart';
 import '../../../production/presentation/views/production_screen.dart';
 import '../../../purchase/presentation/views/purchase_screen.dart';
 import '../../../raw_material/presentation/views/raw_material_screen.dart';
+import '../../../report/presentation/views/report_screen.dart';
 import '../../../store/presentation/views/store_coordinates_screen.dart';
 import '../../../store/presentation/views/store_screen.dart';
 import '../../../user/presentation/views/user_screen.dart';
@@ -502,6 +503,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
 
             if (menu.title == 'Pembelian') {
               _navigateTo(const PurchaseScreen());
+              return;
+            }
+
+            if (menu.title == 'Laporan') {
+              _navigateTo(const ReportScreen());
               return;
             }
 

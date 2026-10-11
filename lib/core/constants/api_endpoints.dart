@@ -69,4 +69,7 @@ class ApiEndpoints {
 
   // Dashboard & Profile
   static const String dashboard = '/dashboard';
+
+  // Reports (Laporan & Rekapitulasi Bisnis)
+  static const String reports = '/reports';
 }
