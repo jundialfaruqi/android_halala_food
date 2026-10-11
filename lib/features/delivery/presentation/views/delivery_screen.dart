@@ -6,6 +6,7 @@ import '../../../../core/widgets/widgets.dart';
 import '../../../auth/presentation/viewmodels/auth_viewmodel.dart';
 import '../../data/models/delivery_model.dart';
 import '../viewmodels/delivery_viewmodel.dart';
+import 'delivery_coordinates_screen.dart';
 import 'delivery_create_screen.dart';
 import 'delivery_detail_screen.dart';
 import 'delivery_edit_screen.dart';
@@ -238,6 +239,22 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
                         ref
                             .read(deliveryViewModelProvider.notifier)
                             .setRouteFilter(route);
+                      },
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Tombol Lihat Titik Kordinat Pengantaran
+                    AppButton(
+                      text: 'Lihat Titik Kordinat Pengantaran',
+                      icon: const Icon(TablerIcons.map_pin, size: 18, color: Colors.white),
+                      height: 44,
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const DeliveryCoordinatesScreen(),
+                          ),
+                        );
                       },
                     ),
                   ],
