@@ -8,12 +8,15 @@ import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/services/routing_service.dart';
+import '../../../../core/services/websocket_service.dart';
 import '../../../../core/widgets/widgets.dart';
+import '../../../auth/presentation/viewmodels/auth_viewmodel.dart';
 import '../../data/models/delivery_model.dart';
 import '../../data/repositories/delivery_repository_impl.dart';
+import '../../domain/repositories/delivery_repository.dart';
 
 /// Halaman Lacak Pengantaran Kurir (Courier Tracking Screen)
-/// Menampilkan peta rute interaktif antara posisi kurir/pengguna dan toko tujuan,
+/// Menampilkan peta rute interaktif antara posisi kurir dan toko tujuan,
 /// perhitungan jarak dinamis, kontrol kamera peta, serta info lengkap surat jalan & kontak.
 class DeliveryTrackingScreen extends ConsumerStatefulWidget {
   final int deliveryId;
@@ -33,14 +36,25 @@ class DeliveryTrackingScreen extends ConsumerStatefulWidget {
 class _DeliveryTrackingScreenState extends ConsumerState<DeliveryTrackingScreen>
     with WidgetsBindingObserver {
   late final MapController _mapController;
+  late final DeliveryRepository _deliveryRepository;
+  late final WebSocketService _webSocketService;
+  int? _currentUserId;
+
   StreamSubscription<Position>? _positionStreamSub;
+  StreamSubscription<Map<String, dynamic>>? _wsLocationSub;
 
   DeliveryModel? _delivery;
   bool _isLoadingDelivery = false;
   String? _errorMessage;
 
+  // Posisi Kurir yang Sebenarnya (baik dari GPS hp kurir atau live streaming Reverb)
+  LatLng? _courierLocation;
+  bool _isCourierOnline = false;
+  DateTime? _lastCourierLocationTime;
+  DateTime? _lastSentGpsTime;
+
+  // Posisi GPS perangkat yang membuka layar (Viewer)
   LatLng? _myLocation;
-  bool _isFetchingLocation = true;
   double? _distanceMeters;
 
   // State untuk Rute Jalan Raya OSRM
@@ -52,6 +66,18 @@ class _DeliveryTrackingScreenState extends ConsumerState<DeliveryTrackingScreen>
 
   // Titik default jika belum ada koordinat
   static const LatLng _defaultLocation = LatLng(-7.983908, 112.630852);
+
+  bool get _isCurrentUserCourier {
+    final courierId = _delivery?.courierId ?? _delivery?.courier?.id;
+    return _currentUserId != null && courierId != null && _currentUserId == courierId;
+  }
+
+  LatLng? get _effectiveOrigin {
+    if (_isCurrentUserCourier) {
+      return _courierLocation ?? _myLocation;
+    }
+    return _courierLocation;
+  }
 
   LatLng? get _storeLocation {
     final s = _delivery?.store;
@@ -66,7 +92,19 @@ class _DeliveryTrackingScreenState extends ConsumerState<DeliveryTrackingScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _mapController = MapController();
+    _deliveryRepository = ref.read(deliveryRepositoryProvider);
+    _webSocketService = ref.read(webSocketServiceProvider);
+    _currentUserId = ref.read(authViewModelProvider).user?.id;
     _delivery = widget.initialDelivery;
+
+    // Jika initialDelivery ada dan viewer bukan kurir, inisialisasi last_location kurir
+    if (_delivery?.courier != null && !_isCurrentUserCourier) {
+      final c = _delivery!.courier!;
+      if (c.lastLatitude != null && c.lastLongitude != null) {
+        _courierLocation = LatLng(c.lastLatitude!, c.lastLongitude!);
+        _lastCourierLocationTime = c.lastLocationUpdatedAt;
+      }
+    }
 
     _fetchDeliveryDetail();
     _initGpsAndStartTracking();
@@ -76,6 +114,11 @@ class _DeliveryTrackingScreenState extends ConsumerState<DeliveryTrackingScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _positionStreamSub?.cancel();
+    _wsLocationSub?.cancel();
+    if (!_isCurrentUserCourier) {
+      _deliveryRepository.unwatchDelivery(widget.deliveryId).catchError((_) {});
+      _webSocketService.unsubscribeFromDeliveryTracking(widget.deliveryId);
+    }
     _mapController.dispose();
     super.dispose();
   }
@@ -84,6 +127,9 @@ class _DeliveryTrackingScreenState extends ConsumerState<DeliveryTrackingScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _initGpsAndStartTracking(isResumed: true);
+      if (!_isCurrentUserCourier) {
+        _setupOnDemandTracking();
+      }
     }
   }
 
@@ -100,7 +146,19 @@ class _DeliveryTrackingScreenState extends ConsumerState<DeliveryTrackingScreen>
         setState(() {
           _delivery = updated;
           _isLoadingDelivery = false;
+          // Inisialisasi posisi kurir dari server jika viewer bukan kurir
+          if (!_isCurrentUserCourier && _courierLocation == null) {
+            if (updated.courier?.lastLatitude != null && updated.courier?.lastLongitude != null) {
+              _courierLocation = LatLng(updated.courier!.lastLatitude!, updated.courier!.lastLongitude!);
+              _lastCourierLocationTime = updated.courier!.lastLocationUpdatedAt;
+            }
+          }
         });
+
+        if (!_isCurrentUserCourier) {
+          _setupOnDemandTracking();
+        }
+
         _calculateDistance(forceRoute: true);
         _fitCameraToBounds();
       }
@@ -114,11 +172,37 @@ class _DeliveryTrackingScreenState extends ConsumerState<DeliveryTrackingScreen>
     }
   }
 
-  Future<void> _initGpsAndStartTracking({bool isResumed = false}) async {
-    setState(() {
-      _isFetchingLocation = true;
+  void _setupOnDemandTracking() {
+    _wsLocationSub?.cancel();
+    final wsService = ref.read(webSocketServiceProvider);
+    wsService.subscribeToDeliveryTracking(widget.deliveryId);
+
+    _wsLocationSub = wsService.onCourierLocationUpdated.listen((payload) {
+      final delivId = payload['delivery_id'] is int
+          ? payload['delivery_id'] as int
+          : int.tryParse(payload['delivery_id']?.toString() ?? '');
+      if (delivId == widget.deliveryId) {
+        final lat = double.tryParse(payload['latitude']?.toString() ?? '');
+        final lng = double.tryParse(payload['longitude']?.toString() ?? '');
+        if (lat != null && lng != null && mounted) {
+          setState(() {
+            _courierLocation = LatLng(lat, lng);
+            _isCourierOnline = true;
+            _lastCourierLocationTime =
+                DateTime.tryParse(payload['updated_at']?.toString() ?? '') ?? DateTime.now();
+          });
+          _calculateDistance(forceRoute: false);
+        }
+      }
     });
 
+    // Beri tahu server dan kurir bahwa kita sedang memantau pengantaran ini (Metode 1 On-Demand)
+    ref.read(deliveryRepositoryProvider).watchDelivery(widget.deliveryId).catchError((e) {
+      debugPrint('[DeliveryTrackingScreen] Error calling watch: $e');
+    });
+  }
+
+  Future<void> _initGpsAndStartTracking({bool isResumed = false}) async {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled && isResumed) {
@@ -127,9 +211,6 @@ class _DeliveryTrackingScreenState extends ConsumerState<DeliveryTrackingScreen>
       }
 
       if (!serviceEnabled) {
-        if (mounted) {
-          setState(() => _isFetchingLocation = false);
-        }
         return;
       }
 
@@ -138,17 +219,11 @@ class _DeliveryTrackingScreenState extends ConsumerState<DeliveryTrackingScreen>
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied ||
             permission == LocationPermission.deniedForever) {
-          if (mounted) {
-            setState(() => _isFetchingLocation = false);
-          }
           return;
         }
       }
 
       if (permission == LocationPermission.deniedForever) {
-        if (mounted) {
-          setState(() => _isFetchingLocation = false);
-        }
         return;
       }
 
@@ -173,8 +248,16 @@ class _DeliveryTrackingScreenState extends ConsumerState<DeliveryTrackingScreen>
         final myLoc = LatLng(position.latitude, position.longitude);
         setState(() {
           _myLocation = myLoc;
-          _isFetchingLocation = false;
+          if (_isCurrentUserCourier) {
+            _courierLocation = myLoc;
+            _isCourierOnline = true;
+            _lastCourierLocationTime = DateTime.now();
+          }
         });
+
+        if (_isCurrentUserCourier) {
+          _sendLocationToServer(position);
+        }
 
         _calculateDistance(forceRoute: true);
         _fitCameraToBounds();
@@ -192,25 +275,54 @@ class _DeliveryTrackingScreenState extends ConsumerState<DeliveryTrackingScreen>
         if (pos.isMocked) {
           AppSecurityService.reportMockGpsDetected();
         }
+        final loc = LatLng(pos.latitude, pos.longitude);
         setState(() {
-          _myLocation = LatLng(pos.latitude, pos.longitude);
+          _myLocation = loc;
+          if (_isCurrentUserCourier) {
+            _courierLocation = loc;
+            _isCourierOnline = true;
+            _lastCourierLocationTime = DateTime.now();
+          }
         });
+
+        if (_isCurrentUserCourier) {
+          _sendLocationToServer(pos);
+        }
+
         _calculateDistance(forceRoute: false);
       });
-    } catch (_) {
-      if (mounted) {
-        setState(() => _isFetchingLocation = false);
-      }
+    } catch (_) {}
+  }
+
+  void _sendLocationToServer(Position pos) {
+    final now = DateTime.now();
+    if (_lastSentGpsTime != null && now.difference(_lastSentGpsTime!).inSeconds < 8) {
+      return;
     }
+    _lastSentGpsTime = now;
+    ref
+        .read(deliveryRepositoryProvider)
+        .updateDeliveryLocation(
+          widget.deliveryId,
+          latitude: pos.latitude,
+          longitude: pos.longitude,
+          heading: pos.heading,
+          speed: pos.speed,
+        )
+        .catchError((e) {
+      debugPrint('[DeliveryTrackingScreen] Error updating courier location: $e');
+    });
   }
 
   void _calculateDistance({bool forceRoute = false}) {
-    if (_myLocation != null && _storeLocation != null) {
+    final origin = _effectiveOrigin;
+    final destination = _storeLocation;
+    if (origin != null && destination != null) {
       final meters = Geolocator.distanceBetween(
-        _myLocation!.latitude,
-        _myLocation!.longitude,
-        _storeLocation!.latitude,
-        _storeLocation!.longitude,
+        origin.latitude,
+        origin.longitude,
+        destination.latitude,
+        destination.longitude,
       );
       setState(() {
         _distanceMeters = meters;
@@ -220,7 +332,7 @@ class _DeliveryTrackingScreenState extends ConsumerState<DeliveryTrackingScreen>
   }
 
   Future<void> _fetchRoute({bool force = false}) async {
-    final origin = _myLocation;
+    final origin = _effectiveOrigin;
     final destination = _storeLocation;
     if (origin == null || destination == null) return;
 
@@ -279,9 +391,12 @@ class _DeliveryTrackingScreenState extends ConsumerState<DeliveryTrackingScreen>
   }
 
   String _formatDistance() {
+    if (_effectiveOrigin == null) {
+      return _isCurrentUserCourier ? 'Mendeteksi GPS Anda...' : 'Menunggu GPS kurir...';
+    }
     final dist = _routeDistanceMeters ?? _distanceMeters;
     if (dist == null) {
-      return _isFetchingLocation ? 'Mendeteksi GPS...' : 'Menghitung jarak...';
+      return 'Menghitung rute jalan...';
     }
     if (dist < 1000) {
       return '± ${dist.round()} m';
@@ -301,16 +416,25 @@ class _DeliveryTrackingScreenState extends ConsumerState<DeliveryTrackingScreen>
     return '$hours jam $mins mnt';
   }
 
+  String _formatLastUpdateTime(DateTime dt) {
+    final now = DateTime.now();
+    final diff = now.difference(dt);
+    if (diff.inSeconds < 45) return 'Baru saja';
+    if (diff.inMinutes < 60) return '${diff.inMinutes} mnt lalu';
+    if (diff.inHours < 24) return '${diff.inHours} jam lalu';
+    return '${dt.day}/${dt.month} ${dt.hour}:${dt.minute.toString().padLeft(2, '0')}';
+  }
+
   void _fitCameraToBounds() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final storeLoc = _storeLocation;
-      final myLoc = _myLocation;
+      final courierLoc = _effectiveOrigin;
 
-      if (storeLoc != null && myLoc != null) {
+      if (storeLoc != null && courierLoc != null) {
         final coords = _routePoints.isNotEmpty
             ? _routePoints
-            : [myLoc, storeLoc];
+            : [courierLoc, storeLoc];
         _mapController.fitCamera(
           CameraFit.coordinates(
             coordinates: coords,
@@ -321,8 +445,8 @@ class _DeliveryTrackingScreenState extends ConsumerState<DeliveryTrackingScreen>
         );
       } else if (storeLoc != null) {
         _mapController.move(storeLoc, 15.5);
-      } else if (myLoc != null) {
-        _mapController.move(myLoc, 15.5);
+      } else if (courierLoc != null) {
+        _mapController.move(courierLoc, 15.5);
       }
     });
   }
@@ -411,8 +535,10 @@ class _DeliveryTrackingScreenState extends ConsumerState<DeliveryTrackingScreen>
         storePhotoUrl != null && storePhotoUrl.trim().isNotEmpty;
     final storeLoc = _storeLocation;
     final myLoc = _myLocation;
+    final effectiveOrigin = _effectiveOrigin;
+    final courier = d?.courier;
 
-    final initialCenter = storeLoc ?? myLoc ?? _defaultLocation;
+    final initialCenter = storeLoc ?? effectiveOrigin ?? myLoc ?? _defaultLocation;
 
     return AppStatusBar(
       child: AppScaffold(
@@ -444,14 +570,14 @@ class _DeliveryTrackingScreenState extends ConsumerState<DeliveryTrackingScreen>
                 ),
 
                 // Polyline Rute Jalan Raya antara Kurir dan Toko (OSRM Engine)
-                if (myLoc != null && storeLoc != null)
+                if (effectiveOrigin != null && storeLoc != null)
                   PolylineLayer(
                     polylines: [
                       // Layer 1: Glow / Bayangan rute untuk visibilitas maksimal
                       Polyline(
                         points: _routePoints.isNotEmpty
                             ? _routePoints
-                            : [myLoc, storeLoc],
+                            : [effectiveOrigin, storeLoc],
                         strokeWidth: 6.5,
                         color: AppColors.brandPrimary.withValues(alpha: 0.25),
                         strokeCap: StrokeCap.round,
@@ -461,7 +587,7 @@ class _DeliveryTrackingScreenState extends ConsumerState<DeliveryTrackingScreen>
                       Polyline(
                         points: _routePoints.isNotEmpty
                             ? _routePoints
-                            : [myLoc, storeLoc],
+                            : [effectiveOrigin, storeLoc],
                         strokeWidth: 4.2,
                         color: AppColors.brandPrimary,
                         strokeCap: StrokeCap.round,
@@ -470,7 +596,7 @@ class _DeliveryTrackingScreenState extends ConsumerState<DeliveryTrackingScreen>
                     ],
                   ),
 
-                // Marker Kurir & Marker Toko
+                // Marker Kurir, Toko, dan Pengguna
                 MarkerLayer(
                   markers: [
                     // A. Marker Toko Mitra
@@ -558,19 +684,19 @@ class _DeliveryTrackingScreenState extends ConsumerState<DeliveryTrackingScreen>
                         ),
                       ),
 
-                    // B. Marker Kurir / Lokasi Perangkat Saya
-                    if (myLoc != null)
+                    // B. Marker Kurir yang Ditugaskan
+                    if (effectiveOrigin != null)
                       Marker(
-                        point: myLoc,
-                        width: 120,
-                        height: 70,
+                        point: effectiveOrigin,
+                        width: 140,
+                        height: 74,
                         alignment: Alignment.topCenter,
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 7,
+                                horizontal: 8,
                                 vertical: 2.5,
                               ),
                               decoration: BoxDecoration(
@@ -578,20 +704,44 @@ class _DeliveryTrackingScreenState extends ConsumerState<DeliveryTrackingScreen>
                                 borderRadius: BorderRadius.circular(6),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.2),
+                                    color: Colors.black.withValues(alpha: 0.25),
                                     blurRadius: 4,
                                     offset: const Offset(0, 2),
                                   ),
                                 ],
                               ),
-                              child: const Text(
-                                'Lokasi Kurir',
-                                style: TextStyle(
-                                  fontFamily: 'PlusJakartaSans',
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
-                                ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 6,
+                                    height: 6,
+                                    margin: const EdgeInsets.only(right: 5),
+                                    decoration: BoxDecoration(
+                                      color: _isCourierOnline
+                                          ? const Color(0xFF4CAF50)
+                                          : const Color(0xFFFFC107),
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  Flexible(
+                                    child: Text(
+                                      _isCurrentUserCourier
+                                          ? 'Posisi Anda (Kurir)'
+                                          : (courier != null
+                                              ? 'Kurir: ${courier.name}'
+                                              : 'Posisi Kurir'),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontFamily: 'PlusJakartaSans',
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                             const SizedBox(height: 3),
@@ -620,6 +770,63 @@ class _DeliveryTrackingScreenState extends ConsumerState<DeliveryTrackingScreen>
                                 TablerIcons.moped,
                                 color: Colors.white,
                                 size: 20,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                    // C. Marker Lokasi Pengguna (Jika Viewer bukan kurir dan ada GPS lokal)
+                    if (!_isCurrentUserCourier && myLoc != null)
+                      Marker(
+                        point: myLoc,
+                        width: 90,
+                        height: 52,
+                        alignment: Alignment.topCenter,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF1976D2),
+                                borderRadius: BorderRadius.circular(4),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.2),
+                                    blurRadius: 3,
+                                    offset: const Offset(0, 1),
+                                  ),
+                                ],
+                              ),
+                              child: const Text(
+                                'Lokasi Anda',
+                                style: TextStyle(
+                                  fontFamily: 'PlusJakartaSans',
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Container(
+                              width: 18,
+                              height: 18,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF2196F3),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 2.5),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFF2196F3).withValues(alpha: 0.5),
+                                    blurRadius: 6,
+                                    spreadRadius: 2,
+                                  ),
+                                ],
                               ),
                             ),
                           ],
@@ -669,9 +876,109 @@ class _DeliveryTrackingScreenState extends ConsumerState<DeliveryTrackingScreen>
                 ),
               ),
 
-            // 3. Tombol Floating Kontrol Peta (Sisi Kanan Atas)
+            // 3. Status Pelacakan Live Kurir On-Demand (Bagi Viewer yang Bukan Kurir)
+            if (!_isCurrentUserCourier && storeLoc != null && !_isLoadingDelivery)
+              Positioned(
+                top: 14,
+                left: 16,
+                right: effectiveOrigin == null ? 80 : null,
+                child: effectiveOrigin == null
+                    ? Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 9,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: const Color(0xFFFFD54F),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.08),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            const SizedBox(
+                              width: 15,
+                              height: 15,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Color(0xFFF57F17),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            const Expanded(
+                              child: Text(
+                                'Menghubungi GPS kurir...',
+                                style: TextStyle(
+                                  fontFamily: 'PlusJakartaSans',
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF7F4400),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: AppColors.brandBorder),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.08),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 7,
+                              height: 7,
+                              decoration: BoxDecoration(
+                                color: _isCourierOnline
+                                    ? const Color(0xFF4CAF50)
+                                    : const Color(0xFFFF9800),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              _isCourierOnline
+                                  ? 'Live: Terhubung'
+                                  : (_lastCourierLocationTime != null
+                                      ? 'Posisi: ${_formatLastUpdateTime(_lastCourierLocationTime!)}'
+                                      : 'Posisi Tersimpan'),
+                              style: const TextStyle(
+                                fontFamily: 'PlusJakartaSans',
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.brandEspresso,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+              ),
+
+            // 4. Tombol Floating Kontrol Peta (Sisi Kanan Atas)
             Positioned(
-              top: storeLoc == null ? 70 : 16,
+              top: storeLoc == null ? 70 : 14,
               right: 16,
               child: Column(
                 children: [
@@ -684,11 +991,11 @@ class _DeliveryTrackingScreenState extends ConsumerState<DeliveryTrackingScreen>
                   const SizedBox(height: 8),
 
                   // Tombol Fokus Kurir
-                  if (myLoc != null) ...[
+                  if (effectiveOrigin != null) ...[
                     _buildFloatingMapButton(
                       icon: TablerIcons.moped,
                       tooltip: 'Fokus ke Kurir',
-                      onTap: () => _mapController.move(myLoc, 16.5),
+                      onTap: () => _mapController.move(effectiveOrigin, 16.5),
                     ),
                     const SizedBox(height: 8),
                   ],
@@ -703,13 +1010,27 @@ class _DeliveryTrackingScreenState extends ConsumerState<DeliveryTrackingScreen>
                     const SizedBox(height: 8),
                   ],
 
+                  // Tombol Fokus Lokasi Saya (Viewer)
+                  if (!_isCurrentUserCourier && myLoc != null) ...[
+                    _buildFloatingMapButton(
+                      icon: TablerIcons.current_location,
+                      tooltip: 'Fokus ke Lokasi Saya',
+                      onTap: () => _mapController.move(myLoc, 16.5),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+
                   // Tombol Muat Ulang Data (Reload)
                   _buildFloatingMapButton(
                     icon: TablerIcons.refresh,
                     tooltip: 'Muat Ulang Data',
                     onTap: () {
                       _fetchDeliveryDetail();
-                      _initGpsAndStartTracking();
+                      if (_isCurrentUserCourier) {
+                        _initGpsAndStartTracking();
+                      } else {
+                        _setupOnDemandTracking();
+                      }
                       _fetchRoute(force: true);
                     },
                   ),
@@ -911,6 +1232,19 @@ class _DeliveryTrackingScreenState extends ConsumerState<DeliveryTrackingScreen>
                     const SizedBox(height: 2),
                     Builder(
                       builder: (context) {
+                        if (_effectiveOrigin == null) {
+                          return Text(
+                            _isCurrentUserCourier
+                                ? 'Mendeteksi GPS Anda... • ${store?.route ?? 'Rute -'}'
+                                : 'Menghubungi GPS kurir... • ${store?.route ?? 'Rute -'}',
+                            style: const TextStyle(
+                              fontFamily: 'PlusJakartaSans',
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.brandWarmGray,
+                            ),
+                          );
+                        }
                         final duration = _formatDuration();
                         final distText = duration != null
                             ? '${_formatDistance()} (~$duration)'

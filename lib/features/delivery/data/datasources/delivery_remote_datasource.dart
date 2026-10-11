@@ -35,6 +35,18 @@ abstract class DeliveryRemoteDataSource {
   Future<DeliveryModel> completeDelivery(int id, Map<String, dynamic> data);
 
   Future<DeliveryModel> cancelDelivery(int id);
+
+  Future<void> watchDelivery(int id);
+
+  Future<void> unwatchDelivery(int id);
+
+  Future<void> updateDeliveryLocation(
+    int id, {
+    required double latitude,
+    required double longitude,
+    double? heading,
+    double? speed,
+  });
 }
 
 class DeliveryRemoteDataSourceImpl implements DeliveryRemoteDataSource {
@@ -241,5 +253,36 @@ class DeliveryRemoteDataSourceImpl implements DeliveryRemoteDataSource {
             : response;
 
     return DeliveryModel.fromJson(responseData as Map<String, dynamic>);
+  }
+
+  @override
+  Future<void> watchDelivery(int id) async {
+    await _dioClient.post(ApiEndpoints.deliveryWatch(id));
+  }
+
+  @override
+  Future<void> unwatchDelivery(int id) async {
+    await _dioClient.post(ApiEndpoints.deliveryUnwatch(id));
+  }
+
+  @override
+  Future<void> updateDeliveryLocation(
+    int id, {
+    required double latitude,
+    required double longitude,
+    double? heading,
+    double? speed,
+  }) async {
+    final payload = <String, dynamic>{
+      'latitude': latitude,
+      'longitude': longitude,
+    };
+    if (heading != null) payload['heading'] = heading;
+    if (speed != null) payload['speed'] = speed;
+
+    await _dioClient.post(
+      ApiEndpoints.deliveryLocation(id),
+      data: payload,
+    );
   }
 }

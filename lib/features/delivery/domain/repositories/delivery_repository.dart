@@ -26,4 +26,16 @@ abstract class DeliveryRepository {
   Future<DeliveryModel> completeDelivery(int id, Map<String, dynamic> data);
 
   Future<DeliveryModel> cancelDelivery(int id);
+
+  Future<void> watchDelivery(int id);
+
+  Future<void> unwatchDelivery(int id);
+
+  Future<void> updateDeliveryLocation(
+    int id, {
+    required double latitude,
+    required double longitude,
+    double? heading,
+    double? speed,
+  });
 }

@@ -74,4 +74,31 @@ class DeliveryRepositoryImpl implements DeliveryRepository {
   Future<DeliveryModel> cancelDelivery(int id) {
     return _remoteDataSource.cancelDelivery(id);
   }
+
+  @override
+  Future<void> watchDelivery(int id) {
+    return _remoteDataSource.watchDelivery(id);
+  }
+
+  @override
+  Future<void> unwatchDelivery(int id) {
+    return _remoteDataSource.unwatchDelivery(id);
+  }
+
+  @override
+  Future<void> updateDeliveryLocation(
+    int id, {
+    required double latitude,
+    required double longitude,
+    double? heading,
+    double? speed,
+  }) {
+    return _remoteDataSource.updateDeliveryLocation(
+      id,
+      latitude: latitude,
+      longitude: longitude,
+      heading: heading,
+      speed: speed,
+    );
+  }
 }

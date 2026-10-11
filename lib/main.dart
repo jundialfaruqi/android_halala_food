@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'core/config/app_config.dart';
 import 'core/router/app_router.dart';
+import 'core/services/courier_location_broadcaster.dart';
 import 'core/services/fcm_service.dart';
 import 'core/theme/app_theme.dart';
 import 'core/widgets/widgets.dart';
@@ -54,6 +55,7 @@ class _HalalaFoodAppState extends ConsumerState<HalalaFoodApp> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(courierLocationBroadcasterProvider).initialize();
       ref.read(fcmServiceProvider).initialize(
         onNotificationTap: (message) {
           final router = ref.read(appRouterProvider);

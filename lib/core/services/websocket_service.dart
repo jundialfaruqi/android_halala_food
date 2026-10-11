@@ -31,6 +31,24 @@ class WebSocketService {
   Stream<Map<String, dynamic>> get onDeliveryCreated =>
       _deliveryCreatedController.stream;
 
+  final _courierTrackingRequestedController =
+      StreamController<Map<String, dynamic>>.broadcast();
+
+  Stream<Map<String, dynamic>> get onCourierTrackingRequested =>
+      _courierTrackingRequestedController.stream;
+
+  final _courierLocationUpdatedController =
+      StreamController<Map<String, dynamic>>.broadcast();
+
+  Stream<Map<String, dynamic>> get onCourierLocationUpdated =>
+      _courierLocationUpdatedController.stream;
+
+  final Map<int, Channel> _deliveryChannels = {};
+  final Map<int, List<StreamSubscription>> _deliverySubs = {};
+
+  Uri? _authEndpoint;
+  Map<String, String>? _authHeaders;
+
   bool _isConnected = false;
   bool get isConnected => _isConnected;
 
@@ -69,6 +87,8 @@ class WebSocketService {
         'Authorization': 'Bearer $token',
         'Accept': 'application/json',
       };
+      _authEndpoint = authEndpoint;
+      _authHeaders = authHeaders;
 
       // 1. Private channel khusus kurir: private-courier.{userId}
       final courierChannel = _client!.privateChannel(
@@ -156,11 +176,36 @@ class WebSocketService {
       });
       _eventSubs.add(subCourDelivDot);
 
+      // Listen ke permintaan pelacakan lokasi kurir (On-Demand Method 1)
+      final subCourTrack = courierChannel.bind('courier.tracking.requested').listen((event) {
+        _handleCourierTrackingRequestedEvent(event);
+      });
+      _eventSubs.add(subCourTrack);
+
+      final subCourTrackDot = courierChannel.bind('.courier.tracking.requested').listen((event) {
+        _handleCourierTrackingRequestedEvent(event);
+      });
+      _eventSubs.add(subCourTrackDot);
+
+      // Listen ke event pembaruan lokasi kurir
+      final subCourLoc = courierChannel.bind('courier.location.updated').listen((event) {
+        _handleCourierLocationUpdatedEvent(event);
+      });
+      _eventSubs.add(subCourLoc);
+
+      final subCourLocDot = courierChannel.bind('.courier.location.updated').listen((event) {
+        _handleCourierLocationUpdatedEvent(event);
+      });
+      _eventSubs.add(subCourLocDot);
+
       // Subscribe saat koneksi terbentuk
       _connectionSub = _client!.onConnectionEstablished.listen((_) {
         _isConnected = true;
         debugPrint('[WebSocket] Reverb connected! Subscribing channels...');
         for (final channel in _subscribedChannels) {
+          channel.subscribeIfNotUnsubscribed();
+        }
+        for (final channel in _deliveryChannels.values) {
           channel.subscribeIfNotUnsubscribed();
         }
       });
@@ -169,6 +214,61 @@ class WebSocketService {
       debugPrint('[WebSocket] Connecting to $scheme://$host:$port...');
     } catch (e) {
       debugPrint('[WebSocket] Failed to initialize Reverb connection: $e');
+    }
+  }
+
+  void subscribeToDeliveryTracking(int deliveryId) {
+    if (_client == null || _authEndpoint == null || _authHeaders == null) {
+      debugPrint('[WebSocket] Cannot subscribe to delivery.$deliveryId: client/auth not ready');
+      return;
+    }
+    if (_deliveryChannels.containsKey(deliveryId)) {
+      return;
+    }
+
+    try {
+      final channelName = 'private-delivery.$deliveryId';
+      final channel = _client!.privateChannel(
+        channelName,
+        authorizationDelegate:
+            EndpointAuthorizableChannelTokenAuthorizationDelegate.forPrivateChannel(
+          authorizationEndpoint: _authEndpoint!,
+          headers: _authHeaders!,
+        ),
+      );
+      _deliveryChannels[deliveryId] = channel;
+
+      final subs = <StreamSubscription>[];
+      void handleLoc(ChannelReadEvent event) {
+        _handleCourierLocationUpdatedEvent(event);
+      }
+
+      subs.add(channel.bind('courier.location.updated').listen(handleLoc));
+      subs.add(channel.bind('.courier.location.updated').listen(handleLoc));
+      _deliverySubs[deliveryId] = subs;
+
+      if (_isConnected) {
+        channel.subscribeIfNotUnsubscribed();
+      }
+      debugPrint('[WebSocket] Subscribed to delivery tracking room $channelName');
+    } catch (e) {
+      debugPrint('[WebSocket] Error subscribing to delivery room: $e');
+    }
+  }
+
+  void unsubscribeFromDeliveryTracking(int deliveryId) {
+    final subs = _deliverySubs.remove(deliveryId);
+    if (subs != null) {
+      for (final s in subs) {
+        s.cancel();
+      }
+    }
+    final channel = _deliveryChannels.remove(deliveryId);
+    if (channel != null) {
+      try {
+        channel.unsubscribe();
+      } catch (_) {}
+      debugPrint('[WebSocket] Unsubscribed from delivery room $deliveryId');
     }
   }
 
@@ -210,6 +310,44 @@ class WebSocketService {
     }
   }
 
+  void _handleCourierTrackingRequestedEvent(ChannelReadEvent event) {
+    debugPrint('[WebSocket] Received courier.tracking.requested event: ${event.data}');
+    try {
+      final rawData = event.data;
+      Map<String, dynamic> payload = {};
+      if (rawData is Map<String, dynamic>) {
+        payload = rawData;
+      } else if (rawData is String) {
+        final decoded = jsonDecode(rawData);
+        if (decoded is Map<String, dynamic>) {
+          payload = decoded;
+        }
+      }
+      _courierTrackingRequestedController.add(payload);
+    } catch (e) {
+      debugPrint('[WebSocket] Error parsing courier.tracking.requested event: $e');
+    }
+  }
+
+  void _handleCourierLocationUpdatedEvent(ChannelReadEvent event) {
+    debugPrint('[WebSocket] Received courier.location.updated event: ${event.data}');
+    try {
+      final rawData = event.data;
+      Map<String, dynamic> payload = {};
+      if (rawData is Map<String, dynamic>) {
+        payload = rawData;
+      } else if (rawData is String) {
+        final decoded = jsonDecode(rawData);
+        if (decoded is Map<String, dynamic>) {
+          payload = decoded;
+        }
+      }
+      _courierLocationUpdatedController.add(payload);
+    } catch (e) {
+      debugPrint('[WebSocket] Error parsing courier.location.updated event: $e');
+    }
+  }
+
   @visibleForTesting
   void emitInvoiceCreatedForTest(Map<String, dynamic> payload) {
     _invoiceCreatedController.add(payload);
@@ -230,6 +368,20 @@ class WebSocketService {
     _connectionSub?.cancel();
     _connectionSub = null;
 
+    for (final subs in _deliverySubs.values) {
+      for (final s in subs) {
+        s.cancel();
+      }
+    }
+    _deliverySubs.clear();
+
+    for (final ch in _deliveryChannels.values) {
+      try {
+        ch.unsubscribe();
+      } catch (_) {}
+    }
+    _deliveryChannels.clear();
+
     for (final channel in _subscribedChannels) {
       try {
         channel.unsubscribe();
@@ -249,5 +401,7 @@ class WebSocketService {
     disconnect();
     _invoiceCreatedController.close();
     _deliveryCreatedController.close();
+    _courierTrackingRequestedController.close();
+    _courierLocationUpdatedController.close();
   }
 }

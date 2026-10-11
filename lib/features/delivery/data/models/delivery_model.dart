@@ -48,12 +48,18 @@ class DeliveryCourierModel {
   final String name;
   final String? phone;
   final String? username;
+  final double? lastLatitude;
+  final double? lastLongitude;
+  final DateTime? lastLocationUpdatedAt;
 
   const DeliveryCourierModel({
     required this.id,
     required this.name,
     this.phone,
     this.username,
+    this.lastLatitude,
+    this.lastLongitude,
+    this.lastLocationUpdatedAt,
   });
 
   factory DeliveryCourierModel.fromJson(Map<String, dynamic> json) {
@@ -62,6 +68,15 @@ class DeliveryCourierModel {
       name: json['name'] as String? ?? '-',
       phone: json['phone'] as String?,
       username: json['username'] as String? ?? json['email'] as String?,
+      lastLatitude: json['last_latitude'] != null
+          ? double.tryParse(json['last_latitude'].toString())
+          : null,
+      lastLongitude: json['last_longitude'] != null
+          ? double.tryParse(json['last_longitude'].toString())
+          : null,
+      lastLocationUpdatedAt: json['last_location_updated_at'] != null
+          ? DateTime.tryParse(json['last_location_updated_at'].toString())
+          : null,
     );
   }
 }

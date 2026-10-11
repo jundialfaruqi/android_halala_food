@@ -60,6 +60,21 @@ class DelayedDeliveryRepository implements DeliveryRepository {
   @override
   Future<DeliveryModel> cancelDelivery(int id) async =>
       throw UnimplementedError();
+
+  @override
+  Future<void> watchDelivery(int id) async {}
+
+  @override
+  Future<void> unwatchDelivery(int id) async {}
+
+  @override
+  Future<void> updateDeliveryLocation(
+    int id, {
+    required double latitude,
+    required double longitude,
+    double? heading,
+    double? speed,
+  }) async {}
 }
 
 class FakeAuthViewModel extends AuthViewModel {
