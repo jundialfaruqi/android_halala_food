@@ -430,6 +430,18 @@ class _DeliveryCoordinatesScreenState
   }
 
   // -------------------------------------------------------------
+  // Hapus Rute Aktif & Batalkan Seleksi Item Toko
+  // -------------------------------------------------------------
+  void _clearRouteAndSelection() {
+    setState(() {
+      _routePoints = [];
+      _routeResult = null;
+      _selectedDelivery = null;
+    });
+    _fitCameraToBounds();
+  }
+
+  // -------------------------------------------------------------
   // Warna & Label Status Pengantaran
   // -------------------------------------------------------------
   Color _getStatusColor(String status) {
@@ -517,6 +529,9 @@ class _DeliveryCoordinatesScreenState
     if (picked != null && picked != _selectedDate) {
       setState(() {
         _selectedDate = picked;
+        _selectedDelivery = null;
+        _routePoints = [];
+        _routeResult = null;
       });
       _loadDeliveries();
     }
@@ -525,6 +540,9 @@ class _DeliveryCoordinatesScreenState
   void _changeDateBy(int days) {
     setState(() {
       _selectedDate = _selectedDate.add(Duration(days: days));
+      _selectedDelivery = null;
+      _routePoints = [];
+      _routeResult = null;
     });
     _loadDeliveries();
   }
@@ -724,18 +742,12 @@ class _DeliveryCoordinatesScreenState
                     const SizedBox(height: 8),
                   ],
 
-                  // Tutup Rute Aktif (Jika rute sedang terbuka)
-                  if (_routePoints.isNotEmpty)
+                  // Tutup Rute Aktif & Batalkan Seleksi
+                  if (_routePoints.isNotEmpty || _selectedDelivery != null)
                     _buildFloatingMapButton(
                       icon: TablerIcons.route_off,
                       tooltip: 'Hapus Rute di Peta',
-                      onTap: () {
-                        setState(() {
-                          _routePoints = [];
-                          _routeResult = null;
-                        });
-                        _fitCameraToBounds();
-                      },
+                      onTap: _clearRouteAndSelection,
                     ),
                 ],
               ),
@@ -827,7 +839,13 @@ class _DeliveryCoordinatesScreenState
     final hasPhoto = photoUrl != null && photoUrl.trim().isNotEmpty;
 
     return GestureDetector(
-      onTap: () => _selectDeliveryAndShowRoute(delivery),
+      onTap: () {
+        if (isSelected) {
+          _clearRouteAndSelection();
+        } else {
+          _selectDeliveryAndShowRoute(delivery);
+        }
+      },
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -1245,6 +1263,24 @@ class _DeliveryCoordinatesScreenState
               ),
             ),
           ),
+          const SizedBox(width: 6),
+          // Tombol Tutup Banner & Hapus Rute
+          InkWell(
+            onTap: _clearRouteAndSelection,
+            borderRadius: BorderRadius.circular(6),
+            child: Container(
+              padding: const EdgeInsets.all(5),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: const Icon(
+                TablerIcons.x,
+                size: 13,
+                color: Colors.white,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -1535,7 +1571,13 @@ class _DeliveryCoordinatesScreenState
         ],
       ),
       child: InkWell(
-        onTap: () => _selectDeliveryAndShowRoute(delivery),
+        onTap: () {
+          if (isSelected) {
+            _clearRouteAndSelection();
+          } else {
+            _selectDeliveryAndShowRoute(delivery);
+          }
+        },
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(12),
@@ -1695,7 +1737,13 @@ class _DeliveryCoordinatesScreenState
               // 3. TOMBOL AKSI RUTE
               // Menghubungkan titik dengan pengguna melalui garis jalan melekuk OSRM
               InkWell(
-                onTap: () => _selectDeliveryAndShowRoute(delivery),
+                onTap: () {
+                  if (isSelected) {
+                    _clearRouteAndSelection();
+                  } else {
+                    _selectDeliveryAndShowRoute(delivery);
+                  }
+                },
                 borderRadius: BorderRadius.circular(8),
                 child: Container(
                   padding:
