@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
 import '../../../../core/constants/app_assets.dart';
@@ -30,6 +31,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
   int _currentNavIndex = 0;
+  DateTime? _lastBackPressTime;
 
   @override
   void didChangeDependencies() {
@@ -70,12 +72,37 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
     return result;
   }
 
+  /// Mencegah pengguna tidak sengaja keluar saat menekan tombol back navigasi di halaman Home.
+  /// Menampilkan pesan lewat snackbar: "Tekan sekali lagi untuk keluar aplikasi".
+  void _handleDoubleBackToExit() {
+    final now = DateTime.now();
+    if (_lastBackPressTime == null ||
+        now.difference(_lastBackPressTime!) > const Duration(seconds: 2)) {
+      _lastBackPressTime = now;
+      AppSnackBar.showInfo(
+        context,
+        message: 'Tekan sekali lagi untuk keluar aplikasi',
+        duration: const Duration(seconds: 2),
+      );
+      return;
+    }
+
+    AppSnackBar.hide();
+    SystemNavigator.pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authViewModelProvider);
     final user = authState.user;
 
-    return AppScaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _handleDoubleBackToExit();
+      },
+      child: AppScaffold(
       safeAreaTop: false,
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.dark,
@@ -422,8 +449,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
           );
         },
       ),
-    );
-  }
+    ),
+  );
+}
 
   /// Menampilkan grid menu 4 kolom tanpa card pembungkus
   Widget _buildFourColumnMenuGrid(BuildContext context, UserModel user) {
