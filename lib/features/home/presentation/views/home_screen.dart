@@ -83,6 +83,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
       bottomNavigationBar: HomeBottomNavigationBar(
         currentIndex: _currentNavIndex,
         onTap: (index) {
+          if (index == 4) {
+            _navigateTo(const ProfileScreen());
+            return;
+          }
           setState(() {
             _currentNavIndex = index;
           });
