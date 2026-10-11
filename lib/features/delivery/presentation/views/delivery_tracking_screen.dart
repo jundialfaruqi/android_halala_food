@@ -755,6 +755,79 @@ class _DeliveryTrackingScreenState extends ConsumerState<DeliveryTrackingScreen>
     );
   }
 
+  List<AppStepItem> _buildDeliverySteps(DeliveryModel d) {
+    if (d.isDibatalkan) {
+      return [
+        AppStepItem(
+          title: 'Diproses',
+          subtitle: 'Surat jalan disiapkan • ${d.formattedDate}',
+          state: AppStepState.completed,
+          icon: TablerIcons.file_text,
+        ),
+        const AppStepItem(
+          title: 'Dibatalkan',
+          subtitle: 'Pengantaran surat jalan telah dibatalkan',
+          state: AppStepState.cancelled,
+          icon: TablerIcons.x,
+        ),
+      ];
+    }
+
+    final String step2Subtitle;
+    final AppStepState step2State;
+    if (d.isSelesai) {
+      step2Subtitle = d.dispatchedAt != null
+          ? 'Diberangkatkan ${d.formattedDispatchedAt}'
+          : 'Pengantaran selesai';
+      step2State = AppStepState.completed;
+    } else if (d.isDikirim) {
+      step2Subtitle = d.dispatchedAt != null
+          ? 'Diberangkatkan ${d.formattedDispatchedAt}'
+          : 'Kurir sedang dalam perjalanan ke toko';
+      step2State = AppStepState.current;
+    } else {
+      step2Subtitle = 'Menunggu keberangkatan kurir';
+      step2State = AppStepState.pending;
+    }
+
+    final String step3Subtitle;
+    final AppStepState step3State;
+    if (d.isSelesai) {
+      final recipientInfo =
+          (d.recipientName != null && d.recipientName!.trim().isNotEmpty)
+              ? ' • Oleh ${d.recipientName}'
+              : '';
+      step3Subtitle = d.deliveredAt != null
+          ? 'Tiba ${d.formattedDeliveredAt}$recipientInfo'
+          : 'Serah terima di toko selesai$recipientInfo';
+      step3State = AppStepState.completed;
+    } else {
+      step3Subtitle = 'Menunggu serah terima di toko';
+      step3State = AppStepState.pending;
+    }
+
+    return [
+      AppStepItem(
+        title: 'Diproses',
+        subtitle: 'Disiapkan di gudang • ${d.formattedDate}',
+        state: AppStepState.completed,
+        icon: TablerIcons.package,
+      ),
+      AppStepItem(
+        title: 'Sedang Dikirim',
+        subtitle: step2Subtitle,
+        state: step2State,
+        icon: TablerIcons.moped,
+      ),
+      AppStepItem(
+        title: 'Selesai',
+        subtitle: step3Subtitle,
+        state: step3State,
+        icon: TablerIcons.circle_check,
+      ),
+    ];
+  }
+
   Widget _buildBottomDeliveryCard(DeliveryModel? d) {
     if (d == null) {
       if (_errorMessage != null) {
@@ -791,24 +864,6 @@ class _DeliveryTrackingScreenState extends ConsumerState<DeliveryTrackingScreen>
         storePhotoUrl != null && storePhotoUrl.trim().isNotEmpty;
     final courier = d.courier;
 
-    Color statusBg;
-    Color statusFg;
-    String statusText = d.statusLabel;
-
-    if (d.isSelesai) {
-      statusBg = AppColors.success.withValues(alpha: 0.12);
-      statusFg = AppColors.success;
-    } else if (d.isDikirim) {
-      statusBg = AppColors.brandPrimary.withValues(alpha: 0.12);
-      statusFg = AppColors.brandPrimary;
-    } else if (d.isDibatalkan) {
-      statusBg = AppColors.error.withValues(alpha: 0.12);
-      statusFg = AppColors.error;
-    } else {
-      statusBg = Colors.grey.withValues(alpha: 0.12);
-      statusFg = AppColors.brandWarmGray;
-    }
-
     return AppCard(
       padding: const EdgeInsets.all(16),
       borderRadius: 20,
@@ -836,7 +891,7 @@ class _DeliveryTrackingScreenState extends ConsumerState<DeliveryTrackingScreen>
             ),
           ),
 
-          // Baris 1: Nomor Surat Jalan & Status Badge
+          // Baris 1: Nomor Surat Jalan & Estimasi Jarak
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -874,26 +929,15 @@ class _DeliveryTrackingScreenState extends ConsumerState<DeliveryTrackingScreen>
                   ],
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 5,
-                ),
-                decoration: BoxDecoration(
-                  color: statusBg,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  statusText,
-                  style: TextStyle(
-                    fontFamily: 'PlusJakartaSans',
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: statusFg,
-                  ),
-                ),
-              ),
             ],
+          ),
+
+          const SizedBox(height: 10),
+
+          // Stepper Status Accordion (Hemat ruang: 1 step tampil, sisanya accordion)
+          AppAccordionStepper(
+            steps: _buildDeliverySteps(d),
+            initiallyExpanded: false,
           ),
 
           const Padding(
