@@ -119,7 +119,7 @@ class HomeBottomNavigationBar extends StatelessWidget {
     return Expanded(
       child: Center(
         child: Transform.translate(
-          offset: const Offset(0, -18),
+          offset: const Offset(0, -14),
           child: Material(
             color: Colors.transparent,
             shape: const CircleBorder(),
@@ -129,39 +129,44 @@ class HomeBottomNavigationBar extends StatelessWidget {
               splashColor: Colors.white.withValues(alpha: 0.25),
               highlightColor: Colors.white.withValues(alpha: 0.15),
               child: Container(
-                width: 64,
-                height: 64,
+                width: 78,
+                height: 78,
                 decoration: BoxDecoration(
                   color: AppColors.brandPrimary,
                   shape: BoxShape.circle,
                   border: Border.all(
                     color: Colors.white,
-                    width: 4.0,
+                    width: 5.0,
                   ),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                child: const Column(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(TablerIcons.qrcode, size: 27, color: Colors.white),
-                    SizedBox(height: 1),
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        'Scan QR',
-                        maxLines: 1,
-                        softWrap: false,
-                        style: TextStyle(
-                          fontFamily: 'PlusJakartaSans',
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                          letterSpacing: -0.2,
+                child: const Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(TablerIcons.qrcode, size: 26, color: Colors.white),
+                      SizedBox(height: 2),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'Scan QR',
+                            maxLines: 1,
+                            softWrap: false,
+                            style: TextStyle(
+                              fontFamily: 'PlusJakartaSans',
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                              letterSpacing: -0.2,
+                              height: 1.1,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
