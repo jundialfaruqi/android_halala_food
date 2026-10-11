@@ -694,12 +694,25 @@ class _DeliveryTrackingScreenState extends ConsumerState<DeliveryTrackingScreen>
                   ],
 
                   // Tombol Fokus Toko
-                  if (storeLoc != null)
+                  if (storeLoc != null) ...[
                     _buildFloatingMapButton(
                       icon: TablerIcons.building_store,
                       tooltip: 'Fokus ke Toko',
                       onTap: () => _mapController.move(storeLoc, 16.5),
                     ),
+                    const SizedBox(height: 8),
+                  ],
+
+                  // Tombol Muat Ulang Data (Reload)
+                  _buildFloatingMapButton(
+                    icon: TablerIcons.refresh,
+                    tooltip: 'Muat Ulang Data',
+                    onTap: () {
+                      _fetchDeliveryDetail();
+                      _initGpsAndStartTracking();
+                      _fetchRoute(force: true);
+                    },
+                  ),
                 ],
               ),
             ),
