@@ -1105,21 +1105,17 @@ class _DeliveryCoordinatesScreenState
                 ],
               ),
 
-              // Badge Status Selesai
+              // Badge Status Selesai (Transparan)
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
-                decoration: BoxDecoration(
-                  color: selesaiCount == totalCount && totalCount > 0
-                      ? AppColors.success.withValues(alpha: 0.12)
-                      : AppColors.brandWarmGray.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(6),
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2.5),
+                decoration: const BoxDecoration(
+                  color: Colors.transparent,
                 ),
                 child: Row(
                   children: [
                     Icon(
                       TablerIcons.circle_check,
-                      size: 13,
+                      size: 14,
                       color: selesaiCount == totalCount && totalCount > 0
                           ? AppColors.success
                           : AppColors.brandWarmGray,
@@ -1129,7 +1125,7 @@ class _DeliveryCoordinatesScreenState
                       '$selesaiCount / $totalCount Selesai',
                       style: TextStyle(
                         fontFamily: 'PlusJakartaSans',
-                        fontSize: 11,
+                        fontSize: 11.5,
                         fontWeight: FontWeight.w700,
                         color: selesaiCount == totalCount && totalCount > 0
                             ? AppColors.success
@@ -1637,20 +1633,11 @@ class _DeliveryCoordinatesScreenState
           ),
         ],
       ),
-      child: InkWell(
-        onTap: () {
-          if (isSelected) {
-            _clearRouteAndSelection();
-          } else {
-            _selectDeliveryAndShowRoute(delivery);
-          }
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
               // 1. ICON STATUS CEKLIST DI KIRI LIST
               // Ceklist hijau jika selesai, ceklist abu jika belum selesai
               Container(
@@ -1850,10 +1837,9 @@ class _DeliveryCoordinatesScreenState
             ],
           ),
         ),
-      ),
-    );
+      );
+    }
   }
-}
 
 /// Painter jarum pointer segitiga ke bawah pada pin peta
 class _PinTipPainter extends CustomPainter {
