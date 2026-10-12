@@ -89,8 +89,9 @@ void main() {
     expect(find.byIcon(TablerIcons.bell), findsOneWidget);
     expect(find.byIcon(TablerIcons.dots_vertical), findsOneWidget);
 
-    // Initial state: glass blur is not rendered (value <= 0.001)
+    // Initial state: glass blur and solid white status bar are not rendered (value <= 0.001)
     expect(find.byKey(const Key('home_sticky_glass_blur')), findsNothing);
+    expect(find.byKey(const Key('home_sticky_status_bar_solid')), findsNothing);
 
     // 2. Scroll down by 250 pixels
     await tester.drag(find.byType(SingleChildScrollView), const Offset(0, -250));
@@ -102,7 +103,14 @@ void main() {
     expect(find.byIcon(TablerIcons.bell), findsOneWidget);
     expect(find.byIcon(TablerIcons.dots_vertical), findsOneWidget);
 
-    // Glass blur is now rendered due to scroll trigger
+    // Status bar solid white background is now rendered
+    expect(find.byKey(const Key('home_sticky_status_bar_solid')), findsOneWidget);
+    final statusBarContainer = tester.widget<Container>(
+      find.byKey(const Key('home_sticky_status_bar_solid')),
+    );
+    expect(statusBarContainer.color, equals(Colors.white));
+
+    // Glass blur is now rendered on app bar info user due to scroll trigger
     expect(find.byKey(const Key('home_sticky_glass_blur')), findsOneWidget);
 
     // 3. Test tapping bell icon while scrolled
@@ -115,8 +123,9 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300)); // allow fade-out animation to settle
 
-    // Glass blur fades out and returns to SizedBox.shrink
+    // Glass blur and solid status bar fade out and return to SizedBox.shrink
     expect(find.byKey(const Key('home_sticky_glass_blur')), findsNothing);
+    expect(find.byKey(const Key('home_sticky_status_bar_solid')), findsNothing);
     expect(find.text('Ahmad Manager'), findsOneWidget);
   });
 }

@@ -299,7 +299,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                 right: 0,
                 child: Stack(
                   children: [
-                    // Background Glass Blur hingga status bar (Fade in/out saat scroll)
+                    // Background sticky header (Status bar putih solid + App bar info user glass blur)
                     Positioned.fill(
                       child: IgnorePointer(
                         ignoring: true,
@@ -314,40 +314,61 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                             if (value <= 0.001) {
                               return const SizedBox.shrink();
                             }
+                            final statusBarHeight =
+                                MediaQuery.of(context).padding.top;
                             return Opacity(
                               opacity: value,
-                              child: ClipRect(
-                                child: BackdropFilter(
-                                  filter: ImageFilter.blur(
-                                    sigmaX: 12 * value,
-                                    sigmaY: 12 * value,
+                              child: Column(
+                                children: [
+                                  // 1. Status Bar: Background putih solid saja
+                                  Container(
+                                    key: const Key(
+                                      'home_sticky_status_bar_solid',
+                                    ),
+                                    height: statusBarHeight,
+                                    width: double.infinity,
+                                    color: Colors.white,
                                   ),
-                                  child: Container(
-                                    key: const Key('home_sticky_glass_blur'),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black.withValues(
-                                        alpha: 0.45 * value,
-                                      ),
-                                      border: Border(
-                                        bottom: BorderSide(
-                                          color: Colors.white.withValues(
-                                            alpha: 0.15 * value,
+
+                                  // 2. App Bar Info User: Background blur glass
+                                  Expanded(
+                                    child: ClipRect(
+                                      child: BackdropFilter(
+                                        filter: ImageFilter.blur(
+                                          sigmaX: 12 * value,
+                                          sigmaY: 12 * value,
+                                        ),
+                                        child: Container(
+                                          key: const Key(
+                                            'home_sticky_glass_blur',
                                           ),
-                                          width: 0.8,
+                                          decoration: BoxDecoration(
+                                            color: Colors.black.withValues(
+                                              alpha: 0.45 * value,
+                                            ),
+                                            border: Border(
+                                              bottom: BorderSide(
+                                                color: Colors.white.withValues(
+                                                  alpha: 0.15 * value,
+                                                ),
+                                                width: 0.8,
+                                              ),
+                                            ),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black.withValues(
+                                                  alpha: 0.12 * value,
+                                                ),
+                                                blurRadius: 8,
+                                                offset: const Offset(0, 2),
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                       ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withValues(
-                                            alpha: 0.12 * value,
-                                          ),
-                                          blurRadius: 8,
-                                          offset: const Offset(0, 2),
-                                        ),
-                                      ],
                                     ),
                                   ),
-                                ),
+                                ],
                               ),
                             );
                           },
