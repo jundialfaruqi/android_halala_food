@@ -80,12 +80,19 @@ void main() {
     // Verify Produk menu item text is rendered
     expect(find.text('Produk'), findsOneWidget);
 
-    // Find the Container that holds the icon with 58x58 dimensions
+    // Verify GridView has 5 columns
+    final gridFinder = find.byType(GridView);
+    expect(gridFinder, findsOneWidget);
+    final gridView = tester.widget<GridView>(gridFinder);
+    final delegate = gridView.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
+    expect(delegate.crossAxisCount, equals(5));
+
+    // Find the Container that holds the icon with 52x52 dimensions
     final containerFinder = find.byWidgetPredicate(
       (widget) =>
           widget is Container &&
-          widget.constraints?.maxWidth == 58 &&
-          widget.constraints?.maxHeight == 58 &&
+          widget.constraints?.maxWidth == 52 &&
+          widget.constraints?.maxHeight == 52 &&
           widget.decoration is BoxDecoration,
     );
 
@@ -97,9 +104,9 @@ void main() {
     expect(decoration.borderRadius, isA<BorderRadius>());
     final borderRadius = decoration.borderRadius as BorderRadius;
 
-    expect(borderRadius.topLeft, equals(const Radius.circular(24)));
+    expect(borderRadius.topLeft, equals(const Radius.circular(22)));
     expect(borderRadius.topRight, equals(Radius.zero));
-    expect(borderRadius.bottomRight, equals(const Radius.circular(24)));
+    expect(borderRadius.bottomRight, equals(const Radius.circular(22)));
     expect(borderRadius.bottomLeft, equals(Radius.zero));
   });
 

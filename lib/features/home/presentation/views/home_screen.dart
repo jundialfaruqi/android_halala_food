@@ -422,9 +422,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                           ),
                           const SizedBox(height: 12),
 
-                          // Section Menu: Grid 4 Kolom Tanpa Card Pembungkus
+                          // Section Menu: Grid 5 Kolom Tanpa Card Pembungkus
                           if (user != null)
-                            _buildFourColumnMenuGrid(context, user)
+                            _buildFiveColumnMenuGrid(context, user)
                           else
                             const Center(
                               child: Padding(
@@ -456,8 +456,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
   );
 }
 
-  /// Menampilkan grid menu 4 kolom tanpa card pembungkus
-  Widget _buildFourColumnMenuGrid(BuildContext context, UserModel user) {
+  /// Menampilkan grid menu 5 kolom tanpa card pembungkus
+  Widget _buildFiveColumnMenuGrid(BuildContext context, UserModel user) {
     final accessibleMenus = _getAccessibleMenus(user);
 
     if (accessibleMenus.isEmpty) {
@@ -492,10 +492,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4,
-        mainAxisSpacing: 8,
-        crossAxisSpacing: 10,
-        mainAxisExtent: 86, // tinggi konsisten setiap item
+        crossAxisCount: 5,
+        mainAxisSpacing: 10,
+        crossAxisSpacing: 6,
+        mainAxisExtent: 78, // tinggi konsisten setiap item
       ),
       itemCount: accessibleMenus.length,
       itemBuilder: (context, index) {
@@ -570,14 +570,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
             children: [
               // Icon container custom rounded: sudut kiri atas & kanan bawah rounded full, sudut kanan atas & kiri bawah no rounded
               Container(
-                width: 58,
-                height: 58,
+                width: 52,
+                height: 52,
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(24),
+                    topLeft: Radius.circular(22),
                     topRight: Radius.zero,
-                    bottomRight: Radius.circular(24),
+                    bottomRight: Radius.circular(22),
                     bottomLeft: Radius.zero,
                   ),
                   boxShadow: [
@@ -589,9 +589,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                   ],
                 ),
                 alignment: Alignment.center,
-                child: Icon(menu.icon, color: AppColors.brandPrimary, size: 32),
+                child: Icon(menu.icon, color: AppColors.brandPrimary, size: 28),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 5),
               // Label menu di bawah icon
               Text(
                 menu.title,
@@ -600,7 +600,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   fontFamily: 'PlusJakartaSans',
-                  fontSize: 11.5,
+                  fontSize: 10.5,
                   fontWeight: FontWeight.w600,
                   color: AppColors.brandEspresso,
                 ),
