@@ -1186,6 +1186,44 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
     return '$dayName, ${now.day} $monthName ${now.year}';
   }
 
+  /// Format dan pastikan tanggal stat card selalu dalam bahasa Indonesia
+  String _formatStatCardDate(String? apiDate) {
+    if (apiDate == null || apiDate.trim().isEmpty) {
+      return _getFormattedTodayDate();
+    }
+    String formatted = apiDate;
+    const dayMap = {
+      'Sunday': 'Minggu',
+      'Monday': 'Senin',
+      'Tuesday': 'Selasa',
+      'Wednesday': 'Rabu',
+      'Thursday': 'Kamis',
+      'Friday': 'Jumat',
+      'Saturday': 'Sabtu',
+    };
+    const monthMap = {
+      'Jan': 'Jan',
+      'Feb': 'Feb',
+      'Mar': 'Mar',
+      'Apr': 'Apr',
+      'May': 'Mei',
+      'Jun': 'Jun',
+      'Jul': 'Jul',
+      'Aug': 'Agu',
+      'Sep': 'Sep',
+      'Oct': 'Okt',
+      'Nov': 'Nov',
+      'Dec': 'Des',
+    };
+    dayMap.forEach((en, id) {
+      formatted = formatted.replaceAll(en, id);
+    });
+    monthMap.forEach((en, id) {
+      formatted = formatted.replaceAll(en, id);
+    });
+    return formatted;
+  }
+
   /// Card statistik ringkasan operasional Halala Food dengan widget core AppCard.stacked
   Widget _buildStatsCard() {
     final statState = ref.watch(homeStatViewModelProvider);
@@ -1243,9 +1281,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
               ),
               const SizedBox(width: 8),
               Text(
-                (stat?.dateFormatted.isNotEmpty == true)
-                    ? stat!.dateFormatted
-                    : _getFormattedTodayDate(),
+                _formatStatCardDate(stat?.dateFormatted),
                 style: const TextStyle(
                   fontFamily: 'PlusJakartaSans',
                   fontSize: 11,
@@ -1352,20 +1388,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                metric.label,
-                style: const TextStyle(
-                  fontFamily: 'PlusJakartaSans',
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF0F172A), // Hitam pekat
+              Flexible(
+                child: Text(
+                  metric.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontFamily: 'PlusJakartaSans',
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF0F172A), // Hitam pekat
+                  ),
                 ),
               ),
+              const SizedBox(width: 4),
               Text(
                 metric.value,
                 style: const TextStyle(
                   fontFamily: 'PlusJakartaSans',
-                  fontSize: 12,
+                  fontSize: 11.5,
                   fontWeight: FontWeight.w700,
                   color: Color(0xFF0F172A), // Hitam pekat
                   fontFeatures: [FontFeature.tabularFigures()],

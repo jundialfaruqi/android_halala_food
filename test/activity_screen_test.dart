@@ -47,7 +47,9 @@ class FakeUnauthorizedAuthViewModel extends AuthViewModel {
         name: 'Tamu',
         email: 'tamu@example.com',
         roles: const ['sales'],
-        permissions: const ['produk-lihat'], // Tidak punya aktifitas-semua atau aktifitas-kurir
+        permissions: const [
+          'produk-lihat',
+        ], // Tidak punya aktifitas-semua atau aktifitas-kurir
       ),
     );
   }
@@ -90,9 +92,7 @@ void main() {
     TestWidgetsFlutterBinding.ensureInitialized();
     await dotenv.load(
       isOptional: true,
-      mergeWith: {
-        'BASE_URL': 'http://127.0.0.1:8000/api',
-      },
+      mergeWith: {'BASE_URL': 'http://127.0.0.1:8000/api'},
     );
   });
   group('ActivityModel Tests', () {
@@ -164,9 +164,7 @@ void main() {
     testWidgets('renders date chip for today', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(
-            body: ActivityDateChip(date: DateTime.now()),
-          ),
+          home: Scaffold(body: ActivityDateChip(date: DateTime.now())),
         ),
       );
 
@@ -178,9 +176,7 @@ void main() {
       final yesterday = DateTime.now().subtract(const Duration(days: 1));
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(
-            body: ActivityDateChip(date: yesterday),
-          ),
+          home: Scaffold(body: ActivityDateChip(date: yesterday)),
         ),
       );
 
@@ -213,7 +209,8 @@ void main() {
           home: Scaffold(
             body: ActivityChatBubble(
               activity: otherUserActivity,
-              currentUserId: 1, // Current user is 1, activity is from 99 -> Left
+              currentUserId:
+                  1, // Current user is 1, activity is from 99 -> Left
             ),
           ),
         ),
@@ -227,7 +224,9 @@ void main() {
       expect(find.text('Toko Barokah'), findsOneWidget);
     });
 
-    testWidgets('renders right bubble for current auth user (greenish tint)', (tester) async {
+    testWidgets('renders right bubble for current auth user (greenish tint)', (
+      tester,
+    ) async {
       final authUserActivity = ActivityModel(
         id: 2,
         type: 'delivery_dispatched',
@@ -287,10 +286,7 @@ void main() {
         await tester.pumpWidget(
           MaterialApp(
             home: Scaffold(
-              body: ActivityChatBubble(
-                activity: activity,
-                currentUserId: 1,
-              ),
+              body: ActivityChatBubble(activity: activity, currentUserId: 1),
             ),
           ),
         );
@@ -302,17 +298,19 @@ void main() {
   });
 
   group('ActivityScreen Permission Tests', () {
-    testWidgets('shows Akses Terbatas when user lacks both permissions', (tester) async {
+    testWidgets('shows Akses Terbatas when user lacks both permissions', (
+      tester,
+    ) async {
       final mockRepo = MockActivityRepository();
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            authViewModelProvider.overrideWith(() => FakeUnauthorizedAuthViewModel()),
+            authViewModelProvider.overrideWith(
+              () => FakeUnauthorizedAuthViewModel(),
+            ),
             activityRepositoryProvider.overrideWithValue(mockRepo),
           ],
-          child: const MaterialApp(
-            home: ActivityScreen(),
-          ),
+          child: const MaterialApp(home: ActivityScreen()),
         ),
       );
 
@@ -320,12 +318,16 @@ void main() {
 
       expect(find.text('Akses Dibatasi'), findsOneWidget);
       expect(
-        find.textContaining('Akun Anda tidak memiliki izin untuk melihat linimasa aktifitas'),
+        find.textContaining(
+          'Akun Anda tidak memiliki izin untuk melihat linimasa aktifitas',
+        ),
         findsOneWidget,
       );
     });
 
-    testWidgets('shows chat screen when user has aktifitas-semua', (tester) async {
+    testWidgets('shows chat screen when user has aktifitas-semua', (
+      tester,
+    ) async {
       final mockRepo = MockActivityRepository();
       mockRepo.activitiesToReturn = [
         ActivityModel(
@@ -346,61 +348,66 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            authViewModelProvider.overrideWith(() => FakeManagerAuthViewModel()),
+            authViewModelProvider.overrideWith(
+              () => FakeManagerAuthViewModel(),
+            ),
             activityRepositoryProvider.overrideWithValue(mockRepo),
           ],
-          child: const MaterialApp(
-            home: ActivityScreen(),
-          ),
+          child: const MaterialApp(home: ActivityScreen()),
         ),
       );
 
       await tester.pumpAndSettle();
 
       expect(find.text('Linimasa Aktifitas'), findsOneWidget);
-      expect(find.text('Semua Aktifitas Sistem'), findsOneWidget);
+      expect(find.text('Semua Aktifitas'), findsOneWidget);
       expect(find.text('Surat Pengiriman Dibuat'), findsOneWidget);
       expect(find.text('Staff Gudang'), findsOneWidget);
     });
 
-    testWidgets('shows chat screen with Kurir subtitle when user has aktifitas-kurir', (tester) async {
-      final mockRepo = MockActivityRepository();
-      mockRepo.activitiesToReturn = [
-        ActivityModel(
-          id: 1,
-          type: 'delivery_dispatched',
-          title: 'Pengantaran Diberangkatkan',
-          description: 'Anto mulai mengantar',
-          userId: 3,
-          userName: 'Kurir Anto',
-          userRole: 'kurir',
-          userInitials: 'KA',
-          timeFormatted: '08:30',
-          dateGroupKey: '2026-10-13',
-          dateFormatted: 'Hari Ini',
-        ),
-      ];
-
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            authViewModelProvider.overrideWith(() => FakeCourierAuthViewModel()),
-            activityRepositoryProvider.overrideWithValue(mockRepo),
-          ],
-          child: const MaterialApp(
-            home: ActivityScreen(),
+    testWidgets(
+      'shows chat screen with Kurir subtitle when user has aktifitas-kurir',
+      (tester) async {
+        final mockRepo = MockActivityRepository();
+        mockRepo.activitiesToReturn = [
+          ActivityModel(
+            id: 1,
+            type: 'delivery_dispatched',
+            title: 'Pengantaran Diberangkatkan',
+            description: 'Anto mulai mengantar',
+            userId: 3,
+            userName: 'Kurir Anto',
+            userRole: 'kurir',
+            userInitials: 'KA',
+            timeFormatted: '08:30',
+            dateGroupKey: '2026-10-13',
+            dateFormatted: 'Hari Ini',
           ),
-        ),
-      );
+        ];
 
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              authViewModelProvider.overrideWith(
+                () => FakeCourierAuthViewModel(),
+              ),
+              activityRepositoryProvider.overrideWithValue(mockRepo),
+            ],
+            child: const MaterialApp(home: ActivityScreen()),
+          ),
+        );
 
-      expect(find.text('Linimasa Aktifitas'), findsOneWidget);
-      expect(find.text('Aktifitas Tugas Kurir'), findsOneWidget);
-      expect(find.text('Pengantaran Diberangkatkan'), findsOneWidget);
-    });
+        await tester.pumpAndSettle();
 
-    testWidgets('ingests real-time activity from WebSocket into chat view', (tester) async {
+        expect(find.text('Linimasa Aktifitas'), findsOneWidget);
+        expect(find.text('Aktifitas Tugas Kurir'), findsOneWidget);
+        expect(find.text('Pengantaran Diberangkatkan'), findsOneWidget);
+      },
+    );
+
+    testWidgets('ingests real-time activity from WebSocket into chat view', (
+      tester,
+    ) async {
       final wsService = WebSocketService();
 
       final mockRepo = MockActivityRepository();
@@ -409,13 +416,13 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            authViewModelProvider.overrideWith(() => FakeManagerAuthViewModel()),
+            authViewModelProvider.overrideWith(
+              () => FakeManagerAuthViewModel(),
+            ),
             webSocketServiceProvider.overrideWithValue(wsService),
             activityRepositoryProvider.overrideWithValue(mockRepo),
           ],
-          child: const MaterialApp(
-            home: ActivityScreen(),
-          ),
+          child: const MaterialApp(home: ActivityScreen()),
         ),
       );
 
@@ -451,80 +458,85 @@ void main() {
       wsService.dispose();
     });
 
-    testWidgets('does not have reload button or RefreshIndicator, and separates chats with distinct spacing', (tester) async {
-      final mockRepo = MockActivityRepository();
-      // Tiga aktifitas:
-      // index 0: user 1 (saya) - tepat di bawah chat saya (jarak 10.0)
-      // index 1: user 1 (saya) - tepat di bawah chat user 2 (jarak 22.0)
-      // index 2: user 2 (orang lain)
-      mockRepo.activitiesToReturn = [
-        ActivityModel(
-          id: 3,
-          type: 'invoice_paid',
-          title: 'Faktur Telah Lunas',
-          userId: 1, // Saya
-          userName: 'Saya',
-          userRole: 'manager',
-          userInitials: 'SY',
-          timeFormatted: '10:10',
-          dateGroupKey: '2026-10-13',
-          dateFormatted: 'Hari Ini',
-        ),
-        ActivityModel(
-          id: 2,
-          type: 'invoice_paid',
-          title: 'Faktur Telah Lunas',
-          userId: 1, // Saya
-          userName: 'Saya',
-          userRole: 'manager',
-          userInitials: 'SY',
-          timeFormatted: '10:05',
-          dateGroupKey: '2026-10-13',
-          dateFormatted: 'Hari Ini',
-        ),
-        ActivityModel(
-          id: 1,
-          type: 'delivery_created',
-          title: 'Surat Pengiriman Dibuat',
-          userId: 2, // Orang lain
-          userName: 'Staf Gudang',
-          userRole: 'manager',
-          userInitials: 'SG',
-          timeFormatted: '10:00',
-          dateGroupKey: '2026-10-13',
-          dateFormatted: 'Hari Ini',
-        ),
-      ];
-
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            authViewModelProvider.overrideWith(() => FakeManagerAuthViewModel()),
-            activityRepositoryProvider.overrideWithValue(mockRepo),
-          ],
-          child: const MaterialApp(
-            home: ActivityScreen(),
+    testWidgets(
+      'does not have reload button or RefreshIndicator, and separates chats with distinct spacing',
+      (tester) async {
+        final mockRepo = MockActivityRepository();
+        // Tiga aktifitas:
+        // index 0: user 1 (saya) - tepat di bawah chat saya (jarak 10.0)
+        // index 1: user 1 (saya) - tepat di bawah chat user 2 (jarak 22.0)
+        // index 2: user 2 (orang lain)
+        mockRepo.activitiesToReturn = [
+          ActivityModel(
+            id: 3,
+            type: 'invoice_paid',
+            title: 'Faktur Telah Lunas',
+            userId: 1, // Saya
+            userName: 'Saya',
+            userRole: 'manager',
+            userInitials: 'SY',
+            timeFormatted: '10:10',
+            dateGroupKey: '2026-10-13',
+            dateFormatted: 'Hari Ini',
           ),
-        ),
-      );
+          ActivityModel(
+            id: 2,
+            type: 'invoice_paid',
+            title: 'Faktur Telah Lunas',
+            userId: 1, // Saya
+            userName: 'Saya',
+            userRole: 'manager',
+            userInitials: 'SY',
+            timeFormatted: '10:05',
+            dateGroupKey: '2026-10-13',
+            dateFormatted: 'Hari Ini',
+          ),
+          ActivityModel(
+            id: 1,
+            type: 'delivery_created',
+            title: 'Surat Pengiriman Dibuat',
+            userId: 2, // Orang lain
+            userName: 'Staf Gudang',
+            userRole: 'manager',
+            userInitials: 'SG',
+            timeFormatted: '10:00',
+            dateGroupKey: '2026-10-13',
+            dateFormatted: 'Hari Ini',
+          ),
+        ];
 
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              authViewModelProvider.overrideWith(
+                () => FakeManagerAuthViewModel(),
+              ),
+              activityRepositoryProvider.overrideWithValue(mockRepo),
+            ],
+            child: const MaterialApp(home: ActivityScreen()),
+          ),
+        );
 
-      // Pastikan TIDAK ada tombol refresh / reload di AppBar
-      expect(find.byTooltip('Muat Ulang'), findsNothing);
+        await tester.pumpAndSettle();
 
-      // Pastikan TIDAK ada RefreshIndicator
-      expect(find.byType(RefreshIndicator), findsNothing);
+        // Pastikan TIDAK ada tombol refresh / reload di AppBar
+        expect(find.byTooltip('Muat Ulang'), findsNothing);
 
-      // Pastikan ketiga bubble ter-render
-      final bubbles = tester.widgetList<ActivityChatBubble>(find.byType(ActivityChatBubble)).toList();
-      expect(bubbles.length, equals(3));
+        // Pastikan TIDAK ada RefreshIndicator
+        expect(find.byType(RefreshIndicator), findsNothing);
 
-      // Bubble index 0 (chat saya di bawah chat saya) memiliki jarak 10.0
-      expect(bubbles[0].topSpacing, equals(10.0));
+        // Pastikan ketiga bubble ter-render
+        final bubbles = tester
+            .widgetList<ActivityChatBubble>(find.byType(ActivityChatBubble))
+            .toList();
+        expect(bubbles.length, equals(3));
 
-      // Bubble index 1 (chat saya di bawah pesan orang lain) memiliki jarak 22.0
-      expect(bubbles[1].topSpacing, equals(22.0));
-    });
+        // Bubble index 0 (chat saya di bawah chat saya) memiliki jarak 10.0
+        expect(bubbles[0].topSpacing, equals(10.0));
+
+        // Bubble index 1 (chat saya di bawah pesan orang lain) memiliki jarak 22.0
+        expect(bubbles[1].topSpacing, equals(22.0));
+      },
+    );
   });
 }

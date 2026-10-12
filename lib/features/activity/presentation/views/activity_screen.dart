@@ -51,14 +51,12 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
     final hasAccess = canViewAll || canViewCourier;
 
     final subtitle = canViewAll
-        ? 'Semua Aktifitas Sistem'
+        ? 'Semua Aktifitas'
         : (canViewCourier ? 'Aktifitas Tugas Kurir' : 'Akses Terbatas');
 
     return AppStatusBar(
       child: AppScaffold(
-        appBar: const AppAppBar(
-          title: 'Linimasa Aktifitas',
-        ),
+        appBar: const AppAppBar(title: 'Linimasa Aktifitas'),
         body: Container(
           // Latar belakang khas ruang obrolan WhatsApp (soft light gray)
           color: const Color(0xFFF3F4F6),
@@ -70,9 +68,7 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
                     _buildPermissionStatusBar(subtitle, canViewAll),
 
                     // Konten Linimasa Chat
-                    Expanded(
-                      child: _buildChatBody(state, user?.id ?? 0),
-                    ),
+                    Expanded(child: _buildChatBody(state, user?.id ?? 0)),
                   ],
                 ),
         ),
@@ -229,7 +225,8 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
         // ATAU tanggal pesan ini berbeda dari pesan sebelumnya (index + 1),
         // maka tampilkan ActivityDateChip di atas bubble ini!
         final bool isLastVisible = index == visibleList.length - 1;
-        final bool isNewDay = isLastVisible ||
+        final bool isNewDay =
+            isLastVisible ||
             (activity.dateGroupKey != visibleList[index + 1].dateGroupKey);
 
         // Hitung jarak vertikal dinamis:
@@ -239,7 +236,8 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
         // - Antar pesan user lain yang sama: (8px)
         double topSpacing = 6.0;
         if (!isLastVisible) {
-          final nextActivity = visibleList[index + 1]; // Pesan di atas pesan ini
+          final nextActivity =
+              visibleList[index + 1]; // Pesan di atas pesan ini
           final isCurrentMe = activity.userId == currentUserId;
           final isAboveMe = nextActivity.userId == currentUserId;
 
@@ -292,19 +290,16 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: Row(
-            mainAxisAlignment:
-                isRight ? MainAxisAlignment.end : MainAxisAlignment.start,
+            mainAxisAlignment: isRight
+                ? MainAxisAlignment.end
+                : MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               if (!isRight) ...[
                 const ShimmerLoading(width: 34, height: 34, borderRadius: 17),
                 const SizedBox(width: 8),
               ],
-              ShimmerLoading(
-                width: 240,
-                height: 90,
-                borderRadius: 16,
-              ),
+              ShimmerLoading(width: 240, height: 90, borderRadius: 16),
               if (isRight) ...[
                 const SizedBox(width: 8),
                 const ShimmerLoading(width: 34, height: 34, borderRadius: 17),
