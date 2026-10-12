@@ -18,9 +18,11 @@ import '../../../raw_material/presentation/views/raw_material_screen.dart';
 import '../../../report/presentation/views/report_screen.dart';
 import '../../../store/presentation/views/store_coordinates_screen.dart';
 import '../../../store/presentation/views/store_screen.dart';
+import '../../../store/data/models/store_model.dart';
 import '../../../user/presentation/views/user_screen.dart';
 import '../../data/models/dashboard_stat_model.dart';
 import '../viewmodels/home_stat_viewmodel.dart';
+import '../viewmodels/home_top_stores_viewmodel.dart';
 import '../widgets/home_bottom_navigation_bar.dart';
 import '../widgets/home_donut_chart.dart';
 import 'package:shimmer/shimmer.dart';
@@ -386,8 +388,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                       ),
                     ),
 
-                    // Spacing proporsional untuk card statistik stack floating + jarak visual yang lega ke section menu utama
+                    // Spacing proporsional untuk card statistik stack floating + jarak visual yang lega
                     const SizedBox(height: 116),
+
+                    // Section Baru: Daftar Toko Mitra Terlaris (Material 3 Carousel)
+                    _buildTopStoresCarouselSection(context, user),
+
+                    const SizedBox(height: 24),
 
                     // Section Konten Menu
                     Padding(
@@ -612,6 +619,343 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
     );
   }
 
+  /// Section Toko Mitra Terlaris menggunakan Material 3 Carousel
+  Widget _buildTopStoresCarouselSection(BuildContext context, UserModel? user) {
+    if (user != null && !user.hasPermission('toko-view')) {
+      return const SizedBox.shrink();
+    }
+
+    final topStoresState = ref.watch(homeTopStoresViewModelProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header Section Toko Mitra Terlaris
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Expanded(
+                child: Text(
+                  'Toko Mitra Terlaris',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: 'PlusJakartaSans',
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.brandEspresso,
+                  ),
+                ),
+              ),
+              if (user != null && user.hasPermission('toko-view')) ...[
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () => _navigateTo(const StoreScreen()),
+                  child: const Text(
+                    'Lihat Semua',
+                    style: TextStyle(
+                      fontFamily: 'PlusJakartaSans',
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.brandPrimary,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Carousel Material 3
+        if (topStoresState.isLoading && topStoresState.stores.isEmpty)
+          _buildTopStoresLoadingSkeleton()
+        else if (topStoresState.stores.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.brandBorder),
+              ),
+              alignment: Alignment.center,
+              child: const Text(
+                'Belum ada data toko mitra aktif.',
+                style: TextStyle(
+                  fontFamily: 'PlusJakartaSans',
+                  fontSize: 13,
+                  color: AppColors.brandWarmGray,
+                ),
+              ),
+            ),
+          )
+        else
+          AppCarousel.builder(
+            height: 200,
+            itemExtent: 285,
+            shrinkExtent: 40,
+            padding: const EdgeInsets.symmetric(horizontal: 6.0),
+            itemCount: topStoresState.stores.length,
+            itemBuilder: (context, index) {
+              final store = topStoresState.stores[index];
+              return _buildStoreCarouselItem(
+                context,
+                store,
+                index,
+                topStoresState.stores.length,
+              );
+            },
+          ),
+      ],
+    );
+  }
+
+  /// Shimmer loading placeholder untuk Carousel Toko Mitra
+  Widget _buildTopStoresLoadingSkeleton() {
+    return SizedBox(
+      height: 200,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        itemCount: 3,
+        itemBuilder: (context, index) {
+          return Container(
+            width: 285,
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: ShimmerLoading(
+              width: double.infinity,
+              height: double.infinity,
+              borderRadius: 20,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// Hitung jumlah bintang (1..5) proporsional terhadap penjualan toko
+  int _getStoreStarCount(StoreModel store, int index, int totalStores) {
+    if (store.totalSales != null && store.totalSales! > 0) {
+      if (store.totalSales! >= 5000000) return 5;
+      if (store.totalSales! >= 3000000) return 4;
+      if (store.totalSales! >= 1500000) return 3;
+      if (store.totalSales! >= 500000) return 2;
+      return 1;
+    }
+    if (store.salesCount != null && store.salesCount! > 0) {
+      if (store.salesCount! >= 15) return 5;
+      if (store.salesCount! >= 10) return 4;
+      if (store.salesCount! >= 5) return 3;
+      if (store.salesCount! >= 2) return 2;
+      return 1;
+    }
+    // Fallback relative rank jika data penjualan masih belum terakumulasi
+    if (index == 0) return 5;
+    if (index == 1) return 4;
+    if (index == 2) return 3;
+    if (index == 3) return 2;
+    return 1;
+  }
+
+  /// Tampilan item card Toko Mitra di dalam Material 3 Carousel
+  Widget _buildStoreCarouselItem(
+    BuildContext context,
+    StoreModel store,
+    int index,
+    int totalStores,
+  ) {
+    final starCount = _getStoreStarCount(store, index, totalStores);
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // 1. Foto Toko sebagai Background
+          if (store.photoUrl != null && store.photoUrl!.isNotEmpty)
+            AppCachedImage(
+              imageUrl: store.photoUrl!,
+              fit: BoxFit.cover,
+              width: double.infinity,
+              height: double.infinity,
+            )
+          else
+            Container(
+              color: const Color(0xFF1E293B),
+              alignment: Alignment.center,
+              child: const Icon(
+                TablerIcons.building_store,
+                size: 54,
+                color: Colors.white24,
+              ),
+            ),
+
+          // 2. Dark Gradient Overlay untuk kontras teks yang optimal
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withValues(alpha: 0.38),
+                  Colors.transparent,
+                  Colors.black.withValues(alpha: 0.88),
+                ],
+                stops: const [0.0, 0.35, 1.0],
+              ),
+            ),
+          ),
+
+          // 3. Di atas gambar bagian atas: Badge putih berisi icon bintang kuning
+          Positioned(
+            top: 12,
+            left: 12,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.15),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (int i = 0; i < starCount; i++) ...[
+                    if (i > 0) const SizedBox(width: 2.5),
+                    const Icon(
+                      TablerIcons.star_filled,
+                      size: 13,
+                      color: Color(0xFFF59E0B),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+
+          // 4. Di atas gambar bagian bawah: Nama toko, alamat, dan tombol Lihat Toko
+          Positioned(
+            left: 14,
+            right: 14,
+            bottom: 12,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Baris 1: Nama Toko
+                Text(
+                  store.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontFamily: 'PlusJakartaSans',
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    shadows: [
+                      Shadow(
+                        color: Colors.black87,
+                        blurRadius: 4,
+                        offset: Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 2),
+
+                // Alamat Toko
+                Text(
+                  store.address ?? 'Alamat belum ditentukan',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: 'PlusJakartaSans',
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white.withValues(alpha: 0.9),
+                    shadows: const [
+                      Shadow(
+                        color: Colors.black87,
+                        blurRadius: 4,
+                        offset: Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                // Baris 3: Tombol teks "Lihat Toko" + icon arrow kanan (card rounded full white no border rounded pill full width)
+                Material(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(999),
+                  elevation: 0,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(999),
+                    onTap: () {
+                      _navigateTo(
+                        StoreCoordinatesScreen(
+                          initialFocusedStore: store,
+                          initialFocusedStoreId: store.id,
+                        ),
+                      );
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 8,
+                        horizontal: 10,
+                      ),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.center,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            Text(
+                              'Lihat Toko',
+                              style: TextStyle(
+                                fontFamily: 'PlusJakartaSans',
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.brandEspresso,
+                              ),
+                            ),
+                            SizedBox(width: 5),
+                            Icon(
+                              TablerIcons.arrow_right,
+                              size: 15,
+                              color: AppColors.brandEspresso,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   /// Daftar menu yang disesuaikan dengan permission Spatie backend
   List<({String title, IconData icon, String permission})> _getAccessibleMenus(
     UserModel user,
@@ -737,28 +1081,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    stat?.type == 'pengantaran'
-                        ? TablerIcons.truck_delivery
-                        : TablerIcons.chart_pie,
-                    size: 16,
-                    color: AppColors.brandPrimary,
-                  ),
-                  const SizedBox(width: 7),
-                  Text(
-                    stat?.title ?? 'Ringkasan Hari Ini',
-                    style: const TextStyle(
-                      fontFamily: 'PlusJakartaSans',
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.brandEspresso,
+              Expanded(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      stat?.type == 'pengantaran'
+                          ? TablerIcons.truck_delivery
+                          : TablerIcons.chart_pie,
+                      size: 16,
+                      color: AppColors.brandPrimary,
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 7),
+                    Flexible(
+                      child: Text(
+                        stat?.title ?? 'Ringkasan Hari Ini',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontFamily: 'PlusJakartaSans',
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.brandEspresso,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               Text(
                 (stat?.dateFormatted.isNotEmpty == true)
                     ? stat!.dateFormatted

@@ -29,7 +29,14 @@ import 'store_edit_screen.dart';
 /// Dilengkapi juga filter rute di samping badge count toko untuk menampilkan titik kordinat toko rute tertentu.
 /// Desain UI clean, tanpa icon dekoratif berlebihan, tanpa badge, tanpa banyak warna.
 class StoreCoordinatesScreen extends ConsumerStatefulWidget {
-  const StoreCoordinatesScreen({super.key});
+  final StoreModel? initialFocusedStore;
+  final int? initialFocusedStoreId;
+
+  const StoreCoordinatesScreen({
+    super.key,
+    this.initialFocusedStore,
+    this.initialFocusedStoreId,
+  });
 
   @override
   ConsumerState<StoreCoordinatesScreen> createState() =>
@@ -498,7 +505,23 @@ class _StoreCoordinatesScreenState extends ConsumerState<StoreCoordinatesScreen>
         _availableRoutes = sortedRoutes;
       });
 
-      if (!skipFitCamera) {
+      if (widget.initialFocusedStore != null || widget.initialFocusedStoreId != null) {
+        final target = _storesWithCoords.where(
+          (s) => s.id == (widget.initialFocusedStore?.id ?? widget.initialFocusedStoreId),
+        ).firstOrNull ?? widget.initialFocusedStore;
+
+        if (target != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            _onStoreMarkerTapped(target);
+          });
+        } else if (!skipFitCamera) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted || _storesWithCoords.isEmpty) return;
+            _fitCameraToStores();
+          });
+        }
+      } else if (!skipFitCamera) {
         // Fit kamera ke seluruh titik koordinat toko mitra jika ada (dan lokasi saya belum aktif)
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted || _storesWithCoords.isEmpty) return;

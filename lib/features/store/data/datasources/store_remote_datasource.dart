@@ -13,6 +13,7 @@ abstract class StoreRemoteDataSource {
     String? search,
     String? route,
     bool? isActive,
+    String? sortBy,
     int page = 1,
     int perPage = 15,
   });
@@ -39,6 +40,7 @@ class StoreRemoteDataSourceImpl implements StoreRemoteDataSource {
     String? search,
     String? route,
     bool? isActive,
+    String? sortBy,
     int page = 1,
     int perPage = 15,
   }) async {
@@ -57,6 +59,10 @@ class StoreRemoteDataSourceImpl implements StoreRemoteDataSource {
 
     if (isActive != null) {
       queryParams['is_active'] = isActive;
+    }
+
+    if (sortBy != null && sortBy.trim().isNotEmpty) {
+      queryParams['sort_by'] = sortBy.trim();
     }
 
     final response = await _dioClient.get(

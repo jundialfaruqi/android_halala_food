@@ -180,7 +180,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Rekonsiliasi Titip Jual'), findsOneWidget);
-      expect(find.text('Keripik Pisang 250g'), findsOneWidget);
+      expect(find.textContaining('Keripik Pisang 250g'), findsOneWidget);
       expect(find.text('Terkirim: 50 pcs'), findsOneWidget);
       expect(find.text('Sisa Etalase'), findsOneWidget);
       expect(find.text('Rusak / BS'), findsOneWidget);

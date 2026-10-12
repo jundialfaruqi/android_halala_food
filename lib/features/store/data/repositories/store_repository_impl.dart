@@ -19,6 +19,7 @@ class StoreRepositoryImpl implements StoreRepository {
     String? search,
     String? route,
     bool? isActive,
+    String? sortBy,
     int page = 1,
     int perPage = 15,
   }) {
@@ -26,6 +27,7 @@ class StoreRepositoryImpl implements StoreRepository {
       search: search,
       route: route,
       isActive: isActive,
+      sortBy: sortBy,
       page: page,
       perPage: perPage,
     );

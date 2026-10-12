@@ -12,6 +12,8 @@ class StoreModel {
   final String? photo;
   final String? photoUrl;
   final String? createdAt;
+  final double? totalSales;
+  final int? salesCount;
 
   const StoreModel({
     required this.id,
@@ -27,6 +29,8 @@ class StoreModel {
     this.photo,
     this.photoUrl,
     this.createdAt,
+    this.totalSales,
+    this.salesCount,
   });
 
   /// Mengembalikan nomor telepon dengan prefix '+' jika belum ada
@@ -34,6 +38,25 @@ class StoreModel {
     if (phone == null || phone!.trim().isEmpty) return null;
     final trimmed = phone!.trim();
     return trimmed.startsWith('+') ? trimmed : '+$trimmed';
+  }
+
+  /// Menghitung jumlah bintang rating (1 sampai 5) proporsional terhadap performa penjualan
+  int get starRating {
+    if (totalSales != null && totalSales! > 0) {
+      if (totalSales! >= 5000000) return 5;
+      if (totalSales! >= 3000000) return 4;
+      if (totalSales! >= 1500000) return 3;
+      if (totalSales! >= 500000) return 2;
+      return 1;
+    }
+    if (salesCount != null && salesCount! > 0) {
+      if (salesCount! >= 15) return 5;
+      if (salesCount! >= 10) return 4;
+      if (salesCount! >= 5) return 3;
+      if (salesCount! >= 2) return 2;
+      return 1;
+    }
+    return 1;
   }
 
   factory StoreModel.fromJson(Map<String, dynamic> json) {
@@ -51,6 +74,8 @@ class StoreModel {
       photo: json['photo']?.toString(),
       photoUrl: json['photo_url']?.toString(),
       createdAt: json['created_at']?.toString(),
+      totalSales: json['total_sales'] != null ? double.tryParse(json['total_sales'].toString()) : null,
+      salesCount: json['sales_count'] != null ? int.tryParse(json['sales_count'].toString()) : null,
     );
   }
 
@@ -69,6 +94,8 @@ class StoreModel {
       'photo': photo,
       'photo_url': photoUrl,
       'created_at': createdAt,
+      'total_sales': totalSales,
+      'sales_count': salesCount,
     };
   }
 }

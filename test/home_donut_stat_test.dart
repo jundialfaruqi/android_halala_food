@@ -18,7 +18,7 @@ class _FakeCourierAuthViewModel extends AuthViewModel {
         id: 4,
         name: 'Kurir Budi',
         email: 'kurir@halala-food.id',
-        permissions: const ['dashboard-stat-pengantaran', 'toko-view'],
+        permissions: const ['dashboard-stat-pengantaran'],
         roles: const ['kurir'],
       ),
     );

@@ -5,6 +5,7 @@ abstract class StoreRepository {
     String? search,
     String? route,
     bool? isActive,
+    String? sortBy,
     int page = 1,
     int perPage = 15,
   });
