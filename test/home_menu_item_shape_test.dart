@@ -7,6 +7,9 @@ import 'package:android_halala_food/features/auth/presentation/viewmodels/auth_v
 import 'package:android_halala_food/features/home/presentation/views/home_screen.dart';
 import 'package:android_halala_food/core/widgets/app_card.dart';
 
+import 'package:android_halala_food/features/home/data/models/dashboard_stat_model.dart';
+import 'package:android_halala_food/features/home/presentation/viewmodels/home_stat_viewmodel.dart';
+
 class _MockAuthViewModel extends AuthViewModel {
   @override
   AuthState build() {
@@ -23,6 +26,39 @@ class _MockAuthViewModel extends AuthViewModel {
   }
 }
 
+class _MockHomeStatViewModel extends HomeStatViewModel {
+  @override
+  HomeStatState build() {
+    return const HomeStatState(
+      isLoading: false,
+      stat: DashboardStatModel(
+        type: 'bisnis',
+        title: 'Ringkasan Hari Ini',
+        dateFormatted: 'Senin, 13 Okt 2026',
+        donut: DashboardDonutModel(
+          percentage: 75,
+          centerLabel: '75%',
+          centerSublabel: 'Selesai',
+          slices: [
+            DashboardDonutSliceModel(
+              label: 'Selesai',
+              value: 9,
+              color: Color(0xFF10B981),
+            ),
+          ],
+        ),
+        metrics: [
+          DashboardMetricModel(
+            label: 'Penjualan',
+            value: 'Rp 4,8 Jt',
+            color: Color(0xFF10B981),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 void main() {
   testWidgets('Home screen menu item icon container has custom asymmetric rounded corners', (
     WidgetTester tester,
@@ -31,6 +67,7 @@ void main() {
       ProviderScope(
         overrides: [
           authViewModelProvider.overrideWith(() => _MockAuthViewModel()),
+          homeStatViewModelProvider.overrideWith(() => _MockHomeStatViewModel()),
         ],
         child: const MaterialApp(
           home: HomeScreen(),
@@ -73,6 +110,7 @@ void main() {
       ProviderScope(
         overrides: [
           authViewModelProvider.overrideWith(() => _MockAuthViewModel()),
+          homeStatViewModelProvider.overrideWith(() => _MockHomeStatViewModel()),
         ],
         child: const MaterialApp(
           home: HomeScreen(),

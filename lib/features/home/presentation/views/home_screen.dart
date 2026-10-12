@@ -19,8 +19,11 @@ import '../../../report/presentation/views/report_screen.dart';
 import '../../../store/presentation/views/store_coordinates_screen.dart';
 import '../../../store/presentation/views/store_screen.dart';
 import '../../../user/presentation/views/user_screen.dart';
-
+import '../../data/models/dashboard_stat_model.dart';
+import '../viewmodels/home_stat_viewmodel.dart';
 import '../widgets/home_bottom_navigation_bar.dart';
+import '../widgets/home_donut_chart.dart';
+import 'package:shimmer/shimmer.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -709,6 +712,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
 
   /// Card statistik ringkasan operasional Halala Food dengan widget core AppCard.stacked
   Widget _buildStatsCard() {
+    final statState = ref.watch(homeStatViewModelProvider);
+    final stat = statState.stat;
+
     return AppCard.stacked(
       stackAtTop: true,
       isGlass: true,
@@ -722,7 +728,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
         bottomRight: Radius.zero,
         bottomLeft: Radius.circular(24),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -733,16 +739,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
             children: [
               Row(
                 mainAxisSize: MainAxisSize.min,
-                children: const [
+                children: [
                   Icon(
-                    TablerIcons.chart_pie,
+                    stat?.type == 'pengantaran'
+                        ? TablerIcons.truck_delivery
+                        : TablerIcons.chart_pie,
                     size: 16,
                     color: AppColors.brandPrimary,
                   ),
-                  SizedBox(width: 7),
+                  const SizedBox(width: 7),
                   Text(
-                    'Ringkasan Hari Ini',
-                    style: TextStyle(
+                    stat?.title ?? 'Ringkasan Hari Ini',
+                    style: const TextStyle(
                       fontFamily: 'PlusJakartaSans',
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
@@ -752,84 +760,192 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                 ],
               ),
               Text(
-                _getFormattedTodayDate(),
+                (stat?.dateFormatted.isNotEmpty == true)
+                    ? stat!.dateFormatted
+                    : _getFormattedTodayDate(),
                 style: const TextStyle(
                   fontFamily: 'PlusJakartaSans',
-                  fontSize: 11.5,
+                  fontSize: 11,
                   fontWeight: FontWeight.w500,
                   color: AppColors.brandWarmGray,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 9),
           const Divider(height: 1, color: AppColors.brandBorder),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
 
-          // 3 Kolom Metrik Statistik Bisnis Halala Food (Space Evenly, Rata Kiri)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildStatColumn(
-                icon: TablerIcons.coin,
-                label: 'Penjualan',
-                value: 'Rp 4,8 Jt',
-              ),
-              Container(width: 1, height: 38, color: AppColors.brandBorder),
-              _buildStatColumn(
-                icon: TablerIcons.packages,
-                label: 'Produksi',
-                value: '180 Box',
-              ),
-              Container(width: 1, height: 38, color: AppColors.brandBorder),
-              _buildStatColumn(
-                icon: TablerIcons.truck_delivery,
-                label: 'Pengantaran',
-                value: '14 Toko',
-              ),
-            ],
-          ),
+          // Konten Utama: Donut Chart (Kiri) + 3 Baris Metrik (Kanan)
+          if (statState.isLoading && stat == null)
+            _buildStatsLoadingSkeleton()
+          else if (stat != null)
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Sisi Kiri: Donut Chart
+                HomeDonutChart(
+                  donut: stat.donut,
+                  size: 74,
+                ),
+                const SizedBox(width: 14),
+
+                // Sisi Kanan: Baris Keterangan Metrik
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (int i = 0; i < stat.metrics.length; i++) ...[
+                        if (i > 0) const SizedBox(height: 6),
+                        _buildMetricRow(stat.metrics[i]),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            )
+          else
+            // Fallback default stat display
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                HomeDonutChart(
+                  donut: const DashboardDonutModel(
+                    percentage: 100,
+                    centerLabel: '100%',
+                    centerSublabel: 'Aktif',
+                    slices: [
+                      DashboardDonutSliceModel(
+                        label: 'Normal',
+                        value: 1,
+                        color: AppColors.brandPrimary,
+                      ),
+                    ],
+                  ),
+                  size: 74,
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      _FallbackMetricRow(
+                        label: 'Sistem',
+                        value: 'Online',
+                        color: AppColors.brandNaturalGreen,
+                      ),
+                      SizedBox(height: 6),
+                      _FallbackMetricRow(
+                        label: 'Operasional',
+                        value: 'Berjalan',
+                        color: AppColors.brandPrimary,
+                      ),
+                      SizedBox(height: 6),
+                      _FallbackMetricRow(
+                        label: 'Koneksi',
+                        value: 'Terhubung',
+                        color: Color(0xFF3B82F6),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
         ],
       ),
     );
   }
 
-  Widget _buildStatColumn({
-    required IconData icon,
-    required String label,
-    required String value,
-  }) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
+  /// Baris Keterangan Metrik: Teks tetap hitam, bullet persegi di-rotate 45 derajat
+  Widget _buildMetricRow(DashboardMetricModel metric) {
+    return Row(
       children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 15, color: AppColors.brandPrimary),
-            const SizedBox(width: 5),
-            Text(
-              label,
-              style: const TextStyle(
-                fontFamily: 'PlusJakartaSans',
-                fontSize: 11.5,
-                fontWeight: FontWeight.w600,
-                color: AppColors.brandWarmGray,
+        // Indikator persegi di-rotate 45 derajat (Diamond / Belah Ketupat)
+        DiamondIndicator(color: metric.color, size: 7.5),
+        const SizedBox(width: 8),
+
+        // Teks Keterangan & Angka: Tetap berwarna hitam pekat
+        Expanded(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                metric.label,
+                style: const TextStyle(
+                  fontFamily: 'PlusJakartaSans',
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF0F172A), // Hitam pekat
+                ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        Text(
-          value,
-          style: const TextStyle(
-            fontFamily: 'PlusJakartaSans',
-            fontSize: 15,
-            fontWeight: FontWeight.w800,
-            color: AppColors.brandEspresso,
+              Text(
+                metric.value,
+                style: const TextStyle(
+                  fontFamily: 'PlusJakartaSans',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF0F172A), // Hitam pekat
+                  fontFeatures: [FontFeature.tabularFigures()],
+                ),
+              ),
+            ],
           ),
         ),
       ],
+    );
+  }
+
+  /// Shimmer loading skeleton saat stat sedang dimuat
+  Widget _buildStatsLoadingSkeleton() {
+    return Shimmer.fromColors(
+      baseColor: const Color(0xFFE2E8F0),
+      highlightColor: const Color(0xFFF8FAFC),
+      child: Row(
+        children: [
+          Container(
+            width: 74,
+            height: 74,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  height: 14,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  height: 14,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  height: 14,
+                  width: 110,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -846,6 +962,54 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
         await ref.read(authViewModelProvider.notifier).logout();
         AppSnackBar.showSuccess(null, message: 'Anda telah berhasil keluar.');
       },
+    );
+  }
+}
+
+class _FallbackMetricRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color color;
+
+  const _FallbackMetricRow({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        DiamondIndicator(color: color, size: 7.5),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontFamily: 'PlusJakartaSans',
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF0F172A),
+                ),
+              ),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontFamily: 'PlusJakartaSans',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF0F172A),
+                  fontFeatures: [FontFeature.tabularFigures()],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
