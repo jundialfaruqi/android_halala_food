@@ -38,6 +38,25 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
   int _currentNavIndex = 0;
   DateTime? _lastBackPressTime;
+  late final ScrollController _scrollController;
+  bool _isHeaderScrolled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final isScrolled = _scrollController.offset > 10;
+    if (isScrolled != _isHeaderScrolled) {
+      setState(() {
+        _isHeaderScrolled = isScrolled;
+      });
+    }
+  }
 
   @override
   void didChangeDependencies() {
@@ -50,6 +69,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
     appRouteObserver.unsubscribe(this);
     super.dispose();
   }
@@ -129,340 +150,418 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
         builder: (context, constraints) {
           final headerHeight = constraints.maxWidth * 9 / 16;
 
-          return SingleChildScrollView(
-            child: Stack(
-              children: [
-                // Layer 1: Background Banner & Konten Halaman
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Header Background Gambar Aspek Video (16:9)
-                    AspectRatio(
-                      aspectRatio: 16 / 9,
-                      child: Stack(
-                        fit: StackFit.expand,
+          return Stack(
+            children: [
+              // 1. Konten Scrollable
+              NotificationListener<ScrollNotification>(
+                onNotification: (notification) {
+                  if (notification.metrics.axis == Axis.vertical) {
+                    final isScrolled = notification.metrics.pixels > 10;
+                    if (isScrolled != _isHeaderScrolled) {
+                      setState(() {
+                        _isHeaderScrolled = isScrolled;
+                      });
+                    }
+                  }
+                  return false;
+                },
+                child: SingleChildScrollView(
+                  controller: _scrollController,
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: Stack(
+                    children: [
+                      // Layer 1: Background Banner & Konten Halaman
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Base dark placeholder agar tidak ada kilatan putih saat gambar di-decode
-                          const ColoredBox(color: Color(0xFF1E293B)),
-                          // Gambar Background Aspek Video
-                          const Image(
-                            image: AssetImage(AppAssets.whyChooseUs),
-                            fit: BoxFit.cover,
-                            gaplessPlayback: true,
-                          ),
-                          // Gradient Overlay disesuaikan agar icon status bar hitam di bagian atas kontras dan teks header terbaca jelas
-                          DecoratedBox(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  Colors.white.withValues(alpha: 0.30),
-                                  Colors.black.withValues(alpha: 0.25),
-                                  Colors.black.withValues(alpha: 0.70),
-                                ],
-                                stops: const [0.0, 0.40, 1.0],
-                              ),
+                          // Header Background Gambar Aspek Video (16:9)
+                          AspectRatio(
+                            aspectRatio: 16 / 9,
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                // Base dark placeholder agar tidak ada kilatan putih saat gambar di-decode
+                                const ColoredBox(color: Color(0xFF1E293B)),
+                                // Gambar Background Aspek Video
+                                const Image(
+                                  image: AssetImage(AppAssets.whyChooseUs),
+                                  fit: BoxFit.cover,
+                                  gaplessPlayback: true,
+                                ),
+                                // Gradient Overlay disesuaikan agar icon status bar hitam di bagian atas kontras dan teks header terbaca jelas
+                                DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        Colors.white.withValues(alpha: 0.30),
+                                        Colors.black.withValues(alpha: 0.25),
+                                        Colors.black.withValues(alpha: 0.70),
+                                      ],
+                                      stops: const [0.0, 0.40, 1.0],
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          // Konten Header dalam SafeArea top
-                          SafeArea(
-                            bottom: false,
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                              child: Align(
-                                alignment: Alignment.topLeft,
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
+
+                          // Spacing proporsional untuk card statistik stack floating + jarak visual yang lega
+                          const SizedBox(height: 116),
+
+                          // Section Baru: Daftar Toko Mitra Terlaris (Material 3 Carousel)
+                          _buildTopStoresCarouselSection(context, user),
+
+                          const SizedBox(height: 24),
+
+                          // Section Konten Menu
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Section Header Menu
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    // Avatar inisial dengan border putih dan shadow
-                                    Container(
-                                      width: 44,
-                                      height: 44,
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                          color: Colors.white,
-                                          width: 2.2,
-                                        ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withValues(
-                                              alpha: 0.35,
-                                            ),
-                                            blurRadius: 10,
-                                            offset: const Offset(0, 3),
-                                          ),
-                                        ],
+                                    const Text(
+                                      'Menu Utama',
+                                      style: TextStyle(
+                                        fontFamily: 'PlusJakartaSans',
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.brandEspresso,
                                       ),
-                                      alignment: Alignment.center,
-                                      child: Text(
-                                        (user?.name.isNotEmpty ?? false)
-                                            ? user!.name[0].toUpperCase()
-                                            : 'U',
+                                    ),
+                                    if (user != null)
+                                      Text(
+                                        '${_getAccessibleMenus(user).length} Menu',
                                         style: const TextStyle(
                                           fontFamily: 'PlusJakartaSans',
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.w800,
-                                          color: AppColors.brandPrimary,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppColors.brandWarmGray,
                                         ),
                                       ),
-                                    ),
-                                    const SizedBox(width: 12),
-
-                                    // Info Nama & Role (Teks bersih tanpa badge)
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Text(
-                                            user?.name ??
-                                                'Pengguna Halala Food',
-                                            style: TextStyle(
-                                              fontFamily: 'PlusJakartaSans',
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.w800,
-                                              color: Colors.white,
-                                              shadows: [
-                                                Shadow(
-                                                  color: Colors.black
-                                                      .withValues(alpha: 0.8),
-                                                  blurRadius: 8,
-                                                  offset: const Offset(0, 1),
-                                                ),
-                                              ],
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                          const SizedBox(height: 3),
-                                          Text(
-                                            _formatRoleName(user),
-                                            style: TextStyle(
-                                              fontFamily: 'PlusJakartaSans',
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w500,
-                                              color: Colors.white.withValues(
-                                                alpha: 0.90,
-                                              ),
-                                              shadows: [
-                                                Shadow(
-                                                  color: Colors.black
-                                                      .withValues(alpha: 0.8),
-                                                  blurRadius: 6,
-                                                  offset: const Offset(0, 1),
-                                                ),
-                                              ],
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(width: 6),
-
-                                    // Icon Lonceng Notifikasi (Icon only white dengan dot number notifikasi)
-                                    InkWell(
-                                      onTap: () {
-                                        AppSnackBar.showInfo(
-                                          context,
-                                          message: 'Belum ada notifikasi baru.',
-                                        );
-                                      },
-                                      borderRadius: BorderRadius.circular(20),
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(6.0),
-                                        child: Stack(
-                                          clipBehavior: Clip.none,
-                                          children: [
-                                            const Icon(
-                                              TablerIcons.bell,
-                                              size: 26,
-                                              color: Colors.white,
-                                            ),
-                                            Positioned(
-                                              top: -4,
-                                              right: -4,
-                                              child: Container(
-                                                width: 18,
-                                                height: 18,
-                                                decoration: BoxDecoration(
-                                                  color: AppColors.error,
-                                                  shape: BoxShape.circle,
-                                                  border: Border.all(
-                                                    color: Colors.white,
-                                                    width: 1.5,
-                                                  ),
-                                                ),
-                                                alignment: Alignment.center,
-                                                child: const Center(
-                                                  child: Text(
-                                                    '3',
-                                                    textAlign: TextAlign.center,
-                                                    textHeightBehavior: TextHeightBehavior(
-                                                      applyHeightToFirstAscent: false,
-                                                      applyHeightToLastDescent: false,
-                                                    ),
-                                                    style: TextStyle(
-                                                      fontFamily: 'PlusJakartaSans',
-                                                      fontSize: 10,
-                                                      fontWeight: FontWeight.w800,
-                                                      color: Colors.white,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 4),
-
-                                    // Tombol Dropdown Menu Akun (Frosted circular button)
-                                    AppDropdownMenu<String>(
-                                      tooltip: 'Menu Akun',
-                                      padding: EdgeInsets.zero,
-                                      triggerWidget: Container(
-                                        width: 40,
-                                        height: 40,
-                                        decoration: BoxDecoration(
-                                          color: Colors.black.withValues(
-                                            alpha: 0.35,
-                                          ),
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color: Colors.white.withValues(
-                                              alpha: 0.35,
-                                            ),
-                                            width: 1.2,
-                                          ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black.withValues(
-                                                alpha: 0.25,
-                                              ),
-                                              blurRadius: 6,
-                                              offset: const Offset(0, 2),
-                                            ),
-                                          ],
-                                        ),
-                                        alignment: Alignment.center,
-                                        child: const Icon(
-                                          TablerIcons.dots_vertical,
-                                          size: 20,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                      items: const [
-                                        AppDropdownItem(
-                                          value: 'profile',
-                                          label: 'Profil Saya',
-                                          icon: TablerIcons.user,
-                                          isDividerAfter: true,
-                                        ),
-                                        AppDropdownItem(
-                                          value: 'logout',
-                                          label: 'Keluar dari aplikasi',
-                                          icon: TablerIcons.logout,
-                                          isDestructive: true,
-                                        ),
-                                      ],
-                                      onSelected: (value) {
-                                        if (value == 'profile') {
-                                          _navigateTo(const ProfileScreen());
-                                        } else if (value == 'logout') {
-                                          _confirmLogout(context, ref);
-                                        }
-                                      },
-                                    ),
                                   ],
                                 ),
-                              ),
+                                const SizedBox(height: 12),
+
+                                // Section Menu: Grid 5 Kolom Tanpa Card Pembungkus
+                                if (user != null)
+                                  _buildFiveColumnMenuGrid(context, user)
+                                else
+                                  const Center(
+                                    child: Padding(
+                                      padding: EdgeInsets.all(24.0),
+                                      child: CircularProgressIndicator(
+                                        color: AppColors.brandPrimary,
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
                         ],
                       ),
-                    ),
 
-                    // Spacing proporsional untuk card statistik stack floating + jarak visual yang lega
-                    const SizedBox(height: 116),
+                      // Layer 2: Card Statistik Floating simetris di atas batas Header & Body (Dipaint paling atas)
+                      Positioned(
+                        top: headerHeight - 72,
+                        left: 16,
+                        right: 16,
+                        child: _buildStatsCard(),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
 
-                    // Section Baru: Daftar Toko Mitra Terlaris (Material 3 Carousel)
-                    _buildTopStoresCarouselSection(context, user),
-
-                    const SizedBox(height: 24),
-
-                    // Section Konten Menu
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Section Header Menu
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
-                                'Menu Utama',
-                                style: TextStyle(
-                                  fontFamily: 'PlusJakartaSans',
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.brandEspresso,
-                                ),
-                              ),
-                              if (user != null)
-                                Text(
-                                  '${_getAccessibleMenus(user).length} Menu',
-                                  style: const TextStyle(
-                                    fontFamily: 'PlusJakartaSans',
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.brandWarmGray,
+              // 2. Sticky User Info Header dengan Glass Blur & Fade In/Out
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: Stack(
+                  children: [
+                    // Background Glass Blur hingga status bar (Fade in/out saat scroll)
+                    Positioned.fill(
+                      child: IgnorePointer(
+                        ignoring: true,
+                        child: TweenAnimationBuilder<double>(
+                          tween: Tween<double>(
+                            begin: 0.0,
+                            end: _isHeaderScrolled ? 1.0 : 0.0,
+                          ),
+                          duration: const Duration(milliseconds: 250),
+                          curve: Curves.easeInOut,
+                          builder: (context, value, child) {
+                            if (value <= 0.001) {
+                              return const SizedBox.shrink();
+                            }
+                            return Opacity(
+                              opacity: value,
+                              child: ClipRect(
+                                child: BackdropFilter(
+                                  filter: ImageFilter.blur(
+                                    sigmaX: 12 * value,
+                                    sigmaY: 12 * value,
+                                  ),
+                                  child: Container(
+                                    key: const Key('home_sticky_glass_blur'),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withValues(
+                                        alpha: 0.45 * value,
+                                      ),
+                                      border: Border(
+                                        bottom: BorderSide(
+                                          color: Colors.white.withValues(
+                                            alpha: 0.15 * value,
+                                          ),
+                                          width: 0.8,
+                                        ),
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(
+                                            alpha: 0.12 * value,
+                                          ),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-
-                          // Section Menu: Grid 5 Kolom Tanpa Card Pembungkus
-                          if (user != null)
-                            _buildFiveColumnMenuGrid(context, user)
-                          else
-                            const Center(
-                              child: Padding(
-                                padding: EdgeInsets.all(24.0),
-                                child: CircularProgressIndicator(
-                                  color: AppColors.brandPrimary,
-                                ),
                               ),
-                            ),
-                        ],
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+
+                    // Konten User Info Header (Sticky di atas)
+                    SafeArea(
+                      bottom: false,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                        child: _buildUserInfoRow(context, user),
                       ),
                     ),
                   ],
                 ),
-
-                // Layer 2: Card Statistik Floating simetris di atas batas Header & Body (Dipaint paling atas)
-                Positioned(
-                  top: headerHeight - 72,
-                  left: 16,
-                  right: 16,
-                  child: _buildStatsCard(),
-                ),
-              ],
-            ),
+              ),
+            ],
           );
         },
       ),
     ),
   );
 }
+
+  /// Konten info pengguna (Avatar, Nama, Role, Bell Icon, Account Dropdown)
+  Widget _buildUserInfoRow(BuildContext context, UserModel? user) {
+    return Align(
+      alignment: Alignment.topLeft,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Avatar inisial dengan border putih dan shadow
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Colors.white,
+                width: 2.2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.35),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              (user?.name.isNotEmpty ?? false)
+                  ? user!.name[0].toUpperCase()
+                  : 'U',
+              style: const TextStyle(
+                fontFamily: 'PlusJakartaSans',
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: AppColors.brandPrimary,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+
+          // Info Nama & Role (Teks bersih tanpa badge)
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  user?.name ?? 'Pengguna Halala Food',
+                  style: TextStyle(
+                    fontFamily: 'PlusJakartaSans',
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                    shadows: [
+                      Shadow(
+                        color: Colors.black.withValues(alpha: 0.8),
+                        blurRadius: 8,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  _formatRoleName(user),
+                  style: TextStyle(
+                    fontFamily: 'PlusJakartaSans',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white.withValues(alpha: 0.90),
+                    shadows: [
+                      Shadow(
+                        color: Colors.black.withValues(alpha: 0.8),
+                        blurRadius: 6,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 6),
+
+          // Icon Lonceng Notifikasi (Icon only white dengan dot number notifikasi)
+          InkWell(
+            onTap: () {
+              AppSnackBar.showInfo(
+                context,
+                message: 'Belum ada notifikasi baru.',
+              );
+            },
+            borderRadius: BorderRadius.circular(20),
+            child: Padding(
+              padding: const EdgeInsets.all(6.0),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  const Icon(
+                    TablerIcons.bell,
+                    size: 26,
+                    color: Colors.white,
+                  ),
+                  Positioned(
+                    top: -4,
+                    right: -4,
+                    child: Container(
+                      width: 18,
+                      height: 18,
+                      decoration: BoxDecoration(
+                        color: AppColors.error,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white,
+                          width: 1.5,
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: const Center(
+                        child: Text(
+                          '3',
+                          textAlign: TextAlign.center,
+                          textHeightBehavior: TextHeightBehavior(
+                            applyHeightToFirstAscent: false,
+                            applyHeightToLastDescent: false,
+                          ),
+                          style: TextStyle(
+                            fontFamily: 'PlusJakartaSans',
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+
+          // Tombol Dropdown Menu Akun (Frosted circular button)
+          AppDropdownMenu<String>(
+            tooltip: 'Menu Akun',
+            padding: EdgeInsets.zero,
+            triggerWidget: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.35),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.35),
+                  width: 1.2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.25),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              alignment: Alignment.center,
+              child: const Icon(
+                TablerIcons.dots_vertical,
+                size: 20,
+                color: Colors.white,
+              ),
+            ),
+            items: const [
+              AppDropdownItem(
+                value: 'profile',
+                label: 'Profil Saya',
+                icon: TablerIcons.user,
+                isDividerAfter: true,
+              ),
+              AppDropdownItem(
+                value: 'logout',
+                label: 'Keluar dari aplikasi',
+                icon: TablerIcons.logout,
+                isDestructive: true,
+              ),
+            ],
+            onSelected: (value) {
+              if (value == 'profile') {
+                _navigateTo(const ProfileScreen());
+              } else if (value == 'logout') {
+                _confirmLogout(context, ref);
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
 
   /// Menampilkan grid menu 5 kolom tanpa card pembungkus
   Widget _buildFiveColumnMenuGrid(BuildContext context, UserModel user) {
