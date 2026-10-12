@@ -716,6 +716,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
       borderColor: Colors.transparent,
       stackOffsetVertical: 9.0,
       stackInsetHorizontal: 13.0,
+      customBorderRadius: const BorderRadius.only(
+        topLeft: Radius.zero,
+        topRight: Radius.circular(24),
+        bottomRight: Radius.zero,
+        bottomLeft: Radius.circular(24),
+      ),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
       child: Column(
         mainAxisSize: MainAxisSize.min,

@@ -16,6 +16,7 @@ class AppCard extends StatelessWidget {
   final Color borderColor;
   final double borderWidth;
   final double borderRadius;
+  final BorderRadius? customBorderRadius;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
   final List<BoxShadow>? boxShadow;
@@ -40,6 +41,7 @@ class AppCard extends StatelessWidget {
     this.borderColor = Colors.transparent,
     this.borderWidth = 0.0,
     this.borderRadius = 16.0,
+    this.customBorderRadius,
     this.onTap,
     this.onLongPress,
     this.boxShadow,
@@ -62,6 +64,7 @@ class AppCard extends StatelessWidget {
     this.borderColor = Colors.transparent,
     this.borderWidth = 0.0,
     this.borderRadius = 16.0,
+    this.customBorderRadius,
     this.onTap,
     this.onLongPress,
     this.clipBehavior = Clip.antiAlias,
@@ -84,6 +87,7 @@ class AppCard extends StatelessWidget {
     this.borderColor = Colors.transparent,
     this.borderWidth = 0.0,
     this.borderRadius = 16.0,
+    this.customBorderRadius,
     this.onTap,
     this.onLongPress,
     this.clipBehavior = Clip.antiAlias,
@@ -106,6 +110,7 @@ class AppCard extends StatelessWidget {
     this.borderColor = Colors.transparent,
     this.borderWidth = 0.0,
     this.borderRadius = 16.0,
+    this.customBorderRadius,
     this.onTap,
     this.onLongPress,
     this.boxShadow,
@@ -134,6 +139,7 @@ class AppCard extends StatelessWidget {
     Color borderColor = Colors.transparent,
     double borderWidth = 0.0,
     double borderRadius = 16.0,
+    BorderRadius? customBorderRadius,
     VoidCallback? onTap,
     bool showDivider = true,
   }) {
@@ -144,6 +150,7 @@ class AppCard extends StatelessWidget {
       backgroundColor: backgroundColor,
       borderColor: borderColor,
       borderRadius: borderRadius,
+      customBorderRadius: customBorderRadius,
       onTap: onTap,
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -234,17 +241,20 @@ class AppCard extends StatelessWidget {
           isTopStacked ? _stackedFrontShadowTop : _stackedFrontShadow;
     }
 
+    final effectiveBorderRadius =
+        customBorderRadius ?? BorderRadius.circular(borderRadius);
+
     Widget cardContent = child;
 
     Widget card;
     if (isGlass) {
       card = Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(borderRadius),
+          borderRadius: effectiveBorderRadius,
           boxShadow: effectiveShadow,
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(borderRadius),
+          borderRadius: effectiveBorderRadius,
           clipBehavior: clipBehavior,
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: glassBlur, sigmaY: glassBlur),
@@ -252,7 +262,7 @@ class AppCard extends StatelessWidget {
               padding: padding,
               decoration: BoxDecoration(
                 color: backgroundColor.withValues(alpha: glassOpacity),
-                borderRadius: BorderRadius.circular(borderRadius),
+                borderRadius: effectiveBorderRadius,
                 border: borderWidth > 0
                     ? Border.all(color: borderColor, width: borderWidth)
                     : null,
@@ -267,7 +277,7 @@ class AppCard extends StatelessWidget {
         padding: padding,
         decoration: BoxDecoration(
           color: backgroundColor,
-          borderRadius: BorderRadius.circular(borderRadius),
+          borderRadius: effectiveBorderRadius,
           border: borderWidth > 0
               ? Border.all(color: borderColor, width: borderWidth)
               : null,
@@ -283,7 +293,7 @@ class AppCard extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           onLongPress: onLongPress,
-          borderRadius: BorderRadius.circular(borderRadius),
+          borderRadius: effectiveBorderRadius,
           child: card,
         ),
       );
@@ -294,17 +304,21 @@ class AppCard extends StatelessWidget {
 
   Widget _buildDeckLayer({
     required double borderRadius,
+    BorderRadius? customBorderRadius,
     required Color fallbackColor,
     required double blurSigma,
     required double bgOpacity,
     required double borderOpacity,
     required List<BoxShadow> shadow,
   }) {
+    final effectiveBorderRadius =
+        customBorderRadius ?? BorderRadius.circular(borderRadius);
+
     if (!isGlass) {
       return Container(
         decoration: BoxDecoration(
           color: fallbackColor,
-          borderRadius: BorderRadius.circular(borderRadius),
+          borderRadius: effectiveBorderRadius,
           border: borderWidth > 0
               ? Border.all(color: borderColor, width: borderWidth)
               : null,
@@ -315,17 +329,17 @@ class AppCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(borderRadius),
+        borderRadius: effectiveBorderRadius,
         boxShadow: shadow,
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(borderRadius),
+        borderRadius: effectiveBorderRadius,
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
           child: Container(
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: bgOpacity),
-              borderRadius: BorderRadius.circular(borderRadius),
+              borderRadius: effectiveBorderRadius,
               border: borderWidth > 0
                   ? Border.all(
                       color: Colors.white.withValues(alpha: borderOpacity),
@@ -366,6 +380,7 @@ class AppCard extends StatelessWidget {
               right: _stackInsetHorizontal * 2,
               child: _buildDeckLayer(
                 borderRadius: borderRadius,
+                customBorderRadius: customBorderRadius,
                 fallbackColor: AppColors.brandSoftCreamLight,
                 blurSigma: 12.0,
                 bgOpacity: 0.35,
@@ -388,6 +403,7 @@ class AppCard extends StatelessWidget {
               right: _stackInsetHorizontal,
               child: _buildDeckLayer(
                 borderRadius: borderRadius,
+                customBorderRadius: customBorderRadius,
                 fallbackColor: Colors.white,
                 blurSigma: 14.0,
                 bgOpacity: 0.50,
@@ -426,6 +442,7 @@ class AppCard extends StatelessWidget {
             right: _stackInsetHorizontal * 2,
             child: _buildDeckLayer(
               borderRadius: borderRadius,
+              customBorderRadius: customBorderRadius,
               fallbackColor: AppColors.brandSoftCreamLight,
               blurSigma: 12.0,
               bgOpacity: 0.35,
@@ -448,6 +465,7 @@ class AppCard extends StatelessWidget {
             right: _stackInsetHorizontal,
             child: _buildDeckLayer(
               borderRadius: borderRadius,
+              customBorderRadius: customBorderRadius,
               fallbackColor: Colors.white,
               blurSigma: 14.0,
               bgOpacity: 0.50,
