@@ -55,6 +55,31 @@ void main() {
       service.dispose();
     });
 
+    test('WebSocketService broadcasts activity.created event correctly', () async {
+      final service = WebSocketService();
+      final expectedPayload = {
+        'id': 789,
+        'action_type': 'delivery_created',
+        'title': 'Surat Pengiriman Dibuat',
+        'description': 'Surat jalan #SJ-202610-0099 telah dibuat',
+        'user_name': 'Budi Santoso',
+        'user_id': 2,
+        'created_at_time': '10:30',
+        'date_group_key': '2026-10-13',
+      };
+
+      final futureEvent = service.onActivityCreated.first;
+
+      service.emitActivityCreatedForTest(expectedPayload);
+
+      final received = await futureEvent;
+      expect(received['id'], equals(789));
+      expect(received['action_type'], equals('delivery_created'));
+      expect(received['user_name'], equals('Budi Santoso'));
+
+      service.dispose();
+    });
+
     test('webSocketServiceProvider provides a singleton and disposes cleanly', () {
       final container = ProviderContainer();
       final service = container.read(webSocketServiceProvider);

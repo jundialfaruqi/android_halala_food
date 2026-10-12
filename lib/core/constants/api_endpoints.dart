@@ -77,4 +77,7 @@ class ApiEndpoints {
 
   // Reports (Laporan & Rekapitulasi Bisnis)
   static const String reports = '/reports';
+
+  // Activities (Linimasa Aktifitas Sistem)
+  static const String activities = '/activities';
 }

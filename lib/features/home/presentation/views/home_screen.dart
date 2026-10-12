@@ -6,6 +6,7 @@ import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
 import '../../../../core/constants/app_assets.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/widgets.dart';
+import '../../../activity/presentation/views/activity_screen.dart';
 import '../../../auth/data/models/user_model.dart';
 import '../../../auth/presentation/viewmodels/auth_viewmodel.dart';
 import '../../../auth/presentation/views/profile_screen.dart';
@@ -137,6 +138,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
       bottomNavigationBar: HomeBottomNavigationBar(
         currentIndex: _currentNavIndex,
         onTap: (index) {
+          if (index == 1) {
+            final hasAccess = (user?.hasPermission('aktifitas-semua') ?? false) ||
+                (user?.hasPermission('aktifitas-kurir') ?? false);
+            if (!hasAccess) {
+              AppSnackBar.showError(
+                context,
+                message: 'Anda tidak memiliki hak akses untuk membuka halaman aktifitas.',
+              );
+              return;
+            }
+            _navigateTo(const ActivityScreen());
+            return;
+          }
           if (index == 4) {
             _navigateTo(const ProfileScreen());
             return;
