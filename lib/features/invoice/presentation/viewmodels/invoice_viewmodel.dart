@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import '../../../../core/services/websocket_service.dart';
 import '../../../../core/widgets/app_snack_bar.dart';
 import '../../data/models/invoice_model.dart';
@@ -15,6 +16,7 @@ class InvoiceState {
   final int lastPage;
   final String selectedStatus; // 'all', 'belum_dibayar', 'sebagian', 'lunas', 'overdue', 'dibatalkan'
   final int? selectedStoreId;
+  final DateTime? selectedDate;
   final String searchQuery;
   final Map<String, int> statusCounts;
   final List<InvoiceStoreModel> availableStores;
@@ -29,6 +31,7 @@ class InvoiceState {
     this.lastPage = 1,
     this.selectedStatus = 'all',
     this.selectedStoreId,
+    this.selectedDate,
     this.searchQuery = '',
     this.statusCounts = const {
       'all': 0,
@@ -46,6 +49,7 @@ class InvoiceState {
   bool get hasFilter =>
       selectedStatus != 'all' ||
       selectedStoreId != null ||
+      selectedDate != null ||
       searchQuery.isNotEmpty;
 
   InvoiceState copyWith({
@@ -58,6 +62,8 @@ class InvoiceState {
     String? selectedStatus,
     int? selectedStoreId,
     bool clearStore = false,
+    DateTime? selectedDate,
+    bool clearDate = false,
     String? searchQuery,
     Map<String, int>? statusCounts,
     List<InvoiceStoreModel>? availableStores,
@@ -74,6 +80,7 @@ class InvoiceState {
       selectedStatus: selectedStatus ?? this.selectedStatus,
       selectedStoreId:
           clearStore ? null : (selectedStoreId ?? this.selectedStoreId),
+      selectedDate: clearDate ? null : (selectedDate ?? this.selectedDate),
       searchQuery: searchQuery ?? this.searchQuery,
       statusCounts: statusCounts ?? this.statusCounts,
       availableStores: availableStores ?? this.availableStores,
@@ -120,12 +127,17 @@ class InvoiceViewModel extends Notifier<InvoiceState> {
     }
 
     try {
+      final dateParam = state.selectedDate != null
+          ? DateFormat('yyyy-MM-dd').format(state.selectedDate!)
+          : null;
+
       final result = await _repository.getInvoices(
         page: 1,
         perPage: 15,
         search: state.searchQuery,
         status: state.selectedStatus,
         storeId: state.selectedStoreId,
+        invoiceDate: dateParam,
       );
 
       state = state.copyWith(
@@ -155,12 +167,17 @@ class InvoiceViewModel extends Notifier<InvoiceState> {
 
     try {
       final nextPage = state.currentPage + 1;
+      final dateParam = state.selectedDate != null
+          ? DateFormat('yyyy-MM-dd').format(state.selectedDate!)
+          : null;
+
       final result = await _repository.getInvoices(
         page: nextPage,
         perPage: 15,
         search: state.searchQuery,
         status: state.selectedStatus,
         storeId: state.selectedStoreId,
+        invoiceDate: dateParam,
       );
 
       state = state.copyWith(
@@ -192,6 +209,16 @@ class InvoiceViewModel extends Notifier<InvoiceState> {
     loadInvoices(refresh: true);
   }
 
+  void setDateFilter(DateTime? date) {
+    if (state.selectedDate == date) return;
+    if (date == null) {
+      state = state.copyWith(clearDate: true);
+    } else {
+      state = state.copyWith(selectedDate: date);
+    }
+    loadInvoices(refresh: true);
+  }
+
   void setSearchQuery(String query) {
     if (state.searchQuery == query) return;
     state = state.copyWith(searchQuery: query);
@@ -202,6 +229,7 @@ class InvoiceViewModel extends Notifier<InvoiceState> {
     state = state.copyWith(
       selectedStatus: 'all',
       clearStore: true,
+      clearDate: true,
       searchQuery: '',
     );
     loadInvoices(refresh: true);

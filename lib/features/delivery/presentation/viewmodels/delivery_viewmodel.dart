@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import '../../../../core/services/websocket_service.dart';
 import '../../../../core/widgets/app_snack_bar.dart';
 import '../../data/models/delivery_model.dart';
@@ -15,6 +16,7 @@ class DeliveryState {
   final int lastPage;
   final String selectedStatus; // 'all', 'diproses', 'dikirim', 'selesai', 'dibatalkan'
   final String? selectedRoute;
+  final DateTime? selectedDate;
   final String searchQuery;
   final Map<String, int> statusCounts;
   final List<String> availableRoutes;
@@ -31,6 +33,7 @@ class DeliveryState {
     this.lastPage = 1,
     this.selectedStatus = 'all',
     this.selectedRoute,
+    this.selectedDate,
     this.searchQuery = '',
     this.statusCounts = const {
       'all': 0,
@@ -49,6 +52,7 @@ class DeliveryState {
   bool get hasFilter =>
       selectedStatus != 'all' ||
       selectedRoute != null ||
+      selectedDate != null ||
       searchQuery.isNotEmpty;
 
   DeliveryState copyWith({
@@ -61,6 +65,8 @@ class DeliveryState {
     String? selectedStatus,
     String? selectedRoute,
     bool clearRoute = false,
+    DateTime? selectedDate,
+    bool clearDate = false,
     String? searchQuery,
     Map<String, int>? statusCounts,
     List<String>? availableRoutes,
@@ -78,6 +84,7 @@ class DeliveryState {
       lastPage: lastPage ?? this.lastPage,
       selectedStatus: selectedStatus ?? this.selectedStatus,
       selectedRoute: clearRoute ? null : (selectedRoute ?? this.selectedRoute),
+      selectedDate: clearDate ? null : (selectedDate ?? this.selectedDate),
       searchQuery: searchQuery ?? this.searchQuery,
       statusCounts: statusCounts ?? this.statusCounts,
       availableRoutes: availableRoutes ?? this.availableRoutes,
@@ -134,12 +141,17 @@ class DeliveryViewModel extends Notifier<DeliveryState> {
     }
 
     try {
+      final dateParam = state.selectedDate != null
+          ? DateFormat('yyyy-MM-dd').format(state.selectedDate!)
+          : null;
+
       final result = await _repository.getDeliveries(
         page: 1,
         perPage: 15,
         search: state.searchQuery,
         status: state.selectedStatus,
         route: state.selectedRoute,
+        date: dateParam,
       );
 
       state = state.copyWith(
@@ -171,12 +183,17 @@ class DeliveryViewModel extends Notifier<DeliveryState> {
 
     try {
       final nextPage = state.currentPage + 1;
+      final dateParam = state.selectedDate != null
+          ? DateFormat('yyyy-MM-dd').format(state.selectedDate!)
+          : null;
+
       final result = await _repository.getDeliveries(
         page: nextPage,
         perPage: 15,
         search: state.searchQuery,
         status: state.selectedStatus,
         route: state.selectedRoute,
+        date: dateParam,
       );
 
       state = state.copyWith(
@@ -206,6 +223,15 @@ class DeliveryViewModel extends Notifier<DeliveryState> {
     state = state.copyWith(
       selectedRoute: route,
       clearRoute: route == null,
+    );
+    loadDeliveries(refresh: true);
+  }
+
+  void setDateFilter(DateTime? date) {
+    if (state.selectedDate == date) return;
+    state = state.copyWith(
+      selectedDate: date,
+      clearDate: date == null,
     );
     loadDeliveries(refresh: true);
   }

@@ -227,19 +227,38 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
                     ),
                     const SizedBox(height: 10),
 
-                    // Filter Bar: Wilayah Rute
-                    AppFilterDropdown<String>(
-                      selectedValue: state.selectedRoute,
-                      items: state.availableRoutes,
-                      allLabel: 'Semua Rute Wilayah',
-                      prefixLabel: 'Rute: ',
-                      isExpanded: true,
-                      tooltip: 'Filter Rute Wilayah',
-                      onSelected: (route) {
-                        ref
-                            .read(deliveryViewModelProvider.notifier)
-                            .setRouteFilter(route);
-                      },
+                    // 1 Baris Filter: Rute Wilayah & Tanggal Pengantaran
+                    Row(
+                      children: [
+                        Expanded(
+                          child: AppFilterDropdown<String>(
+                            selectedValue: state.selectedRoute,
+                            items: state.availableRoutes,
+                            allLabel: 'Semua Rute',
+                            prefixLabel: 'Rute: ',
+                            isExpanded: true,
+                            tooltip: 'Filter Rute Wilayah',
+                            onSelected: (route) {
+                              ref
+                                  .read(deliveryViewModelProvider.notifier)
+                                  .setRouteFilter(route);
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: AppFilterDatePicker(
+                            selectedDate: state.selectedDate,
+                            placeholder: 'Pilih Tanggal',
+                            tooltip: 'Filter Tanggal Pengantaran',
+                            onDateSelected: (date) {
+                              ref
+                                  .read(deliveryViewModelProvider.notifier)
+                                  .setDateFilter(date);
+                            },
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 10),
 
@@ -346,6 +365,7 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
             notifier.setSearchQuery('');
             notifier.setStatusFilter('all');
             notifier.setRouteFilter(null);
+            notifier.setDateFilter(null);
           },
         );
       }

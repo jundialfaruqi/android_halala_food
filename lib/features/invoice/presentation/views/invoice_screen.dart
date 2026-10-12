@@ -130,24 +130,43 @@ class _InvoiceScreenState extends ConsumerState<InvoiceScreen> {
                           ),
                           const SizedBox(height: 10),
 
-                          // Filter Dropdown Toko Mitra
-                          AppFilterDropdown<InvoiceStoreModel>(
-                            selectedValue: state.selectedStoreId != null
-                                ? state.availableStores
-                                    .where((s) => s.id == state.selectedStoreId)
-                                    .firstOrNull
-                                : null,
-                            items: state.availableStores,
-                            allLabel: 'Semua Toko Mitra',
-                            prefixLabel: 'Toko: ',
-                            itemLabel: (store) => store.name,
-                            isExpanded: true,
-                            tooltip: 'Filter Toko Mitra',
-                            onSelected: (store) {
-                              ref
-                                  .read(invoiceViewModelProvider.notifier)
-                                  .setStoreFilter(store?.id);
-                            },
+                          // 1 Baris Filter: Mitra Toko & Tanggal Faktur
+                          Row(
+                            children: [
+                              Expanded(
+                                child: AppFilterDropdown<InvoiceStoreModel>(
+                                  selectedValue: state.selectedStoreId != null
+                                      ? state.availableStores
+                                          .where((s) => s.id == state.selectedStoreId)
+                                          .firstOrNull
+                                      : null,
+                                  items: state.availableStores,
+                                  allLabel: 'Semua Toko',
+                                  prefixLabel: 'Toko: ',
+                                  itemLabel: (store) => store.name,
+                                  isExpanded: true,
+                                  tooltip: 'Filter Toko Mitra',
+                                  onSelected: (store) {
+                                    ref
+                                        .read(invoiceViewModelProvider.notifier)
+                                        .setStoreFilter(store?.id);
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: AppFilterDatePicker(
+                                  selectedDate: state.selectedDate,
+                                  placeholder: 'Pilih Tanggal',
+                                  tooltip: 'Filter Tanggal Faktur',
+                                  onDateSelected: (date) {
+                                    ref
+                                        .read(invoiceViewModelProvider.notifier)
+                                        .setDateFilter(date);
+                                  },
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
