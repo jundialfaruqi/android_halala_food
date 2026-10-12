@@ -453,9 +453,23 @@ void main() {
 
     testWidgets('does not have reload button or RefreshIndicator, and separates chats with distinct spacing', (tester) async {
       final mockRepo = MockActivityRepository();
-      // Dua aktifitas berturut-turut: pertama dari user 2 (orang lain), kedua dari user 1 (saya)
-      // Dalam ListView reversed, data terbaru (index 0) di bawah, data lebih lama (index 1) di atas
+      // Tiga aktifitas:
+      // index 0: user 1 (saya) - tepat di bawah chat saya (jarak 10.0)
+      // index 1: user 1 (saya) - tepat di bawah chat user 2 (jarak 22.0)
+      // index 2: user 2 (orang lain)
       mockRepo.activitiesToReturn = [
+        ActivityModel(
+          id: 3,
+          type: 'invoice_paid',
+          title: 'Faktur Telah Lunas',
+          userId: 1, // Saya
+          userName: 'Saya',
+          userRole: 'manager',
+          userInitials: 'SY',
+          timeFormatted: '10:10',
+          dateGroupKey: '2026-10-13',
+          dateFormatted: 'Hari Ini',
+        ),
         ActivityModel(
           id: 2,
           type: 'invoice_paid',
@@ -502,12 +516,15 @@ void main() {
       // Pastikan TIDAK ada RefreshIndicator
       expect(find.byType(RefreshIndicator), findsNothing);
 
-      // Pastikan kedua bubble ter-render
+      // Pastikan ketiga bubble ter-render
       final bubbles = tester.widgetList<ActivityChatBubble>(find.byType(ActivityChatBubble)).toList();
-      expect(bubbles.length, equals(2));
+      expect(bubbles.length, equals(3));
 
-      // Bubble index 0 (chat saya, berada di bawah pesan orang lain) memiliki jarak 16.0
-      expect(bubbles[0].topSpacing, equals(16.0));
+      // Bubble index 0 (chat saya di bawah chat saya) memiliki jarak 10.0
+      expect(bubbles[0].topSpacing, equals(10.0));
+
+      // Bubble index 1 (chat saya di bawah pesan orang lain) memiliki jarak 22.0
+      expect(bubbles[1].topSpacing, equals(22.0));
     });
   });
 }

@@ -78,10 +78,10 @@ class ActivityChatBubble extends StatelessWidget {
         : const Color(0xFFF8FAFC);
 
     final bubbleBorderRadius = BorderRadius.only(
-      topLeft: const Radius.circular(14),
-      topRight: const Radius.circular(14),
-      bottomLeft: isCurrentUser ? const Radius.circular(14) : const Radius.circular(3),
-      bottomRight: isCurrentUser ? const Radius.circular(3) : const Radius.circular(14),
+      topLeft: isCurrentUser ? const Radius.circular(14) : const Radius.circular(3),
+      topRight: isCurrentUser ? const Radius.circular(3) : const Radius.circular(14),
+      bottomLeft: const Radius.circular(14),
+      bottomRight: const Radius.circular(14),
     );
 
     final eventTitle = _getEventTitle();
@@ -91,7 +91,7 @@ class ActivityChatBubble extends StatelessWidget {
       child: Row(
         mainAxisAlignment:
             isCurrentUser ? MainAxisAlignment.end : MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Avatar Kiri (Untuk user lain)
           if (!isCurrentUser) ...[
@@ -99,77 +99,86 @@ class ActivityChatBubble extends StatelessWidget {
             const SizedBox(width: 8),
           ],
 
-          // Chat Bubble Container
+          // Chat Bubble Section (Nama user di luar / di atas card bubble)
           Flexible(
-            child: Container(
-              constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.82,
-              ),
-              decoration: BoxDecoration(
-                color: bubbleBgColor,
-                borderRadius: bubbleBorderRadius,
-                border: Border.all(color: bubbleBorderColor, width: 0.8),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.03),
-                    blurRadius: 3,
-                    offset: const Offset(0, 1),
-                  ),
-                ],
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () => _handleTap(context),
-                  borderRadius: bubbleBorderRadius,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(11, 8, 11, 7),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Baris Pengirim & Role (Minimalis tanpa badge warna-warni)
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              isCurrentUser ? 'Anda' : activity.userName,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontFamily: 'PlusJakartaSans',
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: isCurrentUser
-                                    ? AppColors.brandPrimary
-                                    : AppColors.brandEspresso,
-                              ),
-                            ),
-                            if (!isCurrentUser && activity.userRole.isNotEmpty) ...[
-                              const SizedBox(width: 4),
-                              Text(
-                                '• ${activity.userRole}',
-                                style: const TextStyle(
-                                  fontFamily: 'PlusJakartaSans',
-                                  fontSize: 11,
-                                  color: AppColors.brandWarmGray,
-                                ),
-                              ),
-                            ],
-                          ],
+            child: Column(
+              crossAxisAlignment: isCurrentUser
+                  ? CrossAxisAlignment.end
+                  : CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Nama Pengirim & Role pas di atas card bubble
+                Padding(
+                  padding: const EdgeInsets.only(left: 2, right: 2, bottom: 4),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        isCurrentUser ? 'Anda' : activity.userName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: 'PlusJakartaSans',
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: isCurrentUser
+                              ? AppColors.brandPrimary
+                              : AppColors.brandEspresso,
                         ),
-                        const SizedBox(height: 5),
-
-                        // Judul Event / Aktifitas (Teks tegas, bersih tanpa kotak warna-warni)
+                      ),
+                      if (!isCurrentUser && activity.userRole.isNotEmpty) ...[
+                        const SizedBox(width: 4),
                         Text(
-                          eventTitle,
+                          '• ${activity.userRole}',
                           style: const TextStyle(
                             fontFamily: 'PlusJakartaSans',
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.brandEspresso,
+                            fontSize: 11,
+                            color: AppColors.brandWarmGray,
                           ),
                         ),
-                        const SizedBox(height: 6),
+                      ],
+                    ],
+                  ),
+                ),
+
+                // Card Bubble Container
+                Container(
+                  constraints: BoxConstraints(
+                    maxWidth: MediaQuery.of(context).size.width * 0.82,
+                  ),
+                  decoration: BoxDecoration(
+                    color: bubbleBgColor,
+                    borderRadius: bubbleBorderRadius,
+                    border: Border.all(color: bubbleBorderColor, width: 0.8),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.03),
+                        blurRadius: 3,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => _handleTap(context),
+                      borderRadius: bubbleBorderRadius,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(11, 8, 11, 7),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Judul Event / Aktifitas (Teks tegas, bersih tanpa kotak warna-warni)
+                            Text(
+                              eventTitle,
+                              style: const TextStyle(
+                                fontFamily: 'PlusJakartaSans',
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.brandEspresso,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
 
                         // Kartu Rincian Dokumen & Toko
                         Container(
@@ -319,7 +328,9 @@ class ActivityChatBubble extends StatelessWidget {
                 ),
               ),
             ),
-          ),
+          ],
+        ),
+      ),
 
           // Avatar Kanan (Untuk user saat ini)
           if (isCurrentUser) ...[

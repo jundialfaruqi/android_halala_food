@@ -232,25 +232,32 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
         final bool isNewDay = isLastVisible ||
             (activity.dateGroupKey != visibleList[index + 1].dateGroupKey);
 
-        // Hitung jarak vertikal: lebih berjarak antara chat saya dan chat orang lain
-        double topSpacing = 4.0;
+        // Hitung jarak vertikal dinamis:
+        // - Antar chat saya dengan chat user lain: lebih berjarak lega (22px)
+        // - Antar chat saya sendiri: jarak bertambah (10px)
+        // - Antar user lain yang berbeda: (12px)
+        // - Antar pesan user lain yang sama: (8px)
+        double topSpacing = 6.0;
         if (!isLastVisible) {
           final nextActivity = visibleList[index + 1]; // Pesan di atas pesan ini
           final isCurrentMe = activity.userId == currentUserId;
           final isAboveMe = nextActivity.userId == currentUserId;
 
           if (isCurrentMe != isAboveMe) {
-            // Transisi antara chat saya dan chat orang lain: berjarak lebih lega (16px)
-            topSpacing = 16.0;
-          } else if (activity.userId != nextActivity.userId) {
-            // Antar user lain yang berbeda: 10px
+            // Transisi antara chat saya dan chat user lain (tambah sedikit lagi dari 16px -> 22px)
+            topSpacing = 22.0;
+          } else if (isCurrentMe && isAboveMe) {
+            // Jarak antar chat saya sendiri (tambah dari 3px -> 10px)
             topSpacing = 10.0;
+          } else if (activity.userId != nextActivity.userId) {
+            // Antar user lain yang berbeda
+            topSpacing = 12.0;
           } else {
-            // Pesan beruntun dari user yang sama: rapat (3px)
-            topSpacing = 3.0;
+            // Pesan beruntun dari user lain yang sama
+            topSpacing = 8.0;
           }
         } else {
-          topSpacing = 6.0;
+          topSpacing = 8.0;
         }
 
         final bubbleWidget = ActivityChatBubble(
