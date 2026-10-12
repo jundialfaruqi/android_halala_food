@@ -386,8 +386,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                       ),
                     ),
 
-                    // Spacing proporsional untuk efek stack 3 card statistik (~73px) + jarak visual konsisten ke menu (24px)
-                    const SizedBox(height: 96),
+                    // Spacing proporsional untuk card statistik stack floating + jarak visual yang lega ke section menu utama
+                    const SizedBox(height: 116),
 
                     // Section Konten Menu
                     Padding(
