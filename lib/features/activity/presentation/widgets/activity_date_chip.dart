@@ -12,8 +12,9 @@ class ActivityDateChip extends StatelessWidget {
 
   String _formatDateLabel() {
     final now = DateTime.now();
+    final localDate = date.toLocal();
     final today = DateTime(now.year, now.month, now.day);
-    final itemDate = DateTime(date.year, date.month, date.day);
+    final itemDate = DateTime(localDate.year, localDate.month, localDate.day);
 
     final diff = today.difference(itemDate).inDays;
     if (diff == 0) {
@@ -22,9 +23,9 @@ class ActivityDateChip extends StatelessWidget {
       return 'Kemarin';
     } else {
       try {
-        return DateFormat('d MMMM yyyy', 'id_ID').format(date);
+        return DateFormat('d MMMM yyyy', 'id_ID').format(localDate);
       } catch (_) {
-        return DateFormat('dd/MM/yyyy').format(date);
+        return DateFormat('dd/MM/yyyy').format(localDate);
       }
     }
   }

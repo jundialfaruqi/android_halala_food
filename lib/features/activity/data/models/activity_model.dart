@@ -76,7 +76,7 @@ class ActivityModel {
     DateTime? dt;
     final rawCreatedAt = json['created_at'];
     if (rawCreatedAt != null) {
-      dt = DateTime.tryParse(rawCreatedAt.toString());
+      dt = DateTime.tryParse(rawCreatedAt.toString())?.toLocal();
     }
 
     String timeStr = json['time_formatted']?.toString() ?? '';
@@ -93,10 +93,9 @@ class ActivityModel {
       }
     }
 
-    String dateGroup = json['date_group_key']?.toString() ?? '';
-    if (dateGroup.isEmpty && dt != null) {
-      dateGroup = DateFormat('yyyy-MM-dd').format(dt);
-    }
+    String dateGroup = dt != null
+        ? DateFormat('yyyy-MM-dd').format(dt)
+        : (json['date_group_key']?.toString() ?? '');
 
     // Hitung inisial jika belum ada
     String initials = json['user_initials']?.toString() ?? '';
