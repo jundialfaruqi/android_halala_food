@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -815,14 +816,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
             ),
           ),
 
-          // 3. Di atas gambar bagian atas: Badge putih berisi icon bintang kuning
+          // 3. Di atas gambar bagian atas: Badge glass blur berisi icon bintang kuning
           Positioned(
             top: 12,
             left: 12,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
@@ -832,18 +831,38 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                   ),
                 ],
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  for (int i = 0; i < starCount; i++) ...[
-                    if (i > 0) const SizedBox(width: 2.5),
-                    const Icon(
-                      TablerIcons.star_filled,
-                      size: 13,
-                      color: Color(0xFFF59E0B),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
                     ),
-                  ],
-                ],
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.65),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.55),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        for (int i = 0; i < starCount; i++) ...[
+                          if (i > 0) const SizedBox(width: 2.5),
+                          const Icon(
+                            TablerIcons.star_filled,
+                            size: 13,
+                            color: Color(0xFFF59E0B),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
