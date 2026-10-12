@@ -565,13 +565,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Icon container rounded circle tanpa border dengan shadow tipis
+              // Icon container custom rounded: sudut kiri atas & kanan bawah rounded full, sudut kanan atas & kiri bawah no rounded
               Container(
                 width: 58,
                 height: 58,
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  shape: BoxShape.circle,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(24),
+                    topRight: Radius.zero,
+                    bottomRight: Radius.circular(24),
+                    bottomLeft: Radius.zero,
+                  ),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.06),

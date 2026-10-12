@@ -443,130 +443,133 @@ class _CashBookScreenState extends ConsumerState<CashBookScreen> {
         ),
         const SizedBox(height: 12),
 
-        // Grid 2 Card: Pemasukan & Pengeluaran, serta Prive
-        Row(
-          children: [
-            // Card 2: Pemasukan & Pengeluaran
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Pemasukan Usaha',
-                      style: TextStyle(
-                        fontFamily: 'PlusJakartaSans',
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.brandWarmGray,
+        // Grid 2 Card: Pemasukan & Pengeluaran, serta Prive (Tinggi card selalu sama)
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Card 2: Pemasukan & Pengeluaran
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Pemasukan Usaha',
+                        style: TextStyle(
+                          fontFamily: 'PlusJakartaSans',
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.brandWarmGray,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      _currencyFormat.format(state.filteredIncome),
-                      style: const TextStyle(
-                        fontFamily: 'PlusJakartaSans',
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.brandEspresso,
-                        fontFeatures: [FontFeature.tabularFigures()],
+                      const SizedBox(height: 2),
+                      Text(
+                        _currencyFormat.format(state.filteredIncome),
+                        style: const TextStyle(
+                          fontFamily: 'PlusJakartaSans',
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.brandEspresso,
+                          fontFeatures: [FontFeature.tabularFigures()],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Divider(height: 1, color: AppColors.brandBorder),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Biaya Usaha',
-                      style: TextStyle(
-                        fontFamily: 'PlusJakartaSans',
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.brandWarmGray,
+                      const SizedBox(height: 8),
+                      const Divider(height: 1, color: AppColors.brandBorder),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Biaya Usaha',
+                        style: TextStyle(
+                          fontFamily: 'PlusJakartaSans',
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.brandWarmGray,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      _currencyFormat.format(state.filteredExpense),
-                      style: const TextStyle(
-                        fontFamily: 'PlusJakartaSans',
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.brandEspresso,
-                        fontFeatures: [FontFeature.tabularFigures()],
+                      const SizedBox(height: 2),
+                      Text(
+                        _currencyFormat.format(state.filteredExpense),
+                        style: const TextStyle(
+                          fontFamily: 'PlusJakartaSans',
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.brandEspresso,
+                          fontFeatures: [FontFeature.tabularFigures()],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 12),
+              const SizedBox(width: 12),
 
-            // Card 3: Prive
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: const [
-                        Text(
-                          'Prive Pemilik',
-                          style: TextStyle(
-                            fontFamily: 'PlusJakartaSans',
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.brandWarmGray,
+              // Card 3: Prive
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: const [
+                          Text(
+                            'Prive Pemilik',
+                            style: TextStyle(
+                              fontFamily: 'PlusJakartaSans',
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.brandWarmGray,
+                            ),
                           ),
-                        ),
-                        Text(
-                          '3-2000',
-                          style: TextStyle(
-                            fontFamily: 'PlusJakartaSans',
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.brandWarmGray,
+                          Text(
+                            '3-2000',
+                            style: TextStyle(
+                              fontFamily: 'PlusJakartaSans',
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.brandWarmGray,
+                            ),
                           ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _currencyFormat.format(state.filteredPrive),
+                        style: const TextStyle(
+                          fontFamily: 'PlusJakartaSans',
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.brandEspresso,
+                          fontFeatures: [FontFeature.tabularFigures()],
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      _currencyFormat.format(state.filteredPrive),
-                      style: const TextStyle(
-                        fontFamily: 'PlusJakartaSans',
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.brandEspresso,
-                        fontFeatures: [FontFeature.tabularFigures()],
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Divider(height: 1, color: AppColors.brandBorder),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Penarikan dana kas mengurangi ekuitas modal pemilik.',
-                      style: TextStyle(
-                        fontFamily: 'PlusJakartaSans',
-                        fontSize: 10.5,
-                        color: AppColors.brandWarmGray,
+                      const SizedBox(height: 8),
+                      const Divider(height: 1, color: AppColors.brandBorder),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Penarikan dana kas mengurangi ekuitas modal pemilik.',
+                        style: TextStyle(
+                          fontFamily: 'PlusJakartaSans',
+                          fontSize: 10.5,
+                          color: AppColors.brandWarmGray,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ],
     );
