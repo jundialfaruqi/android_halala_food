@@ -9,6 +9,8 @@ import 'package:android_halala_food/features/activity/domain/repositories/activi
 import 'package:android_halala_food/features/activity/presentation/views/activity_screen.dart';
 import 'package:android_halala_food/features/activity/presentation/widgets/activity_chat_bubble.dart';
 import 'package:android_halala_food/features/activity/presentation/widgets/activity_date_chip.dart';
+import 'package:android_halala_food/core/services/notification_badge_service.dart';
+import 'package:android_halala_food/features/activity/presentation/viewmodels/activity_viewmodel.dart';
 import 'package:android_halala_food/features/auth/data/models/user_model.dart';
 import 'package:android_halala_food/features/auth/presentation/viewmodels/auth_state.dart';
 import 'package:android_halala_food/features/auth/presentation/viewmodels/auth_viewmodel.dart';
@@ -524,6 +526,27 @@ void main() {
       expect(find.text('Kasir Rina'), findsOneWidget);
       expect(find.text('11:45'), findsOneWidget);
 
+      // Now emit the EXACT SAME event again (duplicate event from Reverb / dual channel)
+      wsService.emitActivityCreatedForTest({
+        'id': 999,
+        'type': 'invoice_paid',
+        'title': 'Faktur Telah Lunas',
+        'description': 'Toko Subur telah membayar lunas',
+        'user_id': 2,
+        'user_name': 'Kasir Rina',
+        'user_role': 'manager',
+        'user_initials': 'KR',
+        'time_formatted': '11:45',
+        'date_group_key': '2026-10-13',
+        'date_formatted': 'Hari Ini',
+      });
+
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      // There should still only be EXACTLY ONE widget for this activity, not duplicated
+      expect(find.text('Faktur Telah Lunas'), findsOneWidget);
+
       wsService.dispose();
     });
 
@@ -607,5 +630,56 @@ void main() {
         expect(bubbles[1].topSpacing, equals(22.0));
       },
     );
+
+    test('notificationBadgeProvider increments by 1 on new activity and ignores duplicates', () async {
+      final wsService = WebSocketService();
+      final mockRepo = MockActivityRepository();
+      final container = ProviderContainer(
+        overrides: [
+          webSocketServiceProvider.overrideWithValue(wsService),
+          activityRepositoryProvider.overrideWithValue(mockRepo),
+        ],
+      );
+      // Initialize view model listener
+      container.read(activityViewModelProvider);
+
+      expect(container.read(notificationBadgeProvider), equals(0));
+
+      // Emit first activity
+      wsService.emitActivityCreatedForTest({
+        'id': 101,
+        'type': 'delivery_created',
+        'title': 'Surat Pengiriman Dibuat',
+        'description': 'Surat jalan dibuat',
+        'user_id': 2,
+        'user_name': 'Manager',
+        'time_formatted': '12:00',
+        'date_group_key': '2026-10-13',
+        'date_formatted': 'Hari Ini',
+      });
+
+      await Future.delayed(Duration.zero);
+      expect(container.read(notificationBadgeProvider), equals(1));
+
+      // Emit duplicate activity with exact same ID
+      wsService.emitActivityCreatedForTest({
+        'id': 101,
+        'type': 'delivery_created',
+        'title': 'Surat Pengiriman Dibuat',
+        'description': 'Surat jalan dibuat',
+        'user_id': 2,
+        'user_name': 'Manager',
+        'time_formatted': '12:00',
+        'date_group_key': '2026-10-13',
+        'date_formatted': 'Hari Ini',
+      });
+
+      await Future.delayed(Duration.zero);
+      // Badge must still be exactly 1, NOT 2!
+      expect(container.read(notificationBadgeProvider), equals(1));
+
+      wsService.dispose();
+      container.dispose();
+    });
   });
 }

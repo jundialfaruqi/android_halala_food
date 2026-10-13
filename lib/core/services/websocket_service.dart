@@ -49,6 +49,10 @@ class WebSocketService {
   Stream<Map<String, dynamic>> get onActivityCreated =>
       _activityCreatedController.stream;
 
+  final Set<int> _recentActivityIds = <int>{};
+  final Set<int> _recentDeliveryIds = <int>{};
+  final Set<int> _recentInvoiceIds = <int>{};
+
   final Map<int, Channel> _deliveryChannels = {};
   final Map<int, List<StreamSubscription>> _deliverySubs = {};
 
@@ -181,26 +185,50 @@ class WebSocketService {
         _eventSubs.add(subActDot);
       }
 
-      // Listen ke event invoice.created & delivery.created pada courier channel
-      final subCourInv = courierChannel.bind('invoice.created').listen((event) {
-        _handleInvoiceCreatedEvent(event);
-      });
-      _eventSubs.add(subCourInv);
+      // Listen ke event invoice.created, delivery.created & activity.created pada courier/user channel
+      // CATATAN: Untuk manager/dev, seluruh event ini sudah diterima via private-invoices, private-deliveries, & private-activities.
+      // Jangan listen ulang di courierChannel & userChannel untuk manager/dev agar tidak terjadi duplikasi event.
+      if (!isManagerOrDev) {
+        final subCourInv = courierChannel.bind('invoice.created').listen((event) {
+          _handleInvoiceCreatedEvent(event);
+        });
+        _eventSubs.add(subCourInv);
 
-      final subCourInvDot = courierChannel.bind('.invoice.created').listen((event) {
-        _handleInvoiceCreatedEvent(event);
-      });
-      _eventSubs.add(subCourInvDot);
+        final subCourInvDot = courierChannel.bind('.invoice.created').listen((event) {
+          _handleInvoiceCreatedEvent(event);
+        });
+        _eventSubs.add(subCourInvDot);
 
-      final subCourDeliv = courierChannel.bind('delivery.created').listen((event) {
-        _handleDeliveryCreatedEvent(event);
-      });
-      _eventSubs.add(subCourDeliv);
+        final subCourDeliv = courierChannel.bind('delivery.created').listen((event) {
+          _handleDeliveryCreatedEvent(event);
+        });
+        _eventSubs.add(subCourDeliv);
 
-      final subCourDelivDot = courierChannel.bind('.delivery.created').listen((event) {
-        _handleDeliveryCreatedEvent(event);
-      });
-      _eventSubs.add(subCourDelivDot);
+        final subCourDelivDot = courierChannel.bind('.delivery.created').listen((event) {
+          _handleDeliveryCreatedEvent(event);
+        });
+        _eventSubs.add(subCourDelivDot);
+
+        final subCourAct = courierChannel.bind('activity.created').listen((event) {
+          _handleActivityCreatedEvent(event);
+        });
+        _eventSubs.add(subCourAct);
+
+        final subCourActDot = courierChannel.bind('.activity.created').listen((event) {
+          _handleActivityCreatedEvent(event);
+        });
+        _eventSubs.add(subCourActDot);
+
+        final subUserAct = userChannel.bind('activity.created').listen((event) {
+          _handleActivityCreatedEvent(event);
+        });
+        _eventSubs.add(subUserAct);
+
+        final subUserActDot = userChannel.bind('.activity.created').listen((event) {
+          _handleActivityCreatedEvent(event);
+        });
+        _eventSubs.add(subUserActDot);
+      }
 
       // Listen ke permintaan pelacakan lokasi kurir (On-Demand Method 1)
       final subCourTrack = courierChannel.bind('courier.tracking.requested').listen((event) {
@@ -223,28 +251,6 @@ class WebSocketService {
         _handleCourierLocationUpdatedEvent(event);
       });
       _eventSubs.add(subCourLocDot);
-
-      // Listen ke event activity.created pada courier channel
-      final subCourAct = courierChannel.bind('activity.created').listen((event) {
-        _handleActivityCreatedEvent(event);
-      });
-      _eventSubs.add(subCourAct);
-
-      final subCourActDot = courierChannel.bind('.activity.created').listen((event) {
-        _handleActivityCreatedEvent(event);
-      });
-      _eventSubs.add(subCourActDot);
-
-      // Listen ke event activity.created pada user channel
-      final subUserAct = userChannel.bind('activity.created').listen((event) {
-        _handleActivityCreatedEvent(event);
-      });
-      _eventSubs.add(subUserAct);
-
-      final subUserActDot = userChannel.bind('.activity.created').listen((event) {
-        _handleActivityCreatedEvent(event);
-      });
-      _eventSubs.add(subUserActDot);
 
       // Subscribe saat koneksi terbentuk
       _connectionSub = _client!.onConnectionEstablished.listen((_) {
@@ -333,6 +339,20 @@ class WebSocketService {
           payload = decoded;
         }
       }
+
+      final rawId = payload['id'] ?? payload['invoice_id'];
+      final id = rawId is int ? rawId : int.tryParse(rawId?.toString() ?? '');
+      if (id != null) {
+        if (_recentInvoiceIds.contains(id)) {
+          debugPrint('[WebSocket] Ignoring duplicate invoice.created event for ID: $id');
+          return;
+        }
+        _recentInvoiceIds.add(id);
+        if (_recentInvoiceIds.length > 200) {
+          _recentInvoiceIds.remove(_recentInvoiceIds.first);
+        }
+      }
+
       _invoiceCreatedController.add(payload);
     } catch (e) {
       debugPrint('[WebSocket] Error parsing invoice.created event: $e');
@@ -352,6 +372,20 @@ class WebSocketService {
           payload = decoded;
         }
       }
+
+      final rawId = payload['id'] ?? payload['delivery_id'];
+      final id = rawId is int ? rawId : int.tryParse(rawId?.toString() ?? '');
+      if (id != null) {
+        if (_recentDeliveryIds.contains(id)) {
+          debugPrint('[WebSocket] Ignoring duplicate delivery.created event for ID: $id');
+          return;
+        }
+        _recentDeliveryIds.add(id);
+        if (_recentDeliveryIds.length > 200) {
+          _recentDeliveryIds.remove(_recentDeliveryIds.first);
+        }
+      }
+
       _deliveryCreatedController.add(payload);
     } catch (e) {
       debugPrint('[WebSocket] Error parsing delivery.created event: $e');
@@ -409,6 +443,20 @@ class WebSocketService {
           payload = decoded;
         }
       }
+
+      final rawId = payload['id'];
+      final id = rawId is int ? rawId : int.tryParse(rawId?.toString() ?? '');
+      if (id != null) {
+        if (_recentActivityIds.contains(id)) {
+          debugPrint('[WebSocket] Ignoring duplicate activity.created event for ID: $id');
+          return;
+        }
+        _recentActivityIds.add(id);
+        if (_recentActivityIds.length > 200) {
+          _recentActivityIds.remove(_recentActivityIds.first);
+        }
+      }
+
       _activityCreatedController.add(payload);
     } catch (e) {
       debugPrint('[WebSocket] Error parsing activity.created event: $e');
@@ -432,6 +480,9 @@ class WebSocketService {
 
   void disconnect() {
     _isConnected = false;
+    _recentActivityIds.clear();
+    _recentDeliveryIds.clear();
+    _recentInvoiceIds.clear();
     for (final sub in _eventSubs) {
       sub.cancel();
     }

@@ -75,6 +75,7 @@ final activityViewModelProvider =
 
 class ActivityViewModel extends Notifier<ActivityState> {
   late final ActivityRepository _repository;
+  final Set<int> _processedActivityIds = <int>{};
 
   @override
   ActivityState build() {
@@ -84,8 +85,10 @@ class ActivityViewModel extends Notifier<ActivityState> {
     final wsService = ref.watch(webSocketServiceProvider);
     final sub = wsService.onActivityCreated.listen((payload) {
       debugPrint('[ActivityViewModel] Real-time activity.created event: $payload');
-      addRealtimeActivity(payload);
-      ref.read(notificationBadgeProvider.notifier).increment();
+      final isAdded = addRealtimeActivity(payload);
+      if (isAdded) {
+        ref.read(notificationBadgeProvider.notifier).increment();
+      }
     });
 
     ref.onDispose(() {
@@ -108,14 +111,24 @@ class ActivityViewModel extends Notifier<ActivityState> {
         perPage: 50,
       );
 
+      // Track semua ID yang ada di server
+      for (final a in result.activities) {
+        _processedActivityIds.add(a.id);
+      }
+
+      // Pertahankan item realtime yang mungkin masuk saat proses load
+      final serverIds = result.activities.map((a) => a.id).toSet();
+      final localRealtimeOnly = state.activities.where((a) => !serverIds.contains(a.id)).toList();
+      final mergedActivities = [...localRealtimeOnly, ...result.activities];
+
       // Hitung visibleCount awal: 10 data pertama, atau seluruhnya jika < 10
-      final initialVisible = min(10, result.activities.length);
+      final initialVisible = min(10, mergedActivities.length);
 
       state = state.copyWith(
         isLoading: false,
-        activities: result.activities,
+        activities: mergedActivities,
         visibleCount: max(10, initialVisible),
-        total: result.total,
+        total: result.total + localRealtimeOnly.length,
         currentPage: result.currentPage,
         lastPage: result.lastPage,
         hasMore: result.hasMore,
@@ -190,24 +203,29 @@ class ActivityViewModel extends Notifier<ActivityState> {
     }
   }
 
-  /// Menambahkan aktifitas baru yang masuk via WebSocket secara realtime ke posisi teratas/terbaru
-  void addRealtimeActivity(Map<String, dynamic> payload) {
+  /// Menambahkan aktifitas baru yang masuk via WebSocket secara realtime ke posisi teratas/terbaru.
+  /// Mengembalikan `true` jika aktifitas berhasil ditambahkan (bukan duplikat), atau `false` jika diabaikan.
+  bool addRealtimeActivity(Map<String, dynamic> payload) {
     try {
       final newActivity = ActivityModel.fromJson(payload);
 
-      // Hindari duplikasi jika id sudah ada
-      if (state.activities.any((a) => a.id == newActivity.id)) {
-        return;
+      // Hindari duplikasi jika id sudah pernah diproses atau sudah ada di memori
+      if (_processedActivityIds.contains(newActivity.id) ||
+          state.activities.any((a) => a.id == newActivity.id)) {
+        return false;
       }
 
+      _processedActivityIds.add(newActivity.id);
       final updatedList = [newActivity, ...state.activities];
       state = state.copyWith(
         activities: updatedList,
         visibleCount: state.visibleCount + 1,
         total: state.total + 1,
       );
+      return true;
     } catch (e) {
       debugPrint('[ActivityViewModel] Error parsing realtime activity: $e');
+      return false;
     }
   }
 }
