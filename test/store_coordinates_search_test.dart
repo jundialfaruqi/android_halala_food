@@ -135,7 +135,10 @@ void main() {
     expect(find.text('Toko Berkah Jaya'), findsWidgets);
 
     // Tap on the search result
-    await tester.tap(find.text('Toko Berkah Jaya').first);
+    await tester.tap(find.descendant(
+      of: find.byType(ListView),
+      matching: find.text('Toko Berkah Jaya'),
+    ));
     await tester.pumpAndSettle();
 
     // Verify search dropdown is closed and modal is NOT auto-opened
@@ -241,7 +244,10 @@ void main() {
     final textFieldFinder = find.byType(TextField);
     await tester.enterText(textFieldFinder, 'Berkah');
     await tester.pump(const Duration(milliseconds: 350));
-    await tester.tap(find.text('Toko Berkah Jaya').first);
+    await tester.tap(find.descendant(
+      of: find.byType(ListView),
+      matching: find.text('Toko Berkah Jaya'),
+    ));
     await tester.pumpAndSettle();
 
     // Verify detail modal card is NOT auto-opened
@@ -305,7 +311,10 @@ void main() {
     final textFieldFinder = find.byType(TextField);
     await tester.enterText(textFieldFinder, 'Berkah');
     await tester.pump(const Duration(milliseconds: 350));
-    await tester.tap(find.text('Toko Berkah Jaya').first);
+    await tester.tap(find.descendant(
+      of: find.byType(ListView),
+      matching: find.text('Toko Berkah Jaya'),
+    ));
 
     // Pump into the bounce cycle (160ms) -> marker is elevated
     await tester.pump(const Duration(milliseconds: 160));

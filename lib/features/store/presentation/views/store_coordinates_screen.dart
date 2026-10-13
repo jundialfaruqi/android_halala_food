@@ -2121,16 +2121,18 @@ class _StoreCoordinatesScreenState extends ConsumerState<StoreCoordinatesScreen>
                 markers: [
                   ...displayStores.map((store) {
                     final isBouncing = _bouncingStoreId == store.id;
+                    final isRouted = _routedStore?.id == store.id;
                     return Marker(
                       key: ValueKey('store_marker_${store.id}'),
                       point: LatLng(store.latitude!, store.longitude!),
-                      width: 48,
-                      height: 56,
+                      width: 130,
+                      height: 84,
                       alignment: Alignment.topCenter,
                       child: _StoreMapPinMarker(
                         key: ValueKey('store_marker_pin_${store.id}'),
                         store: store,
                         isBouncing: isBouncing,
+                        isRouted: isRouted,
                         bounceTrigger: isBouncing ? _bounceTrigger : 0,
                         onBounceCompleted: () {
                           if (mounted && _bouncingStoreId == store.id) {
@@ -2606,6 +2608,7 @@ class _StoreMapPinMarker extends StatefulWidget {
   final int bounceTrigger;
   final VoidCallback? onBounceCompleted;
   final VoidCallback onTap;
+  final bool isRouted;
 
   const _StoreMapPinMarker({
     super.key,
@@ -2614,6 +2617,7 @@ class _StoreMapPinMarker extends StatefulWidget {
     this.bounceTrigger = 0,
     this.onBounceCompleted,
     required this.onTap,
+    this.isRouted = false,
   });
 
   @override
@@ -2695,15 +2699,46 @@ class _StoreMapPinMarkerState extends State<_StoreMapPinMarker>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          // Nama toko di atas marker (NO border radius)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: widget.isRouted
+                  ? AppColors.brandPrimary
+                  : AppColors.brandEspresso,
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x33000000),
+                  blurRadius: 3,
+                  offset: Offset(0, 1.5),
+                ),
+              ],
+            ),
+            child: Text(
+              widget.store.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontFamily: 'PlusJakartaSans',
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
+          ),
+          const SizedBox(height: 3),
           // Frame lingkaran foto toko
           Container(
             width: 44,
             height: 44,
             padding: const EdgeInsets.all(2.5),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: Colors.white,
               shape: BoxShape.circle,
-              boxShadow: [
+              border: widget.isRouted
+                  ? Border.all(color: AppColors.brandPrimary, width: 2)
+                  : null,
+              boxShadow: const [
                 BoxShadow(
                   color: Color(0x33000000), // ~20% black shadow lembut & tajam
                   blurRadius: 8,

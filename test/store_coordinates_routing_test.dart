@@ -277,4 +277,51 @@ void main() {
     expect(find.byType(PolylineLayer), findsNothing);
     expect(find.byKey(const ValueKey('clear_route_button')), findsNothing);
   });
+
+  testWidgets(
+      'Store marker displays store name label above pin with no border radius',
+      (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          storeRepositoryProvider.overrideWithValue(MockStoreRepository()),
+          authViewModelProvider.overrideWith(() => FakeAuthViewModel()),
+          routingServiceProvider.overrideWithValue(fakeRoutingService),
+        ],
+        child: const MaterialApp(
+          home: StoreCoordinatesScreen(),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    final storeMarkerFinder = find.byWidgetPredicate(
+      (widget) => widget.runtimeType.toString() == '_StoreMapPinMarker',
+    );
+    expect(storeMarkerFinder, findsOneWidget);
+
+    // Verify store name is displayed within the marker
+    final markerStoreNameFinder = find.descendant(
+      of: storeMarkerFinder,
+      matching: find.text('Toko Berkah Abadi'),
+    );
+    expect(markerStoreNameFinder, findsOneWidget);
+
+    // Verify the container holding store name has NO border radius
+    final labelContainerFinder = find.ancestor(
+      of: markerStoreNameFinder,
+      matching: find.byType(Container),
+    );
+    final container = tester.widget<Container>(labelContainerFinder.first);
+    final decoration = container.decoration as BoxDecoration?;
+    expect(decoration?.borderRadius, isNull);
+  });
 }
