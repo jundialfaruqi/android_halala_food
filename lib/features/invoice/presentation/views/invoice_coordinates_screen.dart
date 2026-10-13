@@ -1649,19 +1649,6 @@ class _InvoiceCoordinatesScreenState
                       padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
                       child: Row(
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(7),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFEE2E2),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Icon(
-                              TablerIcons.receipt_2,
-                              size: 19,
-                              color: Color(0xFFDC2626),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1932,30 +1919,49 @@ class _InvoiceCoordinatesScreenState
                           color: AppColors.brandPrimary,
                         ),
                       ),
-                      const Text(
-                        ' • ',
-                        style: TextStyle(
-                          color: AppColors.brandBorder,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Flexible(
-                        child: Text(
-                          invoice.isLunas
-                              ? 'Lunas'
-                              : _formatRupiah(invoice.remainingBalance),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                      if (!invoice.isLunas) ...[
+                        const Text(
+                          ' • ',
                           style: TextStyle(
-                            fontFamily: 'PlusJakartaSans',
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: invoice.isLunas
-                                ? AppColors.success
-                                : AppColors.brandEspresso,
+                            color: AppColors.brandBorder,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                      ),
+                        Flexible(
+                          child: Text(
+                            _formatRupiah(invoice.remainingBalance),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontFamily: 'PlusJakartaSans',
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.brandEspresso,
+                            ),
+                          ),
+                        ),
+                      ] else if (store?.route != null &&
+                          store!.route!.trim().isNotEmpty) ...[
+                        const Text(
+                          ' • ',
+                          style: TextStyle(
+                            color: AppColors.brandBorder,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Flexible(
+                          child: Text(
+                            store.route!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontFamily: 'PlusJakartaSans',
+                              fontSize: 11,
+                              color: AppColors.brandWarmGray,
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
 
