@@ -334,50 +334,53 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
 
                           return Stack(
                             children: [
-                              // Background sticky header (Status bar putih solid + App bar info user white glass blur bertingkat)
+                              // Background sticky header: satu bidang putih solid seragam utuh menyatu dari status bar hingga app bar
                               if (isVisible)
                                 Positioned.fill(
                                   child: IgnorePointer(
                                     ignoring: true,
                                     child: Opacity(
                                       opacity: value,
-                                      child: Column(
-                                        children: [
-                                          // 1. Status Bar: Background putih solid saja
-                                          Container(
-                                            key: const Key(
-                                              'home_sticky_status_bar_solid',
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          border: const Border(
+                                            bottom: BorderSide(
+                                              color: Color(0xFFE2E8F0),
+                                              width: 1.0,
                                             ),
-                                            height: statusBarHeight,
-                                            width: double.infinity,
-                                            color: Colors.white,
                                           ),
-
-                                          // 2. App Bar Info User: Putih solid seragam menyatu dengan status bar
-                                          Expanded(
-                                            child: Container(
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: const Color(0xFF0F172A).withValues(alpha: 0.05),
+                                              blurRadius: 10,
+                                              offset: const Offset(0, 3),
+                                            ),
+                                          ],
+                                        ),
+                                        child: Column(
+                                          children: [
+                                            // 1. Status Bar key keeper (warna seragam putih murni)
+                                            Container(
                                               key: const Key(
-                                                'home_sticky_glass_blur',
+                                                'home_sticky_status_bar_solid',
                                               ),
-                                              decoration: BoxDecoration(
-                                                color: Colors.white,
-                                                border: const Border(
-                                                  bottom: BorderSide(
-                                                    color: Color(0xFFE2E8F0),
-                                                    width: 1.0,
-                                                  ),
+                                              height: statusBarHeight,
+                                              width: double.infinity,
+                                              color: Colors.white,
+                                            ),
+
+                                            // 2. App Bar key keeper (warna seragam putih murni menyatu tanpa shadow terpisah)
+                                            Expanded(
+                                              child: Container(
+                                                key: const Key(
+                                                  'home_sticky_glass_blur',
                                                 ),
-                                                boxShadow: [
-                                                  BoxShadow(
-                                                    color: const Color(0xFF0F172A).withValues(alpha: 0.05),
-                                                    blurRadius: 10,
-                                                    offset: const Offset(0, 3),
-                                                  ),
-                                                ],
+                                                color: Colors.white,
                                               ),
                                             ),
-                                          ),
-                                        ],
+                                          ],
+                                        ),
                                       ),
                                     ),
                                   ),

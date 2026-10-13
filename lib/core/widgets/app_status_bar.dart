@@ -29,9 +29,11 @@ class AppStatusBar extends StatelessWidget {
         statusBarColor: statusBarColor,
         statusBarIconBrightness: Brightness.dark, // Android: icon hitam
         statusBarBrightness: Brightness.light,    // iOS: icon hitam
+        systemStatusBarContrastEnforced: false,
         systemNavigationBarColor: Colors.white,
         systemNavigationBarIconBrightness: Brightness.dark,
         systemNavigationBarDividerColor: Colors.transparent,
+        systemNavigationBarContrastEnforced: false,
       ),
     );
   }
@@ -43,9 +45,11 @@ class AppStatusBar extends StatelessWidget {
         statusBarColor: statusBarColor,
         statusBarIconBrightness: Brightness.light, // Android: icon putih
         statusBarBrightness: Brightness.dark,     // iOS: icon putih
+        systemStatusBarContrastEnforced: false,
         systemNavigationBarColor: Colors.white,
         systemNavigationBarIconBrightness: Brightness.dark,
         systemNavigationBarDividerColor: Colors.transparent,
+        systemNavigationBarContrastEnforced: false,
       ),
     );
   }
@@ -59,10 +63,12 @@ class AppStatusBar extends StatelessWidget {
         statusBarBrightness: statusBarIconBrightness == Brightness.dark
             ? Brightness.light
             : Brightness.dark, // iOS
+        systemStatusBarContrastEnforced: false,
         systemNavigationBarColor:
             navigationBarColor ?? Colors.white,
         systemNavigationBarIconBrightness: navigationBarIconBrightness,
         systemNavigationBarDividerColor: Colors.transparent,
+        systemNavigationBarContrastEnforced: false,
       ),
       child: child,
     );
