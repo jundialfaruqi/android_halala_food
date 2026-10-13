@@ -14,6 +14,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../../auth/presentation/viewmodels/auth_viewmodel.dart';
+import '../../../../core/services/routing_service.dart';
 import '../../data/models/store_model.dart';
 import '../../data/repositories/store_repository_impl.dart';
 import 'store_create_screen.dart';
@@ -55,6 +56,12 @@ class _StoreCoordinatesScreenState extends ConsumerState<StoreCoordinatesScreen>
   List<StoreModel> _storesWithCoords = [];
   List<String> _availableRoutes = [];
   String? _selectedRoute;
+
+  // State untuk OSRM Routing & Navigasi Interaktif
+  List<LatLng> _routePoints = [];
+  RouteResult? _routeResult;
+  StoreModel? _routedStore;
+  bool _isLoadingRoute = false;
 
   // State untuk lokasi pengguna saat ini (Lokasi Saya)
   LatLng? _myLocation;
@@ -592,6 +599,11 @@ class _StoreCoordinatesScreenState extends ConsumerState<StoreCoordinatesScreen>
       points.add(_pickedLocation!);
     }
 
+    // Masukkan seluruh titik rute jika sedang ada rute aktif
+    if (_routePoints.isNotEmpty) {
+      points.addAll(_routePoints);
+    }
+
     if (points.isEmpty) {
       _mapController.move(_defaultLocation, 12.0);
       return;
@@ -646,6 +658,123 @@ class _StoreCoordinatesScreenState extends ConsumerState<StoreCoordinatesScreen>
     }
 
     _showStoreDetailModalCard(store);
+  }
+
+  /// Memilih toko dan menghitung rute jalan raya OSRM dari lokasi saya ke toko
+  Future<void> _selectStoreAndShowRoute(StoreModel store) async {
+    final storeLat = store.latitude;
+    final storeLng = store.longitude;
+
+    if (storeLat == null || storeLng == null) {
+      AppSnackBar.showInfo(
+        context,
+        message: 'Toko "${store.name}" belum memiliki titik kordinat GPS.',
+      );
+      return;
+    }
+
+    final storeLoc = LatLng(storeLat, storeLng);
+
+    // Tutup keyboard pencarian atau dropdown jika aktif
+    if (_searchFocusNode.hasFocus || _showSearchResults) {
+      _searchFocusNode.unfocus();
+      setState(() {
+        _showSearchResults = false;
+      });
+    }
+
+    // Matikan mode tambah titik jika sedang aktif
+    if (_isAddPointMode) {
+      setState(() {
+        _isAddPointMode = false;
+        _pickedLocation = null;
+        _pickedLocationAddress = null;
+      });
+    }
+
+    setState(() {
+      _routedStore = store;
+      _isLoadingRoute = true;
+    });
+
+    // Cek ketersediaan lokasi GPS pengguna
+    if (_myLocation == null) {
+      await _checkGpsAndFocusLocation(focusCamera: false);
+      if (_myLocation == null) {
+        setState(() {
+          _isLoadingRoute = false;
+          _routePoints = [];
+          _routeResult = null;
+        });
+        _mapController.move(storeLoc, 16.0);
+        if (mounted) {
+          AppSnackBar.showInfo(
+            context,
+            message:
+                'Fokus ke toko. Aktifkan GPS untuk menampilkan rute navigasi jalan raya.',
+          );
+        }
+        return;
+      }
+    }
+
+    try {
+      final routingService = ref.read(routingServiceProvider);
+      final result = await routingService.getRoute(
+        origin: _myLocation!,
+        destination: storeLoc,
+      );
+
+      if (!mounted) return;
+
+      if (result != null && result.polylinePoints.isNotEmpty) {
+        setState(() {
+          _routePoints = result.polylinePoints;
+          _routeResult = result;
+          _isLoadingRoute = false;
+        });
+
+        _mapController.fitCamera(
+          CameraFit.coordinates(
+            coordinates: result.polylinePoints,
+            padding: const EdgeInsets.fromLTRB(40, 160, 40, 100),
+            maxZoom: 16.5,
+          ),
+        );
+      } else {
+        // Fallback garis lurus jika OSRM sedang bermasalah/offline
+        setState(() {
+          _routePoints = [_myLocation!, storeLoc];
+          _routeResult = null;
+          _isLoadingRoute = false;
+        });
+        _mapController.fitCamera(
+          CameraFit.coordinates(
+            coordinates: [_myLocation!, storeLoc],
+            padding: const EdgeInsets.fromLTRB(40, 160, 40, 100),
+            maxZoom: 16.0,
+          ),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _routePoints = [_myLocation!, storeLoc];
+          _isLoadingRoute = false;
+        });
+      }
+    }
+  }
+
+  /// Menghapus garis rute OSRM di peta dan membersihkan toko yang dirutekan
+  void _clearRoute() {
+    setState(() {
+      _routePoints = [];
+      _routeResult = null;
+      _routedStore = null;
+      _isLoadingRoute = false;
+    });
+    AppSnackBar.showInfo(context, message: 'Rute navigasi telah dihapus.');
   }
 
   /// Mengambil nama alamat lokasi pengguna saat ini via OpenStreetMap Nominatim
@@ -1352,22 +1481,50 @@ class _StoreCoordinatesScreenState extends ConsumerState<StoreCoordinatesScreen>
 
                       const SizedBox(height: 16),
 
-                      // Tombol Aksi: Tutup & Buka Google Maps (Clean tanpa icon)
+                      // Tombol Aksi: Icon Tutup (X), Rute & Buka Google Maps
                       Row(
                         children: [
-                          Expanded(
-                            child: AppButton.outline(
-                              text: 'Tutup',
+                          Tooltip(
+                            message: 'Tutup',
+                            child: SizedBox(
+                              width: 46,
                               height: 46,
-                              onPressed: () => Navigator.of(modalContext).pop(),
+                              child: OutlinedButton(
+                                key: const ValueKey('close_store_detail_dialog_button'),
+                                onPressed: () => Navigator.of(modalContext).pop(),
+                                style: OutlinedButton.styleFrom(
+                                  padding: EdgeInsets.zero,
+                                  side: const BorderSide(color: AppColors.brandBorder),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: const Icon(
+                                  TablerIcons.x,
+                                  size: 20,
+                                  color: AppColors.brandEspresso,
+                                ),
+                              ),
                             ),
                           ),
-                          const SizedBox(width: 10),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: AppButton(
+                              text: 'Rute',
+                              height: 46,
+                              onPressed: () {
+                                Navigator.of(modalContext).pop();
+                                _selectStoreAndShowRoute(store);
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 8),
                           Expanded(
                             flex: 2,
                             child: AppButton(
                               text: 'Buka di Google Maps',
                               height: 46,
+                              backgroundColor: AppColors.brandEspresso,
                               onPressed: () {
                                 Navigator.of(modalContext).pop();
                                 _openGoogleMaps(store);
@@ -1560,6 +1717,164 @@ class _StoreCoordinatesScreenState extends ConsumerState<StoreCoordinatesScreen>
       tooltip: 'Filter Rute',
       fontSize: 12,
       onSelected: _onSelectRoute,
+    );
+  }
+
+  /// Banner Info Rute Navigasi OSRM Aktif
+  Widget _buildRouteInfoBanner() {
+    final route = _routeResult;
+    final store = _routedStore;
+
+    return Container(
+      key: const ValueKey('route_info_banner'),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.brandEspresso,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x33000000),
+            blurRadius: 8,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: AppColors.brandPrimary.withValues(alpha: 0.2),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              TablerIcons.route,
+              size: 18,
+              color: AppColors.brandPrimary,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Rute ke: ${store?.name ?? "Toko Mitra"}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontFamily: 'PlusJakartaSans',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+                Text(
+                  route != null
+                      ? '${route.formattedDistance} • Est. ${route.formattedDuration}'
+                      : (_isLoadingRoute
+                          ? 'Menghitung rute navigasi...'
+                          : 'Rute lurus (offline)'),
+                  style: const TextStyle(
+                    fontFamily: 'PlusJakartaSans',
+                    fontSize: 11,
+                    color: AppColors.brandSoftCream,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          // Tombol Fokus Toko
+          InkWell(
+            onTap: () {
+              if (store?.latitude != null && store?.longitude != null) {
+                _mapController.move(
+                  LatLng(store!.latitude!, store.longitude!),
+                  17.0,
+                );
+              }
+            },
+            borderRadius: BorderRadius.circular(6),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.25),
+                ),
+              ),
+              child: const Row(
+                children: [
+                  Icon(TablerIcons.building_store, size: 12, color: Colors.white),
+                  SizedBox(width: 3),
+                  Text(
+                    'Fokus',
+                    style: TextStyle(
+                      fontFamily: 'PlusJakartaSans',
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          // Tombol Buka Maps
+          InkWell(
+            onTap: () {
+              if (store != null) {
+                _openGoogleMaps(store);
+              }
+            },
+            borderRadius: BorderRadius.circular(6),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.brandPrimary,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: const Row(
+                children: [
+                  Icon(TablerIcons.navigation, size: 12, color: Colors.white),
+                  SizedBox(width: 3),
+                  Text(
+                    'Maps',
+                    style: TextStyle(
+                      fontFamily: 'PlusJakartaSans',
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          // Tombol Hapus Rute
+          InkWell(
+            onTap: _clearRoute,
+            borderRadius: BorderRadius.circular(6),
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                TablerIcons.x,
+                size: 14,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1781,6 +2096,27 @@ class _StoreCoordinatesScreenState extends ConsumerState<StoreCoordinatesScreen>
                   },
                 ),
               ),
+              if (_routePoints.isNotEmpty)
+                PolylineLayer(
+                  polylines: [
+                    // Bayangan / border rute
+                    Polyline(
+                      points: _routePoints,
+                      strokeWidth: 6.5,
+                      color: Colors.black.withValues(alpha: 0.2),
+                      strokeCap: StrokeCap.round,
+                      strokeJoin: StrokeJoin.round,
+                    ),
+                    // Garis utama rute jalan raya OSRM
+                    Polyline(
+                      points: _routePoints,
+                      strokeWidth: 4.5,
+                      color: AppColors.brandPrimary,
+                      strokeCap: StrokeCap.round,
+                      strokeJoin: StrokeJoin.round,
+                    ),
+                  ],
+                ),
               MarkerLayer(
                 markers: [
                   ...displayStores.map((store) {
@@ -1939,6 +2275,12 @@ class _StoreCoordinatesScreenState extends ConsumerState<StoreCoordinatesScreen>
                     ),
                   ),
 
+                  // Banner Info Rute Jalan Raya (OSRM)
+                  if (_routePoints.isNotEmpty && _routedStore != null) ...[
+                    const SizedBox(height: 10),
+                    _buildRouteInfoBanner(),
+                  ],
+
                   // Banner Panduan Mode Tambah Titik Kordinat Aktif
                   if (_isAddPointMode) ...[
                     const SizedBox(height: 10),
@@ -2056,6 +2398,38 @@ class _StoreCoordinatesScreenState extends ConsumerState<StoreCoordinatesScreen>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // Tombol Hapus Rute (Muncul jika ada rute aktif di peta)
+                if (_routePoints.isNotEmpty) ...[
+                  Material(
+                    color: Colors.white,
+                    elevation: 4,
+                    borderRadius: BorderRadius.circular(12),
+                    shadowColor: Colors.black.withValues(alpha: 0.15),
+                    child: Tooltip(
+                      message: 'Hapus Rute',
+                      child: InkWell(
+                        key: const ValueKey('clear_route_button'),
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: _clearRoute,
+                        child: Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppColors.brandBorder),
+                          ),
+                          child: const Icon(
+                            TablerIcons.route_off,
+                            size: 22,
+                            color: Color(0xFFDC2626),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+
                 // Tombol Mode Tambah Titik Kordinat di Maps (Di atas tombol zoom out)
                 Material(
                   color:
