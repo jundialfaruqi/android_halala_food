@@ -414,30 +414,10 @@ class _StoreMultiSearchSelectionDialogState
             const Divider(height: 1, color: AppColors.brandBorder),
             const SizedBox(height: 12),
 
-            // 4. Bottom Actions: Batal, Reset, Konfirmasi
+            // 4. Bottom Actions: Batal, Konfirmasi
             Row(
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                if (selectedCount > 0)
-                  TextButton(
-                    onPressed: () {
-                      setState(() {
-                        _selectedMap.clear();
-                      });
-                    },
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.brandWarmGray,
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                    ),
-                    child: const Text(
-                      'Hapus Semua',
-                      style: TextStyle(
-                        fontFamily: 'PlusJakartaSans',
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                const Spacer(),
                 AppButton.outline(
                   text: 'Batal',
                   height: 40,
