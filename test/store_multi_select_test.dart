@@ -200,4 +200,56 @@ void main() {
     expect(selectedList.length, 1);
     expect(selectedList.first.id, 1);
   });
+
+  testWidgets('Fitur Pilih Semua (Select All) dapat memilih dan membatalkan semua toko sekaligus', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    List<StoreSelectOption> selectedList = [];
+
+    await tester.pumpWidget(
+      buildTestableWidget(
+        onChanged: (stores) {
+          selectedList = stores;
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Buka dialog
+    await tester.tap(find.text('Pilih satu atau lebih toko mitra...'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Pilih Semua Toko Mitra'), findsOneWidget);
+    expect(find.text('0/10 dipilih'), findsOneWidget);
+
+    // Klik Pilih Semua
+    await tester.tap(find.text('Pilih Semua Toko Mitra'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Batalkan Pilih Semua'), findsOneWidget);
+    expect(find.text('10/10 dipilih'), findsOneWidget);
+    expect(find.text('Pilih (10 Toko)'), findsOneWidget);
+
+    // Klik Batalkan Pilih Semua
+    await tester.tap(find.text('Batalkan Pilih Semua'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Pilih Semua Toko Mitra'), findsOneWidget);
+    expect(find.text('0/10 dipilih'), findsOneWidget);
+    expect(find.text('Pilih Toko'), findsOneWidget);
+
+    // Pilih Semua lagi lalu Submit
+    await tester.tap(find.text('Pilih Semua Toko Mitra'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Pilih (10 Toko)'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(StoreMultiSearchSelectionDialog), findsNothing);
+    expect(selectedList.length, 10);
+  });
 }
+

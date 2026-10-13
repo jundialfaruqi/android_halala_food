@@ -226,6 +226,32 @@ class _StoreMultiSearchSelectionDialogState
     });
   }
 
+  bool get _isAllSelected {
+    if (_stores.isEmpty) return false;
+    return _stores.every((s) => _selectedMap.containsKey(s.id));
+  }
+
+  bool get _isSomeSelected {
+    if (_stores.isEmpty) return false;
+    final selectedInList =
+        _stores.where((s) => _selectedMap.containsKey(s.id)).length;
+    return selectedInList > 0 && selectedInList < _stores.length;
+  }
+
+  void _toggleSelectAll() {
+    setState(() {
+      if (_isAllSelected) {
+        for (final s in _stores) {
+          _selectedMap.remove(s.id);
+        }
+      } else {
+        for (final s in _stores) {
+          _selectedMap[s.id] = StoreSelectOption.fromStore(s);
+        }
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
@@ -376,6 +402,9 @@ class _StoreMultiSearchSelectionDialogState
             ),
             const SizedBox(height: 12),
 
+            // Select All Checkbox Bar
+            _buildSelectAllBar(),
+
             // 3. Konten List Toko
             Expanded(
               child: _buildStoreListContent(),
@@ -430,6 +459,123 @@ class _StoreMultiSearchSelectionDialogState
               ],
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSelectAllBar() {
+    if (_isLoadingInitial || _errorMessage != null || _stores.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final isAll = _isAllSelected;
+    final isSome = _isSomeSelected;
+    final selectedCountInStores =
+        _stores.where((s) => _selectedMap.containsKey(s.id)).length;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _toggleSelectAll,
+          borderRadius: BorderRadius.circular(10),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+            decoration: BoxDecoration(
+              color: isAll
+                  ? AppColors.brandPrimary.withValues(alpha: 0.08)
+                  : AppColors.background,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isAll
+                    ? AppColors.brandPrimary.withValues(alpha: 0.35)
+                    : AppColors.brandBorder,
+                width: isAll ? 1.2 : 1.0,
+              ),
+            ),
+            child: Row(
+              children: [
+                // Checkbox Box
+                Container(
+                  width: 22,
+                  height: 22,
+                  decoration: BoxDecoration(
+                    color: (isAll || isSome)
+                        ? AppColors.brandPrimary
+                        : Colors.white,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: (isAll || isSome)
+                          ? AppColors.brandPrimary
+                          : AppColors.brandBorder,
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Center(
+                    child: isAll
+                        ? const Icon(
+                            TablerIcons.check,
+                            size: 14,
+                            color: Colors.white,
+                          )
+                        : (isSome
+                            ? const Icon(
+                                TablerIcons.minus,
+                                size: 14,
+                                color: Colors.white,
+                              )
+                            : null),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    isAll ? 'Batalkan Pilih Semua' : 'Pilih Semua Toko Mitra',
+                    style: TextStyle(
+                      fontFamily: 'PlusJakartaSans',
+                      fontSize: 13,
+                      fontWeight: (isAll || isSome)
+                          ? FontWeight.w700
+                          : FontWeight.w600,
+                      color: (isAll || isSome)
+                          ? AppColors.brandPrimary
+                          : AppColors.brandEspresso,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2.5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: (isAll || isSome)
+                        ? AppColors.brandPrimary.withValues(alpha: 0.12)
+                        : Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: (isAll || isSome)
+                          ? AppColors.brandPrimary.withValues(alpha: 0.25)
+                          : AppColors.brandBorder,
+                    ),
+                  ),
+                  child: Text(
+                    '$selectedCountInStores/${_stores.length} dipilih',
+                    style: TextStyle(
+                      fontFamily: 'PlusJakartaSans',
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: (isAll || isSome)
+                          ? AppColors.brandPrimary
+                          : AppColors.brandWarmGray,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
