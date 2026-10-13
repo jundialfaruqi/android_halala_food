@@ -85,7 +85,7 @@ void main() {
 
     // 1. Initial State at top: User name and avatar are rendered
     expect(find.text('Ahmad Manager'), findsOneWidget);
-    expect(find.text('A'), findsOneWidget); // Initial avatar
+    expect(find.byKey(const Key('home_user_avatar_image')), findsOneWidget);
     expect(find.byIcon(TablerIcons.bell), findsOneWidget);
     expect(find.byIcon(TablerIcons.dots_vertical), findsOneWidget);
 

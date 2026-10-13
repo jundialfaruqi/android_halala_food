@@ -1,6 +1,7 @@
 class AppAssets {
   // Logo
   static const String logo = 'assets/logo/logo.webp';
+  static const String appIcon = 'assets/logo/app_icon.png';
 
   // Backgrounds & Products
   static const String loginBg = 'assets/images/login_bg.jpg';

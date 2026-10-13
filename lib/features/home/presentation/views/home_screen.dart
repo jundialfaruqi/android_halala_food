@@ -439,8 +439,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Avatar inisial dengan border dan shadow kontras
+          // Avatar gambar statis app_icon dengan border dan shadow kontras
           Container(
+            key: const Key('home_user_avatar_image'),
             width: 44,
             height: 44,
             decoration: BoxDecoration(
@@ -466,16 +467,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                 ),
               ],
             ),
-            alignment: Alignment.center,
-            child: Text(
-              (user?.name.isNotEmpty ?? false)
-                  ? user!.name[0].toUpperCase()
-                  : 'U',
-              style: const TextStyle(
-                fontFamily: 'PlusJakartaSans',
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: AppColors.brandPrimary,
+            child: ClipOval(
+              child: Image.asset(
+                AppAssets.appIcon,
+                width: 44,
+                height: 44,
+                fit: BoxFit.cover,
               ),
             ),
           ),
