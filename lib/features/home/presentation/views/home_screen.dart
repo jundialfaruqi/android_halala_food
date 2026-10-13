@@ -351,46 +351,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                                             color: Colors.white,
                                           ),
 
-                                          // 2. App Bar Info User: White Glass Blur Bertingkat
+                                          // 2. App Bar Info User: Putih solid seragam menyatu dengan status bar
                                           Expanded(
-                                            child: ClipRect(
-                                              child: BackdropFilter(
-                                                filter: ImageFilter.blur(
-                                                  sigmaX: 18.0,
-                                                  sigmaY: 18.0,
-                                                ),
-                                                child: Container(
-                                                  key: const Key(
-                                                    'home_sticky_glass_blur',
-                                                  ),
-                                                  decoration: BoxDecoration(
-                                                    // Bertingkat: Frosted white gradient bercahaya
-                                                    gradient: LinearGradient(
-                                                      begin: Alignment.topCenter,
-                                                      end: Alignment.bottomCenter,
-                                                      colors: [
-                                                        Colors.white.withValues(alpha: 0.94),
-                                                        Colors.white.withValues(alpha: 0.82),
-                                                      ],
-                                                      stops: const [0.0, 1.0],
-                                                    ),
-                                                    // Divider garis kaca halus di bawah
-                                                    border: Border(
-                                                      bottom: BorderSide(
-                                                        color: const Color(0xFFE2E8F0).withValues(alpha: 0.9),
-                                                        width: 1.0,
-                                                      ),
-                                                    ),
-                                                    // Bayangan kedalaman bertingkat yang lembut
-                                                    boxShadow: [
-                                                      BoxShadow(
-                                                        color: const Color(0xFF0F172A).withValues(alpha: 0.06),
-                                                        blurRadius: 10,
-                                                        offset: const Offset(0, 3),
-                                                      ),
-                                                    ],
+                                            child: Container(
+                                              key: const Key(
+                                                'home_sticky_glass_blur',
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                border: const Border(
+                                                  bottom: BorderSide(
+                                                    color: Color(0xFFE2E8F0),
+                                                    width: 1.0,
                                                   ),
                                                 ),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: const Color(0xFF0F172A).withValues(alpha: 0.05),
+                                                    blurRadius: 10,
+                                                    offset: const Offset(0, 3),
+                                                  ),
+                                                ],
                                               ),
                                             ),
                                           ),
