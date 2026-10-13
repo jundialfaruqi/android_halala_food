@@ -102,6 +102,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
     return result;
   }
 
+  /// Memuat ulang seluruh data halaman Home (profil pengguna & permissions, ringkasan statistik, dan toko terlaris)
+  Future<void> _handleRefresh() async {
+    final user = ref.read(authViewModelProvider).user;
+    await Future.wait([
+      ref.read(authViewModelProvider.notifier).refreshUserProfile(),
+      ref.read(homeStatViewModelProvider.notifier).loadStat(),
+      if (user != null && user.hasPermission('toko-view'))
+        ref.read(homeTopStoresViewModelProvider.notifier).loadTopStores(),
+    ]);
+  }
+
   /// Mencegah pengguna tidak sengaja keluar saat menekan tombol back navigasi di halaman Home.
   /// Menampilkan pesan lewat snackbar: "Tekan sekali lagi untuk keluar aplikasi".
   void _handleDoubleBackToExit() {
@@ -165,6 +176,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
       body: LayoutBuilder(
         builder: (context, constraints) {
           final headerHeight = constraints.maxWidth * 9 / 16;
+          final statusBarHeight = MediaQuery.of(context).padding.top;
 
           return Stack(
             children: [
@@ -181,10 +193,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                   }
                   return false;
                 },
-                child: SingleChildScrollView(
-                  controller: _scrollController,
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  child: Stack(
+                child: RefreshIndicator(
+                  color: AppColors.brandPrimary,
+                  backgroundColor: Colors.white,
+                  edgeOffset: statusBarHeight + 64,
+                  onRefresh: _handleRefresh,
+                  child: SingleChildScrollView(
+                    controller: _scrollController,
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: Stack(
                     children: [
                       // Layer 1: Background Banner & Konten Halaman
                       Column(
@@ -293,6 +310,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                   ),
                 ),
               ),
+            ),
 
               // 2. Sticky User Info Header dengan Glass Blur & Fade In/Out
               Positioned(
