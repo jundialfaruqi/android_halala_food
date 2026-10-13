@@ -369,7 +369,7 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
     bool canDeleteProduct,
   ) {
     if (state.isLoading) {
-      return _buildShimmerLoadingList();
+      return _buildShimmerLoadingList(canCreateProduct);
     }
 
     if (state.errorMessage != null && state.products.isEmpty) {
@@ -407,6 +407,7 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
     final screenWidth = MediaQuery.sizeOf(context).width;
     final cardWidth = (screenWidth - 32 - 12) / 2;
     final childAspectRatio = cardWidth / (cardWidth + contentHeight);
+    final bottomPadding = canCreateProduct ? 88.0 : 24.0;
 
     return RefreshIndicator(
       color: AppColors.brandPrimary,
@@ -417,7 +418,7 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+            padding: EdgeInsets.fromLTRB(16, 12, 16, bottomPadding),
             sliver: SliverGrid(
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
@@ -439,10 +440,10 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
             ),
           ),
           if (state.isLoadingMore)
-            const SliverToBoxAdapter(
+            SliverToBoxAdapter(
               child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 16),
-                child: Center(
+                padding: EdgeInsets.fromLTRB(0, 8, 0, bottomPadding),
+                child: const Center(
                   child: SizedBox(
                     width: 24,
                     height: 24,
@@ -460,14 +461,15 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
   }
 
   /// Shimmer loading list skeleton untuk item card data produk (Grid 2 Kolom)
-  Widget _buildShimmerLoadingList() {
+  Widget _buildShimmerLoadingList(bool canCreateProduct) {
     final screenWidth = MediaQuery.sizeOf(context).width;
     final cardWidth = (screenWidth - 32 - 12) / 2;
     final childAspectRatio = cardWidth / (cardWidth + 116.0);
+    final bottomPadding = canCreateProduct ? 88.0 : 24.0;
 
     return GridView.builder(
       physics: const NeverScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      padding: EdgeInsets.fromLTRB(16, 12, 16, bottomPadding),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         mainAxisSpacing: 12,
