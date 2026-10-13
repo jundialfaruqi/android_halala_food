@@ -71,6 +71,7 @@ class MockInvoiceRepository implements InvoiceRepository {
     String? status,
     int? storeId,
     String? invoiceDate,
+    String? route,
   }) async {
     return InvoiceListResult(
       invoices: dummyInvoices,
@@ -300,7 +301,7 @@ void main() {
     expect(find.byType(Dialog), findsNothing);
   });
 
-  testWidgets('InvoiceScreen renders Lihat Titik Kordinat Pengantaran button',
+  testWidgets('InvoiceScreen renders Lihat Titik Kordinat Penagihan button',
       (tester) async {
     final mockRepo = MockInvoiceRepository();
 
@@ -321,7 +322,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
-    expect(find.text('Lihat Titik Kordinat Pengantaran'), findsOneWidget);
+    expect(find.text('Lihat Titik Kordinat Penagihan'), findsOneWidget);
     expect(find.byIcon(TablerIcons.map_pin), findsOneWidget);
   });
 }

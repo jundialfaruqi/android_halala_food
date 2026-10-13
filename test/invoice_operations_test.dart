@@ -22,6 +22,7 @@ class _MockInvoiceRepo implements InvoiceRepository {
     String? status,
     int? storeId,
     String? invoiceDate,
+    String? route,
   }) async {
     return const InvoiceListResult(
       invoices: [],

@@ -9,6 +9,10 @@ class InvoiceStoreModel {
   final String? phone;
   final String? address;
   final String? route;
+  final double? latitude;
+  final double? longitude;
+  final String? photo;
+  final String? photoUrl;
 
   const InvoiceStoreModel({
     required this.id,
@@ -17,6 +21,10 @@ class InvoiceStoreModel {
     this.phone,
     this.address,
     this.route,
+    this.latitude,
+    this.longitude,
+    this.photo,
+    this.photoUrl,
   });
 
   factory InvoiceStoreModel.fromJson(Map<String, dynamic> json) {
@@ -27,6 +35,14 @@ class InvoiceStoreModel {
       phone: json['phone'] as String?,
       address: json['address'] as String?,
       route: json['route'] as String?,
+      latitude: json['latitude'] != null
+          ? double.tryParse(json['latitude'].toString())
+          : null,
+      longitude: json['longitude'] != null
+          ? double.tryParse(json['longitude'].toString())
+          : null,
+      photo: json['photo']?.toString(),
+      photoUrl: json['photo_url']?.toString(),
     );
   }
 
@@ -37,6 +53,10 @@ class InvoiceStoreModel {
         'phone': phone,
         'address': address,
         'route': route,
+        'latitude': latitude,
+        'longitude': longitude,
+        'photo': photo,
+        'photo_url': photoUrl,
       };
 }
 
@@ -453,6 +473,7 @@ class InvoiceListResult {
   final int lastPage;
   final Map<String, int> statusCounts;
   final List<InvoiceStoreModel> stores;
+  final List<String> routes;
 
   const InvoiceListResult({
     required this.invoices,
@@ -462,6 +483,7 @@ class InvoiceListResult {
     required this.lastPage,
     required this.statusCounts,
     required this.stores,
+    this.routes = const [],
   });
 }
 

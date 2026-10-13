@@ -22,6 +22,7 @@ class InvoiceRepositoryImpl implements InvoiceRepository {
     String? status,
     int? storeId,
     String? invoiceDate,
+    String? route,
   }) {
     return _remoteDataSource.getInvoices(
       page: page,
@@ -30,6 +31,7 @@ class InvoiceRepositoryImpl implements InvoiceRepository {
       status: status,
       storeId: storeId,
       invoiceDate: invoiceDate,
+      route: route,
     );
   }
 

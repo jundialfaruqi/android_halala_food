@@ -17,6 +17,7 @@ abstract class InvoiceRemoteDataSource {
     String? status,
     int? storeId,
     String? invoiceDate,
+    String? route,
   });
 
   Future<InvoiceModel> getInvoiceDetail(int id);
@@ -53,6 +54,7 @@ class InvoiceRemoteDataSourceImpl implements InvoiceRemoteDataSource {
     String? status,
     int? storeId,
     String? invoiceDate,
+    String? route,
   }) async {
     final queryParams = <String, dynamic>{
       'page': page,
@@ -73,6 +75,10 @@ class InvoiceRemoteDataSourceImpl implements InvoiceRemoteDataSource {
 
     if (invoiceDate != null && invoiceDate.isNotEmpty) {
       queryParams['invoice_date'] = invoiceDate;
+    }
+
+    if (route != null && route.isNotEmpty && route != 'all') {
+      queryParams['route'] = route;
     }
 
     final response = await _dioClient.get(
@@ -131,6 +137,18 @@ class InvoiceRemoteDataSourceImpl implements InvoiceRemoteDataSource {
       }
     }
 
+    final List<String> routes = [];
+    if (response is Map<String, dynamic> && response.containsKey('routes')) {
+      final rList = response['routes'];
+      if (rList is List) {
+        for (final item in rList) {
+          if (item != null) {
+            routes.add(item.toString());
+          }
+        }
+      }
+    }
+
     return InvoiceListResult(
       invoices: invoices,
       hasMore: currentPage < lastPage,
@@ -139,6 +157,7 @@ class InvoiceRemoteDataSourceImpl implements InvoiceRemoteDataSource {
       lastPage: lastPage,
       statusCounts: statusCounts,
       stores: stores,
+      routes: routes,
     );
   }
 

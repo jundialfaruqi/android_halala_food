@@ -8,6 +8,7 @@ abstract class InvoiceRepository {
     String? status,
     int? storeId,
     String? invoiceDate,
+    String? route,
   });
 
   Future<InvoiceModel> getInvoiceDetail(int id);

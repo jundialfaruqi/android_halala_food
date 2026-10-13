@@ -102,6 +102,7 @@ class MockInvoiceRepository implements InvoiceRepository {
     String? status,
     int? storeId,
     String? invoiceDate,
+    String? route,
   }) async {
     getInvoicesCallCount++;
     lastRequestedDate = invoiceDate;
