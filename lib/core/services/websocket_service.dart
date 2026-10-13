@@ -49,6 +49,12 @@ class WebSocketService {
   Stream<Map<String, dynamic>> get onActivityCreated =>
       _activityCreatedController.stream;
 
+  final _activityUpdatedController =
+      StreamController<Map<String, dynamic>>.broadcast();
+
+  Stream<Map<String, dynamic>> get onActivityUpdated =>
+      _activityUpdatedController.stream;
+
   final Set<int> _recentActivityIds = <int>{};
   final Set<int> _recentDeliveryIds = <int>{};
   final Set<int> _recentInvoiceIds = <int>{};
@@ -183,6 +189,16 @@ class WebSocketService {
           _handleActivityCreatedEvent(event);
         });
         _eventSubs.add(subActDot);
+
+        final subActUpd = activitiesChannel.bind('activity.updated').listen((event) {
+          _handleActivityUpdatedEvent(event);
+        });
+        _eventSubs.add(subActUpd);
+
+        final subActUpdDot = activitiesChannel.bind('.activity.updated').listen((event) {
+          _handleActivityUpdatedEvent(event);
+        });
+        _eventSubs.add(subActUpdDot);
       }
 
       // Listen ke event invoice.created, delivery.created & activity.created pada courier/user channel
@@ -219,6 +235,16 @@ class WebSocketService {
         });
         _eventSubs.add(subCourActDot);
 
+        final subCourActUpd = courierChannel.bind('activity.updated').listen((event) {
+          _handleActivityUpdatedEvent(event);
+        });
+        _eventSubs.add(subCourActUpd);
+
+        final subCourActUpdDot = courierChannel.bind('.activity.updated').listen((event) {
+          _handleActivityUpdatedEvent(event);
+        });
+        _eventSubs.add(subCourActUpdDot);
+
         final subUserAct = userChannel.bind('activity.created').listen((event) {
           _handleActivityCreatedEvent(event);
         });
@@ -228,6 +254,16 @@ class WebSocketService {
           _handleActivityCreatedEvent(event);
         });
         _eventSubs.add(subUserActDot);
+
+        final subUserActUpd = userChannel.bind('activity.updated').listen((event) {
+          _handleActivityUpdatedEvent(event);
+        });
+        _eventSubs.add(subUserActUpd);
+
+        final subUserActUpdDot = userChannel.bind('.activity.updated').listen((event) {
+          _handleActivityUpdatedEvent(event);
+        });
+        _eventSubs.add(subUserActUpdDot);
       }
 
       // Listen ke permintaan pelacakan lokasi kurir (On-Demand Method 1)
@@ -463,6 +499,26 @@ class WebSocketService {
     }
   }
 
+  void _handleActivityUpdatedEvent(ChannelReadEvent event) {
+    debugPrint('[WebSocket] Received activity.updated event: ${event.data}');
+    try {
+      final rawData = event.data;
+      Map<String, dynamic> payload = {};
+      if (rawData is Map<String, dynamic>) {
+        payload = rawData;
+      } else if (rawData is String) {
+        final decoded = jsonDecode(rawData);
+        if (decoded is Map<String, dynamic>) {
+          payload = decoded;
+        }
+      }
+
+      _activityUpdatedController.add(payload);
+    } catch (e) {
+      debugPrint('[WebSocket] Error parsing activity.updated event: $e');
+    }
+  }
+
   @visibleForTesting
   void emitInvoiceCreatedForTest(Map<String, dynamic> payload) {
     _invoiceCreatedController.add(payload);
@@ -476,6 +532,11 @@ class WebSocketService {
   @visibleForTesting
   void emitActivityCreatedForTest(Map<String, dynamic> payload) {
     _activityCreatedController.add(payload);
+  }
+
+  @visibleForTesting
+  void emitActivityUpdatedForTest(Map<String, dynamic> payload) {
+    _activityUpdatedController.add(payload);
   }
 
   void disconnect() {
@@ -527,5 +588,6 @@ class WebSocketService {
     _courierTrackingRequestedController.close();
     _courierLocationUpdatedController.close();
     _activityCreatedController.close();
+    _activityUpdatedController.close();
   }
 }

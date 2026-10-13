@@ -681,5 +681,78 @@ void main() {
       wsService.dispose();
       container.dispose();
     });
+
+    testWidgets('ingests real-time activity.updated event and shows deleted status in chat view', (tester) async {
+      final wsService = WebSocketService();
+      final mockRepo = MockActivityRepository();
+      mockRepo.activitiesToReturn = [
+        const ActivityModel(
+          id: 501,
+          type: 'invoice_created',
+          title: 'Surat Faktur Diterbitkan',
+          userId: 2,
+          userName: 'Kasir Rina',
+          userRole: 'manager',
+          userInitials: 'KR',
+          timeFormatted: '10:00',
+          dateFormatted: 'Hari Ini',
+          dateGroupKey: '2026-10-14',
+          data: {
+            'invoice_number': 'INV-202610-0999',
+            'store_name': 'Toko Berkah',
+            'is_deleted': false,
+          },
+        ),
+      ];
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            authViewModelProvider.overrideWith(
+              () => FakeManagerAuthViewModel(),
+            ),
+            webSocketServiceProvider.overrideWithValue(wsService),
+            activityRepositoryProvider.overrideWithValue(mockRepo),
+          ],
+          child: const MaterialApp(home: ActivityScreen()),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Initially active, not deleted
+      expect(find.text('INV-202610-0999'), findsOneWidget);
+      expect(find.text('Faktur INV-202610-0999 telah dihapus oleh Admin'), findsNothing);
+
+      // Now emit activity.updated with is_deleted = true
+      wsService.emitActivityUpdatedForTest({
+        'id': 501,
+        'type': 'invoice_created',
+        'title': 'Surat Faktur Diterbitkan',
+        'user_id': 2,
+        'user_name': 'Kasir Rina',
+        'user_role': 'manager',
+        'user_initials': 'KR',
+        'time_formatted': '10:00',
+        'date_formatted': 'Hari Ini',
+        'date_group_key': '2026-10-14',
+        'is_deleted': true,
+        'deletion_message': 'Faktur INV-202610-0999 telah dihapus oleh Admin',
+        'data': {
+          'invoice_number': 'INV-202610-0999',
+          'store_name': 'Toko Berkah',
+          'is_deleted': true,
+          'deletion_message': 'Faktur INV-202610-0999 telah dihapus oleh Admin',
+        },
+      });
+
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      // Now it must show the red deleted status message!
+      expect(find.text('Faktur INV-202610-0999 telah dihapus oleh Admin'), findsOneWidget);
+
+      wsService.dispose();
+    });
   });
 }

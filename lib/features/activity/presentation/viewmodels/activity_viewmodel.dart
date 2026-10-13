@@ -91,8 +91,14 @@ class ActivityViewModel extends Notifier<ActivityState> {
       }
     });
 
+    final subUpdated = wsService.onActivityUpdated.listen((payload) {
+      debugPrint('[ActivityViewModel] Real-time activity.updated event: $payload');
+      updateRealtimeActivity(payload);
+    });
+
     ref.onDispose(() {
       sub.cancel();
+      subUpdated.cancel();
     });
 
     Future.microtask(() => loadActivities(refresh: true));
@@ -226,6 +232,21 @@ class ActivityViewModel extends Notifier<ActivityState> {
     } catch (e) {
       debugPrint('[ActivityViewModel] Error parsing realtime activity: $e');
       return false;
+    }
+  }
+
+  /// Memperbarui aktifitas yang sudah ada di linimasa (misal status is_deleted atau deletion_message berubah)
+  void updateRealtimeActivity(Map<String, dynamic> payload) {
+    try {
+      final updatedActivity = ActivityModel.fromJson(payload);
+      final index = state.activities.indexWhere((a) => a.id == updatedActivity.id);
+      if (index != -1) {
+        final list = List<ActivityModel>.from(state.activities);
+        list[index] = updatedActivity;
+        state = state.copyWith(activities: list);
+      }
+    } catch (e) {
+      debugPrint('[ActivityViewModel] Error updating realtime activity: $e');
     }
   }
 }
