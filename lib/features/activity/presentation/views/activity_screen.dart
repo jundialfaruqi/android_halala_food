@@ -26,7 +26,6 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         ref.read(notificationBadgeProvider.notifier).clearBadge();
-        ref.read(activityViewModelProvider.notifier).loadActivities(refresh: true);
       }
     });
   }
