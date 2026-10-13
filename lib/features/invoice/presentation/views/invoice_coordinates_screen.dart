@@ -1653,41 +1653,14 @@ class _InvoiceCoordinatesScreenState
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Row(
-                                  children: [
-                                    const Text(
-                                      'Daftar Toko Penagihan',
-                                      style: TextStyle(
-                                        fontFamily: 'PlusJakartaSans',
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w700,
-                                        color: AppColors.brandEspresso,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 7,
-                                        vertical: 1.5,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.brandSoftCream,
-                                        borderRadius: BorderRadius.circular(10),
-                                        border: Border.all(
-                                          color: AppColors.brandBorder,
-                                        ),
-                                      ),
-                                      child: Text(
-                                        '${sortedList.length}',
-                                        style: const TextStyle(
-                                          fontFamily: 'PlusJakartaSans',
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w700,
-                                          color: AppColors.brandPrimary,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
+                                Text(
+                                  'Daftar Toko Penagihan (${sortedList.length})',
+                                  style: const TextStyle(
+                                    fontFamily: 'PlusJakartaSans',
+                                    fontSize: 14.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.brandEspresso,
+                                  ),
                                 ),
                                 Text(
                                   _myLocation != null

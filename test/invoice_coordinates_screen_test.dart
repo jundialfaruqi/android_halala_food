@@ -218,7 +218,7 @@ void main() {
     expect(find.text('Titik Penagihan Piutang'), findsOneWidget);
 
     // Verify bottom sheet header and data
-    expect(find.text('Daftar Toko Penagihan'), findsOneWidget);
+    expect(find.text('Daftar Toko Penagihan (2)'), findsOneWidget);
     expect(find.text('Toko Berkah Jaya'), findsWidgets);
     expect(find.text('Warung Bu Siti'), findsWidgets);
     expect(find.text('INV-20261014-0001'), findsOneWidget);
