@@ -52,7 +52,9 @@ class AppCard extends StatelessWidget {
   })  : _isStacked = false,
         _stackInsetHorizontal = 0,
         _stackOffsetVertical = 0,
-        stackAtTop = false;
+        stackAtTop = false,
+        deckLayer2Color = null,
+        deckLayer3Color = null;
 
   /// Card bernuansa krem lembut khas Halala Food
   const AppCard.soft({
@@ -75,7 +77,9 @@ class AppCard extends StatelessWidget {
         _stackInsetHorizontal = 0,
         _stackOffsetVertical = 0,
         stackAtTop = false,
-        boxShadow = null;
+        boxShadow = null,
+        deckLayer2Color = null,
+        deckLayer3Color = null;
 
   /// Card minimalis bergaris tepi tanpa efek bayangan
   const AppCard.outlined({
@@ -98,7 +102,9 @@ class AppCard extends StatelessWidget {
         _stackInsetHorizontal = 0,
         _stackOffsetVertical = 0,
         stackAtTop = false,
-        boxShadow = null;
+        boxShadow = null,
+        deckLayer2Color = null,
+        deckLayer3Color = null;
 
   /// Card dengan efek tumpukan 3 layer (3-card stacked deck effect) lengkap dengan shadow
   const AppCard.stacked({
@@ -121,9 +127,14 @@ class AppCard extends StatelessWidget {
     this.isGlass = true,
     this.glassOpacity = 0.78,
     this.glassBlur = 16.0,
+    this.deckLayer2Color,
+    this.deckLayer3Color,
   })  : _isStacked = true,
         _stackInsetHorizontal = stackInsetHorizontal,
         _stackOffsetVertical = stackOffsetVertical;
+
+  final Color? deckLayer2Color;
+  final Color? deckLayer3Color;
 
   /// Card yang dilengkapi dengan section header judul, icon, dan action
   factory AppCard.header({
@@ -210,27 +221,32 @@ class AppCard extends StatelessWidget {
 
   static final List<BoxShadow> _stackedFrontShadow = [
     BoxShadow(
-      color: Colors.black.withValues(alpha: 0.07),
-      blurRadius: 14,
-      offset: const Offset(0, 4),
+      color: Colors.black.withValues(alpha: 0.08),
+      blurRadius: 16,
+      offset: const Offset(0, 5),
     ),
     BoxShadow(
-      color: Colors.black.withValues(alpha: 0.02),
-      blurRadius: 4,
-      offset: const Offset(0, 1),
+      color: Colors.black.withValues(alpha: 0.04),
+      blurRadius: 6,
+      offset: const Offset(0, 2),
     ),
   ];
 
   static final List<BoxShadow> _stackedFrontShadowTop = [
     BoxShadow(
-      color: Colors.black.withValues(alpha: 0.07),
-      blurRadius: 14,
-      offset: const Offset(0, 4),
+      color: Colors.black.withValues(alpha: 0.08),
+      blurRadius: 16,
+      offset: const Offset(0, 5),
     ),
     BoxShadow(
-      color: Colors.black.withValues(alpha: 0.04),
-      blurRadius: 6,
-      offset: const Offset(0, -2),
+      color: Colors.black.withValues(alpha: 0.06),
+      blurRadius: 8,
+      offset: const Offset(0, -3),
+    ),
+    BoxShadow(
+      color: Colors.black.withValues(alpha: 0.02),
+      blurRadius: 3,
+      offset: const Offset(0, -1),
     ),
   ];
 
@@ -381,7 +397,7 @@ class AppCard extends StatelessWidget {
               child: _buildDeckLayer(
                 borderRadius: borderRadius,
                 customBorderRadius: customBorderRadius,
-                fallbackColor: AppColors.brandSoftCreamLight,
+                fallbackColor: deckLayer3Color ?? AppColors.brandSoftCreamLight,
                 blurSigma: 12.0,
                 bgOpacity: 0.35,
                 borderOpacity: 0.60,
@@ -404,15 +420,20 @@ class AppCard extends StatelessWidget {
               child: _buildDeckLayer(
                 borderRadius: borderRadius,
                 customBorderRadius: customBorderRadius,
-                fallbackColor: Colors.white,
+                fallbackColor: deckLayer2Color ?? Colors.white,
                 blurSigma: 14.0,
                 bgOpacity: 0.50,
                 borderOpacity: 0.75,
                 shadow: boxShadow ?? [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.07),
-                    blurRadius: 12,
-                    offset: const Offset(0, -2),
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 10,
+                    offset: const Offset(0, -3),
+                  ),
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.02),
+                    blurRadius: 3,
+                    offset: const Offset(0, -1),
                   ),
                 ],
               ),
@@ -443,13 +464,13 @@ class AppCard extends StatelessWidget {
             child: _buildDeckLayer(
               borderRadius: borderRadius,
               customBorderRadius: customBorderRadius,
-              fallbackColor: AppColors.brandSoftCreamLight,
+              fallbackColor: deckLayer3Color ?? AppColors.brandSoftCreamLight,
               blurSigma: 12.0,
               bgOpacity: 0.35,
               borderOpacity: 0.60,
               shadow: boxShadow ?? [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 8,
                   offset: const Offset(0, 3),
                 ),
@@ -466,13 +487,13 @@ class AppCard extends StatelessWidget {
             child: _buildDeckLayer(
               borderRadius: borderRadius,
               customBorderRadius: customBorderRadius,
-              fallbackColor: Colors.white,
+              fallbackColor: deckLayer2Color ?? Colors.white,
               blurSigma: 14.0,
               bgOpacity: 0.50,
               borderOpacity: 0.75,
               shadow: boxShadow ?? [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
+                  color: Colors.black.withValues(alpha: 0.06),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),

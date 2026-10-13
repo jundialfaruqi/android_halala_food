@@ -1323,7 +1323,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
 
     return AppCard.stacked(
       stackAtTop: true,
-      isGlass: true,
+      isGlass: false,
+      backgroundColor: Colors.white,
       borderWidth: 0.0,
       borderColor: Colors.transparent,
       stackOffsetVertical: 9.0,
