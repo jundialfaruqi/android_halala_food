@@ -518,7 +518,7 @@ class _DeliveryCoordinatesScreenState
         _mapController.fitCamera(
           CameraFit.coordinates(
             coordinates: result.polylinePoints,
-            padding: const EdgeInsets.fromLTRB(40, 140, 40, 260),
+            padding: const EdgeInsets.fromLTRB(40, 160, 40, 260),
             maxZoom: 16.5,
           ),
         );
@@ -532,7 +532,7 @@ class _DeliveryCoordinatesScreenState
         _mapController.fitCamera(
           CameraFit.coordinates(
             coordinates: [_myLocation!, storeLoc],
-            padding: const EdgeInsets.fromLTRB(40, 140, 40, 260),
+            padding: const EdgeInsets.fromLTRB(40, 160, 40, 260),
             maxZoom: 16.0,
           ),
         );
@@ -888,20 +888,31 @@ class _DeliveryCoordinatesScreenState
               ],
             ),
 
-            // 2. FLOATING BAR: FILTER TANGGAL & RINGKASAN PROGRESS (ATAS)
+            // 2. FLOATING BAR: FILTER TANGGAL & BANNER INFO RUTE (ATAS - FULL WIDTH)
             Positioned(
               top: 12,
               left: 14,
               right: 14,
-              child: _buildTopDateFilterCard(
-                totalCount: totalCount,
-                selesaiCount: selesaiCount,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildTopDateFilterCard(
+                    totalCount: totalCount,
+                    selesaiCount: selesaiCount,
+                  ),
+                  if (_routeResult != null && _selectedDelivery != null) ...[
+                    const SizedBox(height: 10),
+                    _buildRouteInfoBanner(),
+                  ],
+                ],
               ),
             ),
 
             // 3. FLOATING BUTTONS: KONTROL PETA (KANAN ATAS)
-            Positioned(
-              top: 135,
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOutCubic,
+              top: (_routeResult != null && _selectedDelivery != null) ? 154 : 96,
               right: 14,
               child: Column(
                 children: [
@@ -947,15 +958,6 @@ class _DeliveryCoordinatesScreenState
                 ],
               ),
             ),
-
-            // 4. FLOATING ROUTE INFO BANNER (Muncul saat rute sedang aktif)
-            if (_routeResult != null && _selectedDelivery != null)
-              Positioned(
-                top: 85,
-                left: 14,
-                right: 68,
-                child: _buildRouteInfoBanner(),
-              ),
 
             // 5. DRAGGABLE SCROLLABLE SHEET: LIST TOKO MITRA (BAWAH)
             _buildDraggableStoreListSheet(sortedList),
@@ -1343,14 +1345,15 @@ class _DeliveryCoordinatesScreenState
     final store = _selectedDelivery?.store;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: AppColors.brandEspresso,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: const [
           BoxShadow(
             color: Color(0x33000000),
-            blurRadius: 6,
+            blurRadius: 8,
             offset: Offset(0, 3),
           ),
         ],
