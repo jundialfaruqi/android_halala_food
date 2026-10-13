@@ -280,19 +280,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     ),
                                     const SizedBox(height: 24),
 
-                                    // Email Input via AppTextField
+                                    // Email Input via AppTextField (Rounded Pill)
                                     AppTextField(
                                       controller: _emailController,
                                       labelText: 'Email',
                                       hintText: 'nama@email.com',
+                                      borderRadius: 28,
+                                      contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 20,
+                                        vertical: 16,
+                                      ),
                                       keyboardType: TextInputType.emailAddress,
                                       errorText: _emailInlineError,
                                       scrollPadding: const EdgeInsets.only(bottom: 120),
                                       onChanged: (_) => _onInputChanged(),
-                                      prefixIcon: const Icon(
-                                        TablerIcons.mail,
-                                        color: AppColors.brandWarmGray,
-                                        size: 20,
+                                      prefixIcon: const Padding(
+                                        padding: EdgeInsets.only(left: 6, right: 2),
+                                        child: Icon(
+                                          TablerIcons.mail,
+                                          color: AppColors.brandWarmGray,
+                                          size: 20,
+                                        ),
                                       ),
                                       validator: (value) {
                                         if (value == null || value.trim().isEmpty) {
@@ -306,20 +314,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     ),
                                     const SizedBox(height: 16),
 
-                                    // Password Input via AppTextField (inline error hanya di email)
+                                    // Password Input via AppTextField (Rounded Pill, inline error hanya di email)
                                     AppTextField(
                                       controller: _passwordController,
                                       labelText: 'Password',
                                       hintText: '••••••••',
+                                      borderRadius: 28,
+                                      contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 20,
+                                        vertical: 16,
+                                      ),
                                       isPassword: true,
                                       textInputAction: TextInputAction.done,
                                       scrollPadding: const EdgeInsets.only(bottom: 120),
                                       onFieldSubmitted: (_) => _handleLogin(),
                                       onChanged: (_) => _onInputChanged(),
-                                      prefixIcon: const Icon(
-                                        TablerIcons.lock,
-                                        color: AppColors.brandWarmGray,
-                                        size: 20,
+                                      prefixIcon: const Padding(
+                                        padding: EdgeInsets.only(left: 6, right: 2),
+                                        child: Icon(
+                                          TablerIcons.lock,
+                                          color: AppColors.brandWarmGray,
+                                          size: 20,
+                                        ),
                                       ),
                                       validator: (value) {
                                         if (value == null || value.isEmpty) {
@@ -333,9 +349,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     ),
                                     const SizedBox(height: 24),
 
-                                    // Submit Button via AppButton
+                                    // Submit Button via AppButton (Rounded Pill)
                                     AppButton(
                                       text: 'Masuk',
+                                      borderRadius: 28,
                                       isLoading: authState.isLoading,
                                       onPressed: _handleLogin,
                                     ),

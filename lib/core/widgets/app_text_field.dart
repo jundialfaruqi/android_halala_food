@@ -207,6 +207,13 @@ class _AppTextFieldState extends State<AppTextField> {
           )
         : null;
 
+    final focusedErrorBorder = widget.borderRadius != null
+        ? OutlineInputBorder(
+            borderRadius: BorderRadius.circular(widget.borderRadius!),
+            borderSide: const BorderSide(color: AppColors.error, width: 1.5),
+          )
+        : null;
+
     final field = TextFormField(
       key: _fieldKey,
       controller: widget.controller,
@@ -263,6 +270,7 @@ class _AppTextFieldState extends State<AppTextField> {
         disabledBorder: disabledBorder,
         focusedBorder: focusedBorder,
         errorBorder: errorBorder,
+        focusedErrorBorder: focusedErrorBorder,
         errorStyle: const TextStyle(
           fontFamily: 'PlusJakartaSans',
           fontSize: 12,
