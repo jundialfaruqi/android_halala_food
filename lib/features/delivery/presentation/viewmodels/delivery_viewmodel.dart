@@ -6,6 +6,7 @@ import '../../../../core/widgets/app_snack_bar.dart';
 import '../../data/models/delivery_model.dart';
 import '../../data/repositories/delivery_repository_impl.dart';
 import '../../domain/repositories/delivery_repository.dart';
+import '../../../home/presentation/viewmodels/home_stat_viewmodel.dart';
 
 class DeliveryState {
   final bool isLoading;
@@ -119,8 +120,17 @@ class DeliveryViewModel extends Notifier<DeliveryState> {
       AppSnackBar.show(null, message: message, type: SnackBarType.info);
     });
 
+    final subUpdated = wsService.onDeliveryUpdated.listen((payload) {
+      debugPrint('[DeliveryViewModel] Real-time event delivery.updated received: $payload');
+      loadDeliveries(refresh: true);
+      try {
+        ref.read(homeStatViewModelProvider.notifier).loadStat();
+      } catch (_) {}
+    });
+
     ref.onDispose(() {
       sub.cancel();
+      subUpdated.cancel();
     });
 
     Future.microtask(() => loadInitialData());
@@ -243,9 +253,11 @@ class DeliveryViewModel extends Notifier<DeliveryState> {
 
   Future<bool> dispatchDelivery(int id) async {
     try {
-      final updated = await _repository.dispatchDelivery(id);
-      final list = state.deliveries.map((d) => d.id == id ? updated : d).toList();
-      state = state.copyWith(deliveries: list);
+      await _repository.dispatchDelivery(id);
+      await loadDeliveries(refresh: true);
+      try {
+        ref.read(homeStatViewModelProvider.notifier).loadStat();
+      } catch (_) {}
       return true;
     } catch (e) {
       state = state.copyWith(
@@ -257,9 +269,11 @@ class DeliveryViewModel extends Notifier<DeliveryState> {
 
   Future<bool> cancelDelivery(int id) async {
     try {
-      final updated = await _repository.cancelDelivery(id);
-      final list = state.deliveries.map((d) => d.id == id ? updated : d).toList();
-      state = state.copyWith(deliveries: list);
+      await _repository.cancelDelivery(id);
+      await loadDeliveries(refresh: true);
+      try {
+        ref.read(homeStatViewModelProvider.notifier).loadStat();
+      } catch (_) {}
       return true;
     } catch (e) {
       state = state.copyWith(
@@ -272,11 +286,10 @@ class DeliveryViewModel extends Notifier<DeliveryState> {
   Future<bool> deleteDelivery(int id) async {
     try {
       await _repository.deleteDelivery(id);
-      final list = state.deliveries.where((d) => d.id != id).toList();
-      state = state.copyWith(
-        deliveries: list,
-        total: state.total > 0 ? state.total - 1 : 0,
-      );
+      await loadDeliveries(refresh: true);
+      try {
+        ref.read(homeStatViewModelProvider.notifier).loadStat();
+      } catch (_) {}
       return true;
     } catch (e) {
       state = state.copyWith(

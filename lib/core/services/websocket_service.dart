@@ -31,6 +31,12 @@ class WebSocketService {
   Stream<Map<String, dynamic>> get onDeliveryCreated =>
       _deliveryCreatedController.stream;
 
+  final _deliveryUpdatedController =
+      StreamController<Map<String, dynamic>>.broadcast();
+
+  Stream<Map<String, dynamic>> get onDeliveryUpdated =>
+      _deliveryUpdatedController.stream;
+
   final _courierTrackingRequestedController =
       StreamController<Map<String, dynamic>>.broadcast();
 
@@ -170,6 +176,16 @@ class WebSocketService {
         });
         _eventSubs.add(subDelivDot);
 
+        final subDelivUpd = deliveriesChannel.bind('delivery.updated').listen((event) {
+          _handleDeliveryUpdatedEvent(event);
+        });
+        _eventSubs.add(subDelivUpd);
+
+        final subDelivUpdDot = deliveriesChannel.bind('.delivery.updated').listen((event) {
+          _handleDeliveryUpdatedEvent(event);
+        });
+        _eventSubs.add(subDelivUpdDot);
+
         final activitiesChannel = _client!.privateChannel(
           'private-activities',
           authorizationDelegate:
@@ -224,6 +240,16 @@ class WebSocketService {
           _handleDeliveryCreatedEvent(event);
         });
         _eventSubs.add(subCourDelivDot);
+
+        final subCourDelivUpd = courierChannel.bind('delivery.updated').listen((event) {
+          _handleDeliveryUpdatedEvent(event);
+        });
+        _eventSubs.add(subCourDelivUpd);
+
+        final subCourDelivUpdDot = courierChannel.bind('.delivery.updated').listen((event) {
+          _handleDeliveryUpdatedEvent(event);
+        });
+        _eventSubs.add(subCourDelivUpdDot);
 
         final subCourAct = courierChannel.bind('activity.created').listen((event) {
           _handleActivityCreatedEvent(event);
@@ -428,6 +454,26 @@ class WebSocketService {
     }
   }
 
+  void _handleDeliveryUpdatedEvent(ChannelReadEvent event) {
+    debugPrint('[WebSocket] Received delivery.updated event: ${event.data}');
+    try {
+      final rawData = event.data;
+      Map<String, dynamic> payload = {};
+      if (rawData is Map<String, dynamic>) {
+        payload = rawData;
+      } else if (rawData is String) {
+        final decoded = jsonDecode(rawData);
+        if (decoded is Map<String, dynamic>) {
+          payload = decoded;
+        }
+      }
+
+      _deliveryUpdatedController.add(payload);
+    } catch (e) {
+      debugPrint('[WebSocket] Error parsing delivery.updated event: $e');
+    }
+  }
+
   void _handleCourierTrackingRequestedEvent(ChannelReadEvent event) {
     debugPrint('[WebSocket] Received courier.tracking.requested event: ${event.data}');
     try {
@@ -539,6 +585,11 @@ class WebSocketService {
     _activityUpdatedController.add(payload);
   }
 
+  @visibleForTesting
+  void emitDeliveryUpdatedForTest(Map<String, dynamic> payload) {
+    _deliveryUpdatedController.add(payload);
+  }
+
   void disconnect() {
     _isConnected = false;
     _recentActivityIds.clear();
@@ -589,5 +640,6 @@ class WebSocketService {
     _courierLocationUpdatedController.close();
     _activityCreatedController.close();
     _activityUpdatedController.close();
+    _deliveryUpdatedController.close();
   }
 }
