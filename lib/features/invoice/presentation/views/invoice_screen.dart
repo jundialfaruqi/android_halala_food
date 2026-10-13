@@ -77,18 +77,17 @@ class _InvoiceScreenState extends ConsumerState<InvoiceScreen> {
             ? AppFloatingActionButton.extended(
                 label: 'Buat Faktur',
                 icon: const Icon(TablerIcons.plus, size: 19),
-                onPressed: () async {
-                  final created = await Navigator.push<bool>(
+                onPressed: () {
+                  Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => const InvoiceCreateScreen(),
                     ),
-                  );
-                  if (created == true) {
+                  ).then((_) {
                     ref
                         .read(invoiceViewModelProvider.notifier)
                         .loadInvoices(refresh: true);
-                  }
+                  });
                 },
               )
             : null,
@@ -185,7 +184,11 @@ class _InvoiceScreenState extends ConsumerState<InvoiceScreen> {
                                     initialStatus: state.selectedStatus,
                                   ),
                                 ),
-                              );
+                              ).then((_) {
+                                ref
+                                    .read(invoiceViewModelProvider.notifier)
+                                    .loadInvoices(refresh: true);
+                              });
                             },
                           ),
                         ],
@@ -361,7 +364,13 @@ class _InvoiceScreenState extends ConsumerState<InvoiceScreen> {
 
     return AppCard(
       padding: const EdgeInsets.all(16),
-      onTap: () => InvoiceDetailSheet.show(context, invoice),
+      onTap: () {
+        InvoiceDetailSheet.show(context, invoice).then((_) {
+          ref
+              .read(invoiceViewModelProvider.notifier)
+              .loadInvoices(refresh: true);
+        });
+      },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

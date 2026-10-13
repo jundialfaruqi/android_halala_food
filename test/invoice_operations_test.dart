@@ -331,6 +331,45 @@ void main() {
     });
 
     testWidgets(
+        'Courier cannot see Catat Pembayaran or Rekonsiliasi on an invoice assigned to another courier even with faktur-pembayaran permission',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            invoiceRepositoryProvider.overrideWithValue(_MockInvoiceRepo()),
+            authViewModelProvider.overrideWith(
+              () => _FakeAuthVM(
+                user: UserModel(
+                  id: 999, // Different from invoice courierId (77)
+                  name: 'Kurir Lain',
+                  email: 'kurirlain@halala-food.id',
+                  roles: const ['kurir'],
+                  permissions: const [
+                    'faktur-view',
+                    'faktur-pembayaran',
+                    'faktur-rekonsiliasi',
+                  ],
+                ),
+              ),
+            ),
+          ],
+          child: const MaterialApp(
+            home: Scaffold(
+              body: InvoiceDetailSheet(invoice: invoiceWithCourier),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Buttons MUST NOT be visible for different courier
+      expect(find.text('Catat Pembayaran'), findsNothing);
+      expect(find.text('Rekonsiliasi'), findsNothing);
+      expect(find.byIcon(TablerIcons.trash), findsNothing);
+    });
+
+    testWidgets(
         'Manager or user with faktur-pembayaran-delete can see delete payment icon',
         (WidgetTester tester) async {
       await tester.pumpWidget(

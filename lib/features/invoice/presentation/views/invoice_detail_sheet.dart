@@ -213,21 +213,25 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
         _invoice.courierId != null &&
         _invoice.courierId == currentUser.id;
 
-    // 1. Catat Pembayaran: dev/manager, permission faktur-pembayaran, fallback faktur-edit, ATAU kurir yang ditugaskan
-    final canRecordPayment =
-        isDevOrManager ||
-        (currentUser != null &&
-            (currentUser.hasPermission('faktur-pembayaran') ||
-                currentUser.hasPermission('faktur-edit') ||
-                isAssignedCourier));
+    final isCourierRole = currentUser != null &&
+        currentUser.hasRole('kurir') &&
+        !currentUser.hasAnyRole(['dev', 'manager']);
 
-    // 2. Rekonsiliasi: dev/manager, permission faktur-rekonsiliasi, fallback faktur-edit, ATAU kurir yang ditugaskan
-    final canReconcile =
-        isDevOrManager ||
-        (currentUser != null &&
-            (currentUser.hasPermission('faktur-rekonsiliasi') ||
-                currentUser.hasPermission('faktur-edit') ||
-                isAssignedCourier));
+    // 1. Catat Pembayaran: dev/manager, ATAU jika kurir: HANYA kurir yang ditugaskan! Jika staf non-kurir: cek permission faktur-pembayaran / faktur-edit
+    final canRecordPayment = isDevOrManager ||
+        (isCourierRole
+            ? isAssignedCourier
+            : (currentUser != null &&
+                (currentUser.hasPermission('faktur-pembayaran') ||
+                    currentUser.hasPermission('faktur-edit'))));
+
+    // 2. Rekonsiliasi: dev/manager, ATAU jika kurir: HANYA kurir yang ditugaskan! Jika staf non-kurir: cek permission faktur-rekonsiliasi / faktur-edit
+    final canReconcile = isDevOrManager ||
+        (isCourierRole
+            ? isAssignedCourier
+            : (currentUser != null &&
+                (currentUser.hasPermission('faktur-rekonsiliasi') ||
+                    currentUser.hasPermission('faktur-edit'))));
 
     // 3. Ubah Faktur: hanya dev/manager atau permission faktur-edit
     final canEdit =

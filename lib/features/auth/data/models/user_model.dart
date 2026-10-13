@@ -34,6 +34,10 @@ class UserModel {
     return roles.contains(roleName);
   }
 
+  bool hasAnyRole(List<String> roleNames) {
+    return roleNames.any((r) => roles.contains(r));
+  }
+
   factory UserModel.fromJson(Map<String, dynamic> json) {
     List<String> extractedRoles = [];
     if (json['roles'] is List) {

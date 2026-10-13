@@ -25,6 +25,12 @@ class WebSocketService {
   Stream<Map<String, dynamic>> get onInvoiceCreated =>
       _invoiceCreatedController.stream;
 
+  final _invoiceUpdatedController =
+      StreamController<Map<String, dynamic>>.broadcast();
+
+  Stream<Map<String, dynamic>> get onInvoiceUpdated =>
+      _invoiceUpdatedController.stream;
+
   final _deliveryCreatedController =
       StreamController<Map<String, dynamic>>.broadcast();
 
@@ -156,6 +162,16 @@ class WebSocketService {
         });
         _eventSubs.add(subInvDot);
 
+        final subInvUpd = invoicesChannel.bind('invoice.updated').listen((event) {
+          _handleInvoiceUpdatedEvent(event);
+        });
+        _eventSubs.add(subInvUpd);
+
+        final subInvUpdDot = invoicesChannel.bind('.invoice.updated').listen((event) {
+          _handleInvoiceUpdatedEvent(event);
+        });
+        _eventSubs.add(subInvUpdDot);
+
         final deliveriesChannel = _client!.privateChannel(
           'private-deliveries',
           authorizationDelegate:
@@ -230,6 +246,16 @@ class WebSocketService {
           _handleInvoiceCreatedEvent(event);
         });
         _eventSubs.add(subCourInvDot);
+
+        final subCourInvUpd = courierChannel.bind('invoice.updated').listen((event) {
+          _handleInvoiceUpdatedEvent(event);
+        });
+        _eventSubs.add(subCourInvUpd);
+
+        final subCourInvUpdDot = courierChannel.bind('.invoice.updated').listen((event) {
+          _handleInvoiceUpdatedEvent(event);
+        });
+        _eventSubs.add(subCourInvUpdDot);
 
         final subCourDeliv = courierChannel.bind('delivery.created').listen((event) {
           _handleDeliveryCreatedEvent(event);
@@ -421,6 +447,26 @@ class WebSocketService {
     }
   }
 
+  void _handleInvoiceUpdatedEvent(ChannelReadEvent event) {
+    debugPrint('[WebSocket] Received invoice.updated event: ${event.data}');
+    try {
+      final rawData = event.data;
+      Map<String, dynamic> payload = {};
+      if (rawData is Map<String, dynamic>) {
+        payload = rawData;
+      } else if (rawData is String) {
+        final decoded = jsonDecode(rawData);
+        if (decoded is Map<String, dynamic>) {
+          payload = decoded;
+        }
+      }
+
+      _invoiceUpdatedController.add(payload);
+    } catch (e) {
+      debugPrint('[WebSocket] Error parsing invoice.updated event: $e');
+    }
+  }
+
   void _handleDeliveryCreatedEvent(ChannelReadEvent event) {
     debugPrint('[WebSocket] Received delivery.created event: ${event.data}');
     try {
@@ -571,6 +617,11 @@ class WebSocketService {
   }
 
   @visibleForTesting
+  void emitInvoiceUpdatedForTest(Map<String, dynamic> payload) {
+    _invoiceUpdatedController.add(payload);
+  }
+
+  @visibleForTesting
   void emitDeliveryCreatedForTest(Map<String, dynamic> payload) {
     _deliveryCreatedController.add(payload);
   }
@@ -635,6 +686,7 @@ class WebSocketService {
   void dispose() {
     disconnect();
     _invoiceCreatedController.close();
+    _invoiceUpdatedController.close();
     _deliveryCreatedController.close();
     _courierTrackingRequestedController.close();
     _courierLocationUpdatedController.close();

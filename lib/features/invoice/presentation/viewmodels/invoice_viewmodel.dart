@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/services/websocket_service.dart';
 import '../../../../core/widgets/app_snack_bar.dart';
+import '../../../home/presentation/viewmodels/home_stat_viewmodel.dart';
 import '../../data/models/invoice_model.dart';
 import '../../data/repositories/invoice_repository_impl.dart';
 import '../../domain/repositories/invoice_repository.dart';
@@ -113,8 +114,17 @@ class InvoiceViewModel extends Notifier<InvoiceState> {
       AppSnackBar.show(null, message: message, type: SnackBarType.info);
     });
 
+    final subUpdated = wsService.onInvoiceUpdated.listen((payload) {
+      debugPrint('[InvoiceViewModel] Real-time event invoice.updated received: $payload');
+      loadInvoices(refresh: true);
+      try {
+        ref.read(homeStatViewModelProvider.notifier).loadStat();
+      } catch (_) {}
+    });
+
     ref.onDispose(() {
       sub.cancel();
+      subUpdated.cancel();
     });
 
     Future.microtask(() => loadInvoices(refresh: true));
@@ -254,14 +264,20 @@ class InvoiceViewModel extends Notifier<InvoiceState> {
       int invoiceId, Map<String, dynamic> payload) async {
     final updated = await _repository.recordPayment(invoiceId, payload);
     _updateInvoiceInList(updated);
-    loadInvoices(refresh: false);
+    await loadInvoices(refresh: true);
+    try {
+      ref.read(homeStatViewModelProvider.notifier).loadStat();
+    } catch (_) {}
     return updated;
   }
 
   Future<InvoiceModel> deletePayment(int invoiceId, int paymentId) async {
     final updated = await _repository.deletePayment(invoiceId, paymentId);
     _updateInvoiceInList(updated);
-    loadInvoices(refresh: false);
+    await loadInvoices(refresh: true);
+    try {
+      ref.read(homeStatViewModelProvider.notifier).loadStat();
+    } catch (_) {}
     return updated;
   }
 
@@ -269,7 +285,10 @@ class InvoiceViewModel extends Notifier<InvoiceState> {
       int invoiceId, List<Map<String, dynamic>> items) async {
     final updated = await _repository.reconcileInvoice(invoiceId, items);
     _updateInvoiceInList(updated);
-    loadInvoices(refresh: false);
+    await loadInvoices(refresh: true);
+    try {
+      ref.read(homeStatViewModelProvider.notifier).loadStat();
+    } catch (_) {}
     return updated;
   }
 
@@ -277,20 +296,29 @@ class InvoiceViewModel extends Notifier<InvoiceState> {
       int invoiceId, Map<String, dynamic> payload) async {
     final updated = await _repository.updateInvoice(invoiceId, payload);
     _updateInvoiceInList(updated);
-    loadInvoices(refresh: false);
+    await loadInvoices(refresh: true);
+    try {
+      ref.read(homeStatViewModelProvider.notifier).loadStat();
+    } catch (_) {}
     return updated;
   }
 
   Future<InvoiceModel> cancelInvoice(int invoiceId) async {
     final updated = await _repository.cancelInvoice(invoiceId);
     _updateInvoiceInList(updated);
-    loadInvoices(refresh: false);
+    await loadInvoices(refresh: true);
+    try {
+      ref.read(homeStatViewModelProvider.notifier).loadStat();
+    } catch (_) {}
     return updated;
   }
 
   Future<void> deleteInvoice(int invoiceId) async {
     await _repository.deleteInvoice(invoiceId);
     _removeInvoiceFromList(invoiceId);
-    loadInvoices(refresh: false);
+    await loadInvoices(refresh: true);
+    try {
+      ref.read(homeStatViewModelProvider.notifier).loadStat();
+    } catch (_) {}
   }
 }
