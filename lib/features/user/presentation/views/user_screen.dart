@@ -268,8 +268,10 @@ class _UserScreenState extends ConsumerState<UserScreen> {
     UserViewModel notifier,
     bool canManageUser,
   ) {
+    final bottomPadding = canManageUser ? 88.0 : 24.0;
+
     if (state.isLoading) {
-      return _buildShimmerLoadingList();
+      return _buildShimmerLoadingList(bottomPadding);
     }
 
     if (state.errorMessage != null && state.users.isEmpty) {
@@ -309,7 +311,7 @@ class _UserScreenState extends ConsumerState<UserScreen> {
       child: ListView.builder(
         controller: _scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+        padding: EdgeInsets.fromLTRB(16, 12, 16, bottomPadding),
         itemCount: state.users.length + (state.isLoadingMore ? 1 : 0),
         itemBuilder: (context, index) {
           if (index == state.users.length) {
@@ -336,10 +338,10 @@ class _UserScreenState extends ConsumerState<UserScreen> {
   }
 
   /// Shimmer loading list skeleton
-  Widget _buildShimmerLoadingList() {
+  Widget _buildShimmerLoadingList([double bottomPadding = 88.0]) {
     return ListView.builder(
       physics: const NeverScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      padding: EdgeInsets.fromLTRB(16, 12, 16, bottomPadding),
       itemCount: 6,
       itemBuilder: (context, index) {
         return _buildShimmerUserCard();
