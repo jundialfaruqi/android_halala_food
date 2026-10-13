@@ -899,18 +899,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
 
   /// Hitung jumlah bintang (1..5) berdasarkan total produk fisik (pcs/item) terjual dari faktur lunas
   int _getStoreStarCount(StoreModel store, int index, int totalStores) {
-    if (store.soldItemsCount != null && store.soldItemsCount! > 0) {
-      return store.starRating;
-    }
-    if (store.salesCount != null && store.salesCount! > 0) {
-      return store.starRating;
-    }
-    // Fallback relative rank jika data penjualan fisik masih belum terakumulasi
-    if (index == 0) return 5;
-    if (index == 1) return 4;
-    if (index == 2) return 3;
-    if (index == 3) return 2;
-    return 1;
+    return store.starRating;
   }
 
   /// Tampilan item card Toko Mitra di dalam Material 3 Carousel
@@ -921,6 +910,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
     int totalStores,
   ) {
     final starCount = _getStoreStarCount(store, index, totalStores);
+    final soldCount = store.soldItemsCount ?? 0;
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(20),
@@ -962,7 +952,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
             ),
           ),
 
-          // 3. Di atas gambar bagian atas: Badge glass blur berisi icon bintang kuning & angka pcs produk fisik terjual
+          // 3. Di atas gambar bagian atas: Badge glass blur berisi angka total penjualan di sebelah kiri bintang
           Positioned(
             top: 12,
             left: 12,
@@ -983,7 +973,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                   filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
+                      horizontal: 9,
                       vertical: 5,
                     ),
                     decoration: BoxDecoration(
@@ -996,34 +986,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
+                        // Angka total penjualan fisik produk dari faktur lunas di sebelah kiri bintang
+                        Text(
+                          '$soldCount',
+                          style: const TextStyle(
+                            fontFamily: 'PlusJakartaSans',
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF0F172A),
+                            height: 1.0,
+                          ),
+                        ),
+                        const SizedBox(width: 4.5),
+                        // Bintang
                         for (int i = 0; i < starCount; i++) ...[
-                          if (i > 0) const SizedBox(width: 2.5),
+                          if (i > 0) const SizedBox(width: 2),
                           const Icon(
                             TablerIcons.star_filled,
                             size: 13,
                             color: Color(0xFFF59E0B),
-                          ),
-                        ],
-                        if ((store.soldItemsCount ?? 0) > 0) ...[
-                          const SizedBox(width: 6),
-                          Container(
-                            width: 3.5,
-                            height: 3.5,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF64748B),
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            '${store.soldItemsCount} pcs',
-                            style: const TextStyle(
-                              fontFamily: 'PlusJakartaSans',
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF0F172A),
-                            ),
                           ),
                         ],
                       ],

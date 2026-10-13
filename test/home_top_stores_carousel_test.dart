@@ -172,9 +172,9 @@ void main() {
     expect(find.text('Toko Berkah Jaya'), findsOneWidget);
     expect(find.text('Jl. Ahmad Yani No. 45'), findsOneWidget);
 
-    // Verify star icons are rendered (Toko Berkah Jaya with 650 pcs sold has 5 stars)
+    // Verify star icons and total sales number on the left of stars (Toko Berkah Jaya with 650 pcs sold has 5 stars)
     expect(find.byIcon(TablerIcons.star_filled), findsWidgets);
-    expect(find.text('650 pcs'), findsWidgets);
+    expect(find.text('650'), findsWidgets);
 
     // Verify "Lihat Toko" button with arrow right icon
     expect(find.text('Lihat Toko'), findsWidgets);

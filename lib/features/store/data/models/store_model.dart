@@ -44,21 +44,11 @@ class StoreModel {
 
   /// Menghitung jumlah bintang rating (1 sampai 5) berdasarkan total produk fisik (pcs/item) terjual dari faktur lunas
   int get starRating {
-    final sold = soldItemsCount;
-    if (sold != null && sold > 0) {
-      if (sold >= 500) return 5;
-      if (sold >= 250) return 4;
-      if (sold >= 100) return 3;
-      if (sold >= 30) return 2;
-      return 1;
-    }
-    if (salesCount != null && salesCount! > 0) {
-      if (salesCount! >= 15) return 5;
-      if (salesCount! >= 10) return 4;
-      if (salesCount! >= 5) return 3;
-      if (salesCount! >= 2) return 2;
-      return 1;
-    }
+    final sold = soldItemsCount ?? 0;
+    if (sold >= 500) return 5;
+    if (sold >= 250) return 4;
+    if (sold >= 100) return 3;
+    if (sold >= 30) return 2;
     return 1;
   }
 
@@ -118,8 +108,8 @@ class StoreModel {
       totalSales: json['total_sales'] != null ? double.tryParse(json['total_sales'].toString()) : null,
       salesCount: json['sales_count'] != null ? int.tryParse(json['sales_count'].toString()) : null,
       soldItemsCount: json['sold_items_count'] != null
-          ? int.tryParse(json['sold_items_count'].toString())
-          : null,
+          ? (int.tryParse(json['sold_items_count'].toString()) ?? 0)
+          : 0,
     );
   }
 
