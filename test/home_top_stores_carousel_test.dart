@@ -77,6 +77,7 @@ class _FakeHomeTopStoresViewModel extends HomeTopStoresViewModel {
           longitude: 112.768845,
           totalSales: 8500000.0,
           salesCount: 25,
+          soldItemsCount: 650,
           photoUrl: null,
         ),
         StoreModel(
@@ -87,6 +88,7 @@ class _FakeHomeTopStoresViewModel extends HomeTopStoresViewModel {
           longitude: 112.750000,
           totalSales: 750000.0,
           salesCount: 3,
+          soldItemsCount: 45,
         ),
       ],
     );
@@ -170,8 +172,9 @@ void main() {
     expect(find.text('Toko Berkah Jaya'), findsOneWidget);
     expect(find.text('Jl. Ahmad Yani No. 45'), findsOneWidget);
 
-    // Verify star icons are rendered (Toko Berkah Jaya with 8.5M sales has 5 stars)
+    // Verify star icons are rendered (Toko Berkah Jaya with 650 pcs sold has 5 stars)
     expect(find.byIcon(TablerIcons.star_filled), findsWidgets);
+    expect(find.text('650 pcs'), findsWidgets);
 
     // Verify "Lihat Toko" button with arrow right icon
     expect(find.text('Lihat Toko'), findsWidgets);

@@ -897,23 +897,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
     );
   }
 
-  /// Hitung jumlah bintang (1..5) proporsional terhadap penjualan toko
+  /// Hitung jumlah bintang (1..5) berdasarkan total produk fisik (pcs/item) terjual dari faktur lunas
   int _getStoreStarCount(StoreModel store, int index, int totalStores) {
-    if (store.totalSales != null && store.totalSales! > 0) {
-      if (store.totalSales! >= 5000000) return 5;
-      if (store.totalSales! >= 3000000) return 4;
-      if (store.totalSales! >= 1500000) return 3;
-      if (store.totalSales! >= 500000) return 2;
-      return 1;
+    if (store.soldItemsCount != null && store.soldItemsCount! > 0) {
+      return store.starRating;
     }
     if (store.salesCount != null && store.salesCount! > 0) {
-      if (store.salesCount! >= 15) return 5;
-      if (store.salesCount! >= 10) return 4;
-      if (store.salesCount! >= 5) return 3;
-      if (store.salesCount! >= 2) return 2;
-      return 1;
+      return store.starRating;
     }
-    // Fallback relative rank jika data penjualan masih belum terakumulasi
+    // Fallback relative rank jika data penjualan fisik masih belum terakumulasi
     if (index == 0) return 5;
     if (index == 1) return 4;
     if (index == 2) return 3;
@@ -970,7 +962,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
             ),
           ),
 
-          // 3. Di atas gambar bagian atas: Badge glass blur berisi icon bintang kuning
+          // 3. Di atas gambar bagian atas: Badge glass blur berisi icon bintang kuning & angka pcs produk fisik terjual
           Positioned(
             top: 12,
             left: 12,
@@ -995,10 +987,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                       vertical: 5,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.65),
+                      color: Colors.white.withValues(alpha: 0.78),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.55),
+                        color: Colors.white.withValues(alpha: 0.6),
                         width: 1,
                       ),
                     ),
@@ -1011,6 +1003,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                             TablerIcons.star_filled,
                             size: 13,
                             color: Color(0xFFF59E0B),
+                          ),
+                        ],
+                        if ((store.soldItemsCount ?? 0) > 0) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            width: 3.5,
+                            height: 3.5,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF64748B),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '${store.soldItemsCount} pcs',
+                            style: const TextStyle(
+                              fontFamily: 'PlusJakartaSans',
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF0F172A),
+                            ),
                           ),
                         ],
                       ],

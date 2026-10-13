@@ -14,6 +14,7 @@ class StoreModel {
   final String? createdAt;
   final double? totalSales;
   final int? salesCount;
+  final int? soldItemsCount;
 
   const StoreModel({
     required this.id,
@@ -31,6 +32,7 @@ class StoreModel {
     this.createdAt,
     this.totalSales,
     this.salesCount,
+    this.soldItemsCount,
   });
 
   /// Mengembalikan nomor telepon dengan prefix '+' jika belum ada
@@ -40,13 +42,14 @@ class StoreModel {
     return trimmed.startsWith('+') ? trimmed : '+$trimmed';
   }
 
-  /// Menghitung jumlah bintang rating (1 sampai 5) proporsional terhadap performa penjualan
+  /// Menghitung jumlah bintang rating (1 sampai 5) berdasarkan total produk fisik (pcs/item) terjual dari faktur lunas
   int get starRating {
-    if (totalSales != null && totalSales! > 0) {
-      if (totalSales! >= 5000000) return 5;
-      if (totalSales! >= 3000000) return 4;
-      if (totalSales! >= 1500000) return 3;
-      if (totalSales! >= 500000) return 2;
+    final sold = soldItemsCount;
+    if (sold != null && sold > 0) {
+      if (sold >= 500) return 5;
+      if (sold >= 250) return 4;
+      if (sold >= 100) return 3;
+      if (sold >= 30) return 2;
       return 1;
     }
     if (salesCount != null && salesCount! > 0) {
@@ -57,6 +60,44 @@ class StoreModel {
       return 1;
     }
     return 1;
+  }
+
+  StoreModel copyWith({
+    int? id,
+    String? name,
+    String? ownerName,
+    String? phone,
+    String? address,
+    double? latitude,
+    double? longitude,
+    String? route,
+    bool? isActive,
+    String? notes,
+    String? photo,
+    String? photoUrl,
+    String? createdAt,
+    double? totalSales,
+    int? salesCount,
+    int? soldItemsCount,
+  }) {
+    return StoreModel(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      ownerName: ownerName ?? this.ownerName,
+      phone: phone ?? this.phone,
+      address: address ?? this.address,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      route: route ?? this.route,
+      isActive: isActive ?? this.isActive,
+      notes: notes ?? this.notes,
+      photo: photo ?? this.photo,
+      photoUrl: photoUrl ?? this.photoUrl,
+      createdAt: createdAt ?? this.createdAt,
+      totalSales: totalSales ?? this.totalSales,
+      salesCount: salesCount ?? this.salesCount,
+      soldItemsCount: soldItemsCount ?? this.soldItemsCount,
+    );
   }
 
   factory StoreModel.fromJson(Map<String, dynamic> json) {
@@ -76,6 +117,9 @@ class StoreModel {
       createdAt: json['created_at']?.toString(),
       totalSales: json['total_sales'] != null ? double.tryParse(json['total_sales'].toString()) : null,
       salesCount: json['sales_count'] != null ? int.tryParse(json['sales_count'].toString()) : null,
+      soldItemsCount: json['sold_items_count'] != null
+          ? int.tryParse(json['sold_items_count'].toString())
+          : null,
     );
   }
 
@@ -96,6 +140,7 @@ class StoreModel {
       'created_at': createdAt,
       'total_sales': totalSales,
       'sales_count': salesCount,
+      'sold_items_count': soldItemsCount,
     };
   }
 }
