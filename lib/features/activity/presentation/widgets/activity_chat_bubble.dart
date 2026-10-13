@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/widgets/app_snack_bar.dart';
 import '../../../delivery/presentation/views/delivery_detail_screen.dart';
 import '../../../invoice/presentation/views/invoice_detail_screen.dart';
 import '../../data/models/activity_model.dart';
@@ -37,6 +39,16 @@ class ActivityChatBubble extends StatelessWidget {
   }
 
   void _handleTap(BuildContext context) {
+    if (activity.isDeleted) {
+      AppSnackBar.showInfo(
+        context,
+        message: activity.deletionMessage != null
+            ? '${activity.deletionMessage}. Dokumen sudah dihapus.'
+            : 'Aktifitas tersebut sudah dihapus.',
+      );
+      return;
+    }
+
     if (activity.targetDeliveryId != null) {
       Navigator.push(
         context,
@@ -200,14 +212,50 @@ class ActivityChatBubble extends StatelessWidget {
                               if (activity.documentNumber != null) ...[
                                 Text(
                                   activity.documentNumber!,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontFamily: 'PlusJakartaSans',
                                     fontSize: 12,
                                     fontWeight: FontWeight.w700,
-                                    color: AppColors.brandEspresso,
+                                    color: activity.isDeleted
+                                        ? AppColors.brandWarmGray
+                                        : AppColors.brandEspresso,
+                                    decoration: activity.isDeleted
+                                        ? TextDecoration.lineThrough
+                                        : null,
                                   ),
                                 ),
                                 const SizedBox(height: 2),
+                              ],
+
+                              // Pesan teks merah jika faktur atau surat jalan telah dihapus
+                              if (activity.isDeleted) ...[
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 2, bottom: 4),
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Icon(
+                                        TablerIcons.alert_circle,
+                                        size: 13,
+                                        color: AppColors.error,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Expanded(
+                                        child: Text(
+                                          activity.deletionMessage ??
+                                              '${activity.documentNumber ?? "Dokumen"} telah dihapus',
+                                          style: const TextStyle(
+                                            fontFamily: 'PlusJakartaSans',
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w700,
+                                            color: AppColors.error,
+                                            height: 1.25,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ],
 
                               // Toko Mitra

@@ -19,6 +19,8 @@ class ActivityModel {
   final String timeFormatted;
   final String dateFormatted;
   final String dateGroupKey;
+  final bool isDeleted;
+  final String? deletionMessage;
 
   const ActivityModel({
     required this.id,
@@ -39,6 +41,8 @@ class ActivityModel {
     required this.timeFormatted,
     required this.dateFormatted,
     required this.dateGroupKey,
+    this.isDeleted = false,
+    this.deletionMessage,
   });
 
   bool get isDelivery => type.startsWith('delivery');
@@ -127,11 +131,22 @@ class ActivityModel {
       subjectId: json['subject_id'] is int ? json['subject_id'] : int.tryParse(json['subject_id']?.toString() ?? ''),
       data: json['data'] is Map<String, dynamic>
           ? Map<String, dynamic>.from(json['data'])
-          : {},
+          : (json['data'] is Map ? Map<String, dynamic>.from(json['data'] as Map) : {}),
       createdAt: dt,
       timeFormatted: timeStr,
       dateFormatted: dateStr,
       dateGroupKey: dateGroup,
+      isDeleted: json['is_deleted'] == true ||
+          json['is_deleted'] == 1 ||
+          (json['data'] is Map &&
+              ((json['data'] as Map)['is_deleted'] == true ||
+                  (json['data'] as Map)['is_deleted'] == 1)) ||
+          (json['description'] != null &&
+              json['description'].toString().contains('telah dihapus oleh')),
+      deletionMessage: json['deletion_message']?.toString() ??
+          (json['data'] is Map
+              ? (json['data'] as Map)['deletion_message']?.toString()
+              : null),
     );
   }
 }

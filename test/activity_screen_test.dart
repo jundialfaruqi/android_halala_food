@@ -158,6 +158,31 @@ void main() {
       expect(model.totalAmount, equals(350000.0));
       expect(model.targetInvoiceId, equals(99));
     });
+
+    test('parses is_deleted and deletion_message correctly', () {
+      final json = {
+        'id': 11,
+        'type': 'invoice_created',
+        'title': 'Surat Faktur Diterbitkan',
+        'user_id': 1,
+        'user_name': 'Admin',
+        'is_deleted': true,
+        'deletion_message': 'Faktur INV-20261013-0001 telah dihapus oleh Admin',
+        'data': {
+          'invoice_number': 'INV-20261013-0001',
+          'is_deleted': true,
+          'deletion_message': 'Faktur INV-20261013-0001 telah dihapus oleh Admin',
+        },
+        'created_at': '2026-10-13T14:20:00Z',
+        'time_formatted': '14:20',
+        'date_group_key': '2026-10-13',
+        'date_formatted': '13 Okt 2026',
+      };
+
+      final model = ActivityModel.fromJson(json);
+      expect(model.isDeleted, isTrue);
+      expect(model.deletionMessage, equals('Faktur INV-20261013-0001 telah dihapus oleh Admin'));
+    });
   });
 
   group('ActivityDateChip Widget Tests', () {
@@ -294,6 +319,50 @@ void main() {
         expect(find.text('TU'), findsOneWidget);
         expect(find.text('10:00'), findsOneWidget);
       }
+    });
+
+    testWidgets('shows red deletion text and triggers AppSnackBar when tapped if deleted', (
+      tester,
+    ) async {
+      final deletedActivity = ActivityModel(
+        id: 99,
+        type: 'invoice_created',
+        title: 'Surat Faktur Diterbitkan',
+        description: 'Faktur diterbitkan',
+        userId: 2,
+        userName: 'Admin User',
+        userRole: 'admin',
+        userInitials: 'AU',
+        timeFormatted: '11:00',
+        dateFormatted: '13 Okt 2026',
+        dateGroupKey: '2026-10-13',
+        isDeleted: true,
+        deletionMessage: 'Faktur INV-20261013-0001 telah dihapus oleh Admin User',
+        data: const {
+          'invoice_number': 'INV-20261013-0001',
+          'store_name': 'Toko Barokah',
+          'is_deleted': true,
+          'deletion_message': 'Faktur INV-20261013-0001 telah dihapus oleh Admin User',
+        },
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ActivityChatBubble(activity: deletedActivity, currentUserId: 1),
+          ),
+        ),
+      );
+
+      // Verify red deletion message is rendered
+      expect(find.text('Faktur INV-20261013-0001 telah dihapus oleh Admin User'), findsOneWidget);
+
+      // Tap on the bubble
+      await tester.tap(find.byType(ActivityChatBubble));
+      await tester.pump();
+
+      // Verify notice is shown
+      expect(find.textContaining('Faktur INV-20261013-0001 telah dihapus oleh Admin User'), findsWidgets);
     });
   });
 
