@@ -40,7 +40,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
   int _currentNavIndex = 0;
   DateTime? _lastBackPressTime;
   late final ScrollController _scrollController;
-  bool _isHeaderScrolled = false;
+  final ValueNotifier<bool> _isHeaderScrolledNotifier = ValueNotifier<bool>(false);
 
   @override
   void initState() {
@@ -52,10 +52,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
   void _onScroll() {
     if (!_scrollController.hasClients) return;
     final isScrolled = _scrollController.offset > 10;
-    if (isScrolled != _isHeaderScrolled) {
-      setState(() {
-        _isHeaderScrolled = isScrolled;
-      });
+    if (isScrolled != _isHeaderScrolledNotifier.value) {
+      _isHeaderScrolledNotifier.value = isScrolled;
     }
   }
 
@@ -72,6 +70,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
   void dispose() {
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
+    _isHeaderScrolledNotifier.dispose();
     appRouteObserver.unsubscribe(this);
     super.dispose();
   }
@@ -185,10 +184,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                 onNotification: (notification) {
                   if (notification.metrics.axis == Axis.vertical) {
                     final isScrolled = notification.metrics.pixels > 10;
-                    if (isScrolled != _isHeaderScrolled) {
-                      setState(() {
-                        _isHeaderScrolled = isScrolled;
-                      });
+                    if (isScrolled != _isHeaderScrolledNotifier.value) {
+                      _isHeaderScrolledNotifier.value = isScrolled;
                     }
                   }
                   return false;
@@ -312,99 +309,111 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
               ),
             ),
 
-              // 2. Sticky User Info Header dengan Glass Blur & Fade In/Out
+              // 2. Sticky User Info Header dengan White Glass Blur & Fade In/Out Bertingkat
               Positioned(
                 top: 0,
                 left: 0,
                 right: 0,
-                child: Stack(
-                  children: [
-                    // Background sticky header (Status bar putih solid + App bar info user glass blur)
-                    Positioned.fill(
-                      child: IgnorePointer(
-                        ignoring: true,
-                        child: TweenAnimationBuilder<double>(
-                          tween: Tween<double>(
-                            begin: 0.0,
-                            end: _isHeaderScrolled ? 1.0 : 0.0,
-                          ),
-                          duration: const Duration(milliseconds: 250),
-                          curve: Curves.easeInOut,
-                          builder: (context, value, child) {
-                            if (value <= 0.001) {
-                              return const SizedBox.shrink();
-                            }
-                            final statusBarHeight =
-                                MediaQuery.of(context).padding.top;
-                            return Opacity(
-                              opacity: value,
-                              child: Column(
-                                children: [
-                                  // 1. Status Bar: Background putih solid saja
-                                  Container(
-                                    key: const Key(
-                                      'home_sticky_status_bar_solid',
-                                    ),
-                                    height: statusBarHeight,
-                                    width: double.infinity,
-                                    color: Colors.white,
-                                  ),
+                child: RepaintBoundary(
+                  child: ValueListenableBuilder<bool>(
+                    valueListenable: _isHeaderScrolledNotifier,
+                    builder: (context, isScrolled, _) {
+                      return TweenAnimationBuilder<double>(
+                        tween: Tween<double>(
+                          begin: 0.0,
+                          end: isScrolled ? 1.0 : 0.0,
+                        ),
+                        duration: const Duration(milliseconds: 220),
+                        curve: Curves.easeInOutCubic,
+                        builder: (context, value, _) {
+                          final isVisible = value > 0.001;
+                          final statusBarHeight =
+                              MediaQuery.of(context).padding.top;
 
-                                  // 2. App Bar Info User: Background blur glass
-                                  Expanded(
-                                    child: ClipRect(
-                                      child: BackdropFilter(
-                                        filter: ImageFilter.blur(
-                                          sigmaX: 12 * value,
-                                          sigmaY: 12 * value,
-                                        ),
-                                        child: Container(
-                                          key: const Key(
-                                            'home_sticky_glass_blur',
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: Colors.black.withValues(
-                                              alpha: 0.45 * value,
+                          return Stack(
+                            children: [
+                              // Background sticky header (Status bar putih solid + App bar info user white glass blur bertingkat)
+                              if (isVisible)
+                                Positioned.fill(
+                                  child: IgnorePointer(
+                                    ignoring: true,
+                                    child: Opacity(
+                                      opacity: value,
+                                      child: Column(
+                                        children: [
+                                          // 1. Status Bar: Background putih solid saja
+                                          Container(
+                                            key: const Key(
+                                              'home_sticky_status_bar_solid',
                                             ),
-                                            border: Border(
-                                              bottom: BorderSide(
-                                                color: Colors.white.withValues(
-                                                  alpha: 0.15 * value,
+                                            height: statusBarHeight,
+                                            width: double.infinity,
+                                            color: Colors.white,
+                                          ),
+
+                                          // 2. App Bar Info User: White Glass Blur Bertingkat
+                                          Expanded(
+                                            child: ClipRect(
+                                              child: BackdropFilter(
+                                                filter: ImageFilter.blur(
+                                                  sigmaX: 18.0,
+                                                  sigmaY: 18.0,
                                                 ),
-                                                width: 0.8,
+                                                child: Container(
+                                                  key: const Key(
+                                                    'home_sticky_glass_blur',
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    // Bertingkat: Frosted white gradient bercahaya
+                                                    gradient: LinearGradient(
+                                                      begin: Alignment.topCenter,
+                                                      end: Alignment.bottomCenter,
+                                                      colors: [
+                                                        Colors.white.withValues(alpha: 0.94),
+                                                        Colors.white.withValues(alpha: 0.82),
+                                                      ],
+                                                      stops: const [0.0, 1.0],
+                                                    ),
+                                                    // Divider garis kaca halus di bawah
+                                                    border: Border(
+                                                      bottom: BorderSide(
+                                                        color: const Color(0xFFE2E8F0).withValues(alpha: 0.9),
+                                                        width: 1.0,
+                                                      ),
+                                                    ),
+                                                    // Bayangan kedalaman bertingkat yang lembut
+                                                    boxShadow: [
+                                                      BoxShadow(
+                                                        color: const Color(0xFF0F172A).withValues(alpha: 0.06),
+                                                        blurRadius: 10,
+                                                        offset: const Offset(0, 3),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
                                               ),
                                             ),
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: Colors.black.withValues(
-                                                  alpha: 0.12 * value,
-                                                ),
-                                                blurRadius: 8,
-                                                offset: const Offset(0, 2),
-                                              ),
-                                            ],
                                           ),
-                                        ),
+                                        ],
                                       ),
                                     ),
                                   ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
+                                ),
 
-                    // Konten User Info Header (Sticky di atas)
-                    SafeArea(
-                      bottom: false,
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-                        child: _buildUserInfoRow(context, user),
-                      ),
-                    ),
-                  ],
+                              // Konten User Info Header (Sticky di atas dengan warna kontras dinamis)
+                              SafeArea(
+                                bottom: false,
+                                child: Padding(
+                                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                                  child: _buildUserInfoRow(context, user, value),
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    },
+                  ),
                 ),
               ),
             ],
@@ -416,13 +425,40 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
 }
 
   /// Konten info pengguna (Avatar, Nama, Role, Bell Icon, Account Dropdown)
-  Widget _buildUserInfoRow(BuildContext context, UserModel? user) {
+  /// dengan warna dinamis kontras tinggi terhadap background banner video & white glass blur
+  Widget _buildUserInfoRow(
+    BuildContext context,
+    UserModel? user,
+    double transitionValue,
+  ) {
+    // Warna teks & ikon: Putih bersih di atas banner video -> Slate gelap kontras di atas white glass blur
+    final textColor = Color.lerp(
+      Colors.white,
+      const Color(0xFF0F172A),
+      transitionValue,
+    )!;
+
+    final subtextColor = Color.lerp(
+      Colors.white.withValues(alpha: 0.92),
+      const Color(0xFF475569),
+      transitionValue,
+    )!;
+
+    final iconColor = Color.lerp(
+      Colors.white,
+      const Color(0xFF0F172A),
+      transitionValue,
+    )!;
+
+    // Bayangan teks hanya aktif saat di atas banner gelap (pudar saat glass blur aktif)
+    final shadowAlpha = 0.8 * (1.0 - transitionValue);
+
     return Align(
       alignment: Alignment.topLeft,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Avatar inisial dengan border putih dan shadow
+          // Avatar inisial dengan border dan shadow kontras
           Container(
             width: 44,
             height: 44,
@@ -430,14 +466,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
               color: Colors.white,
               shape: BoxShape.circle,
               border: Border.all(
-                color: Colors.white,
+                color: Color.lerp(
+                  Colors.white,
+                  AppColors.brandPrimary.withValues(alpha: 0.35),
+                  transitionValue,
+                )!,
                 width: 2.2,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.35),
-                  blurRadius: 10,
-                  offset: const Offset(0, 3),
+                  color: Color.lerp(
+                    Colors.black.withValues(alpha: 0.35),
+                    const Color(0xFF0F172A).withValues(alpha: 0.12),
+                    transitionValue,
+                  )!,
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
                 ),
               ],
             ),
@@ -456,7 +500,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
           ),
           const SizedBox(width: 12),
 
-          // Info Nama & Role (Teks bersih tanpa badge)
+          // Info Nama & Role (Teks bersih dengan kontras dinamis)
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -468,13 +512,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                     fontFamily: 'PlusJakartaSans',
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
-                    color: Colors.white,
+                    color: textColor,
                     shadows: [
-                      Shadow(
-                        color: Colors.black.withValues(alpha: 0.8),
-                        blurRadius: 8,
-                        offset: const Offset(0, 1),
-                      ),
+                      if (shadowAlpha > 0.05)
+                        Shadow(
+                          color: Colors.black.withValues(alpha: shadowAlpha),
+                          blurRadius: 8,
+                          offset: const Offset(0, 1),
+                        ),
                     ],
                   ),
                   maxLines: 1,
@@ -486,14 +531,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                   style: TextStyle(
                     fontFamily: 'PlusJakartaSans',
                     fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.white.withValues(alpha: 0.90),
+                    fontWeight: FontWeight.w600,
+                    color: subtextColor,
                     shadows: [
-                      Shadow(
-                        color: Colors.black.withValues(alpha: 0.8),
-                        blurRadius: 6,
-                        offset: const Offset(0, 1),
-                      ),
+                      if (shadowAlpha > 0.05)
+                        Shadow(
+                          color: Colors.black.withValues(alpha: shadowAlpha),
+                          blurRadius: 6,
+                          offset: const Offset(0, 1),
+                        ),
                     ],
                   ),
                   maxLines: 1,
@@ -504,7 +550,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
           ),
           const SizedBox(width: 6),
 
-          // Icon Lonceng Notifikasi (Icon only white dengan dot number notifikasi)
+          // Icon Lonceng Notifikasi dengan kontras dinamis & badge merah
           InkWell(
             onTap: () {
               AppSnackBar.showInfo(
@@ -518,10 +564,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
-                  const Icon(
+                  Icon(
                     TablerIcons.bell,
                     size: 26,
-                    color: Colors.white,
+                    color: iconColor,
                   ),
                   Positioned(
                     top: -4,
@@ -562,7 +608,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
           ),
           const SizedBox(width: 4),
 
-          // Tombol Dropdown Menu Akun (Frosted circular button)
+          // Tombol Dropdown Menu Akun (Frosted circular button kontras dinamis)
           AppDropdownMenu<String>(
             tooltip: 'Menu Akun',
             padding: EdgeInsets.zero,
@@ -570,25 +616,37 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.35),
+                color: Color.lerp(
+                  Colors.black.withValues(alpha: 0.35),
+                  const Color(0xFFF1F5F9),
+                  transitionValue,
+                ),
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.35),
+                  color: Color.lerp(
+                    Colors.white.withValues(alpha: 0.35),
+                    const Color(0xFFCBD5E1),
+                    transitionValue,
+                  )!,
                   width: 1.2,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.25),
+                    color: Color.lerp(
+                      Colors.black.withValues(alpha: 0.25),
+                      const Color(0xFF0F172A).withValues(alpha: 0.08),
+                      transitionValue,
+                    )!,
                     blurRadius: 6,
                     offset: const Offset(0, 2),
                   ),
                 ],
               ),
               alignment: Alignment.center,
-              child: const Icon(
+              child: Icon(
                 TablerIcons.dots_vertical,
                 size: 20,
-                color: Colors.white,
+                color: iconColor,
               ),
             ),
             items: const [
