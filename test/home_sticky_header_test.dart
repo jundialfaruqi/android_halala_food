@@ -86,7 +86,7 @@ void main() {
     // 1. Initial State at top: User name and avatar are rendered
     expect(find.text('Ahmad Manager'), findsOneWidget);
     expect(find.byKey(const Key('home_user_avatar_image')), findsOneWidget);
-    expect(find.byIcon(TablerIcons.bell), findsOneWidget);
+    expect(find.byIcon(TablerIcons.bell), findsNothing);
     expect(find.byIcon(TablerIcons.dots_vertical), findsOneWidget);
 
     // Initial state: glass blur and solid white status bar are not rendered (value <= 0.001)
@@ -100,7 +100,7 @@ void main() {
 
     // Sticky header: User name and buttons remain visible at the top!
     expect(find.text('Ahmad Manager'), findsOneWidget);
-    expect(find.byIcon(TablerIcons.bell), findsOneWidget);
+    expect(find.byIcon(TablerIcons.bell), findsNothing);
     expect(find.byIcon(TablerIcons.dots_vertical), findsOneWidget);
 
     // Status bar solid white background is now rendered
@@ -113,12 +113,7 @@ void main() {
     // Glass blur is now rendered on app bar info user due to scroll trigger
     expect(find.byKey(const Key('home_sticky_glass_blur')), findsOneWidget);
 
-    // 3. Test tapping bell icon while scrolled
-    await tester.tap(find.byIcon(TablerIcons.bell));
-    await tester.pump();
-    expect(find.text('Belum ada notifikasi baru.'), findsOneWidget);
-
-    // 4. Scroll back to top
+    // 3. Scroll back to top
     await tester.drag(find.byType(SingleChildScrollView), const Offset(0, 300));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300)); // allow fade-out animation to settle
