@@ -518,7 +518,7 @@ class _InvoiceCoordinatesScreenState
         _mapController.fitCamera(
           CameraFit.coordinates(
             coordinates: result.polylinePoints,
-            padding: const EdgeInsets.fromLTRB(40, 140, 40, 260),
+            padding: const EdgeInsets.fromLTRB(40, 160, 40, 260),
             maxZoom: 16.5,
           ),
         );
@@ -531,7 +531,7 @@ class _InvoiceCoordinatesScreenState
         _mapController.fitCamera(
           CameraFit.coordinates(
             coordinates: [_myLocation!, storeLoc],
-            padding: const EdgeInsets.fromLTRB(40, 140, 40, 260),
+            padding: const EdgeInsets.fromLTRB(40, 160, 40, 260),
             maxZoom: 16.0,
           ),
         );
@@ -621,36 +621,31 @@ class _InvoiceCoordinatesScreenState
     _fitCameraToBounds();
   }
 
+  void _changeDateBy(int days) {
+    setState(() {
+      final baseDate = _selectedDate ?? DateTime.now();
+      _selectedDate = baseDate.add(Duration(days: days));
+      _selectedInvoice = null;
+      _routePoints = [];
+      _routeResult = null;
+    });
+    _loadInvoices();
+  }
+
   Color _getStatusColor(InvoiceModel invoice) {
-    if (invoice.isOverdue) return const Color(0xFF991B1B);
-    switch (invoice.status.toLowerCase()) {
-      case 'lunas':
-        return AppColors.success;
-      case 'sebagian':
-        return AppColors.warning;
-      case 'belum_dibayar':
-        return AppColors.error;
-      case 'dibatalkan':
-        return AppColors.brandWarmGray;
-      default:
-        return AppColors.brandWarmGray;
-    }
+    if (invoice.isLunas) return AppColors.success;
+    if (invoice.isOverdue) return AppColors.error;
+    if (invoice.isSebagian) return AppColors.info;
+    if (invoice.isBelumDibayar) return AppColors.warning;
+    return AppColors.brandWarmGray;
   }
 
   IconData _getStatusIcon(InvoiceModel invoice) {
+    if (invoice.isLunas) return TablerIcons.circle_check_filled;
     if (invoice.isOverdue) return TablerIcons.alert_triangle;
-    switch (invoice.status.toLowerCase()) {
-      case 'lunas':
-        return TablerIcons.check;
-      case 'sebagian':
-        return TablerIcons.coin;
-      case 'belum_dibayar':
-        return TablerIcons.alert_circle;
-      case 'dibatalkan':
-        return TablerIcons.x;
-      default:
-        return TablerIcons.point;
-    }
+    if (invoice.isSebagian) return TablerIcons.clock;
+    if (invoice.isBelumDibayar) return TablerIcons.circle_check;
+    return TablerIcons.point;
   }
 
   Future<void> _openExternalGoogleMaps(InvoiceModel invoice) async {
@@ -675,35 +670,6 @@ class _InvoiceCoordinatesScreenState
     }
   }
 
-  Future<void> _callStore(String? phone) async {
-    if (phone == null || phone.trim().isEmpty) {
-      AppSnackBar.showInfo(context, message: 'Nomor telepon toko tidak tersedia.');
-      return;
-    }
-    final cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
-    final uri = Uri.parse('tel:$cleanPhone');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    }
-  }
-
-  Future<void> _whatsappStore(String? phone, InvoiceModel invoice) async {
-    if (phone == null || phone.trim().isEmpty) {
-      AppSnackBar.showInfo(context, message: 'Nomor WhatsApp toko tidak tersedia.');
-      return;
-    }
-    String clean = phone.replaceAll(RegExp(r'\D'), '');
-    if (clean.startsWith('0')) {
-      clean = '62${clean.substring(1)}';
-    }
-    final msg = Uri.encodeComponent(
-      'Halo ${invoice.store?.name ?? "Bapak/Ibu"}, ini konfirmasi terkait faktur ${invoice.invoiceNumber} sebesar ${_formatRupiah(invoice.remainingBalance)}.',
-    );
-    final uri = Uri.parse('https://wa.me/$clean?text=$msg');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
-  }
 
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
@@ -892,22 +858,33 @@ class _InvoiceCoordinatesScreenState
               ],
             ),
 
-            // 2. FLOATING BAR ATAS: FILTER & SUMMARY
+            // 2. FLOATING BAR ATAS: FILTER & BANNER INFO RUTE (FULL WIDTH)
             Positioned(
               top: 12,
               left: 14,
               right: 14,
-              child: _buildTopFilterHeader(
-                totalCount: totalCount,
-                unpaidCount: unpaidInvoices.length,
-                totalRemainingDebt: totalRemainingDebt,
-                lunasCount: lunasCount,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildTopFilterHeader(
+                    totalCount: totalCount,
+                    unpaidCount: unpaidInvoices.length,
+                    totalRemainingDebt: totalRemainingDebt,
+                    lunasCount: lunasCount,
+                  ),
+                  if (_routeResult != null && _selectedInvoice != null) ...[
+                    const SizedBox(height: 10),
+                    _buildRouteInfoBanner(),
+                  ],
+                ],
               ),
             ),
 
-            // 3. FLOATING BUTTONS: KONTROL PETA
-            Positioned(
-              top: 185,
+            // 3. FLOATING BUTTONS: KONTROL PETA (KANAN ATAS)
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOutCubic,
+              top: (_routeResult != null && _selectedInvoice != null) ? 180 : 122,
               right: 14,
               child: Column(
                 children: [
@@ -946,15 +923,6 @@ class _InvoiceCoordinatesScreenState
                 ],
               ),
             ),
-
-            // 4. FLOATING ROUTE INFO BANNER
-            if (_routeResult != null && _selectedInvoice != null)
-              Positioned(
-                top: 125,
-                left: 14,
-                right: 68,
-                child: _buildRouteInfoBanner(),
-              ),
 
             // 5. DRAGGABLE SCROLLABLE SHEET: DAFTAR TOKO PENAGIHAN
             _buildDraggableInvoiceListSheet(sortedList, totalRemainingDebt),
@@ -1044,12 +1012,11 @@ class _InvoiceCoordinatesScreenState
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
               color: isSelected ? statusColor : AppColors.brandEspresso,
-              borderRadius: BorderRadius.circular(6),
               boxShadow: const [
                 BoxShadow(
                   color: Color(0x33000000),
-                  blurRadius: 4,
-                  offset: Offset(0, 2),
+                  blurRadius: 3,
+                  offset: Offset(0, 1.5),
                 ),
               ],
             ),
@@ -1065,7 +1032,7 @@ class _InvoiceCoordinatesScreenState
               ),
             ),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 3),
           Stack(
             clipBehavior: Clip.none,
             children: [
@@ -1078,13 +1045,13 @@ class _InvoiceCoordinatesScreenState
                   shape: BoxShape.circle,
                   border: Border.all(
                     color: statusColor,
-                    width: isSelected ? 3.5 : 2.8,
+                    width: isSelected ? 3.5 : 2.5,
                   ),
-                  boxShadow: [
+                  boxShadow: const [
                     BoxShadow(
-                      color: statusColor.withValues(alpha: 0.35),
-                      blurRadius: isSelected ? 10 : 6,
-                      offset: const Offset(0, 3),
+                      color: Color(0x33000000),
+                      blurRadius: 8,
+                      offset: Offset(0, 4),
                     ),
                   ],
                 ),
@@ -1175,49 +1142,81 @@ class _InvoiceCoordinatesScreenState
     required double totalRemainingDebt,
     required int lunasCount,
   }) {
-    final dateDisplay = _selectedDate != null
+    final now = DateTime.now();
+    final isToday = _selectedDate != null &&
+        _selectedDate!.year == now.year &&
+        _selectedDate!.month == now.month &&
+        _selectedDate!.day == now.day;
+
+    final dateFormatted = _selectedDate != null
         ? DateFormat('d MMM yyyy', 'id_ID').format(_selectedDate!)
         : 'Semua Tanggal';
+    final displayDate = isToday ? 'Hari Ini ($dateFormatted)' : dateFormatted;
 
-    return AppCard(
-      backgroundColor: Colors.white,
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-      borderRadius: 16,
-      boxShadow: const [
-        BoxShadow(
-          color: Color(0x18000000),
-          blurRadius: 10,
-          offset: Offset(0, 3),
-        ),
-      ],
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.brandBorder, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          // Row 1: Navigasi Tanggal & Filter Rute (AppFilterDropdown)
           Row(
             children: [
-              // Filter Tanggal
+              // Tombol Hari Sebelumnya
+              InkWell(
+                onTap: () => _changeDateBy(-1),
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  padding: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    color: AppColors.background,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    TablerIcons.chevron_left,
+                    size: 18,
+                    color: AppColors.brandEspresso,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+
+              // Kapsul Pilih Tanggal (Bisa di-tap)
               Expanded(
                 child: InkWell(
                   onTap: _pickDate,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(8),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: AppColors.brandSoftCream,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AppColors.brandBorder),
+                      color: AppColors.background,
+                      borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         const Icon(
                           TablerIcons.calendar,
                           size: 16,
                           color: AppColors.brandPrimary,
                         ),
-                        const SizedBox(width: 8),
-                        Expanded(
+                        const SizedBox(width: 6),
+                        Flexible(
                           child: Text(
-                            dateDisplay,
+                            displayDate,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               fontFamily: 'PlusJakartaSans',
                               fontSize: 12.5,
@@ -1226,7 +1225,8 @@ class _InvoiceCoordinatesScreenState
                             ),
                           ),
                         ),
-                        if (_selectedDate != null)
+                        if (_selectedDate != null) ...[
+                          const SizedBox(width: 4),
                           GestureDetector(
                             onTap: () {
                               setState(() {
@@ -1239,16 +1239,11 @@ class _InvoiceCoordinatesScreenState
                             },
                             child: const Icon(
                               TablerIcons.x,
-                              size: 15,
+                              size: 14,
                               color: AppColors.brandWarmGray,
                             ),
-                          )
-                        else
-                          const Icon(
-                            TablerIcons.chevron_down,
-                            size: 15,
-                            color: AppColors.brandWarmGray,
                           ),
+                        ],
                       ],
                     ),
                   ),
@@ -1256,68 +1251,51 @@ class _InvoiceCoordinatesScreenState
               ),
               const SizedBox(width: 8),
 
-              // Filter Rute (Jika tersedia)
-              if (_availableRoutes.isNotEmpty)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+              // Tombol Hari Berikutnya
+              InkWell(
+                onTap: () => _changeDateBy(1),
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  padding: const EdgeInsets.all(5),
                   decoration: BoxDecoration(
-                    color: AppColors.brandSoftCream,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppColors.brandBorder),
+                    color: AppColors.background,
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String?>(
-                      value: _selectedRoute,
-                      hint: const Text(
-                        'Semua Rute',
-                        style: TextStyle(
-                          fontFamily: 'PlusJakartaSans',
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.brandEspresso,
-                        ),
-                      ),
-                      icon: const Icon(TablerIcons.chevron_down, size: 15),
-                      isDense: true,
-                      items: [
-                        const DropdownMenuItem<String?>(
-                          value: null,
-                          child: Text(
-                            'Semua Rute',
-                            style: TextStyle(fontFamily: 'PlusJakartaSans', fontSize: 12),
-                          ),
-                        ),
-                        ..._availableRoutes.map(
-                          (r) => DropdownMenuItem<String?>(
-                            value: r,
-                            child: Text(
-                              r,
-                              style: const TextStyle(
-                                fontFamily: 'PlusJakartaSans',
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                      onChanged: (val) {
-                        setState(() {
-                          _selectedRoute = val;
-                          _selectedInvoice = null;
-                          _routePoints = [];
-                          _routeResult = null;
-                        });
-                        _loadInvoices();
-                      },
-                    ),
+                  child: const Icon(
+                    TablerIcons.chevron_right,
+                    size: 18,
+                    color: AppColors.brandEspresso,
                   ),
                 ),
+              ),
+
+              // Dropdown Filter Rute Menggunakan AppFilterDropdown<String>
+              if (_availableRoutes.isNotEmpty) ...[
+                const SizedBox(width: 8),
+                AppFilterDropdown<String>(
+                  selectedValue: _selectedRoute,
+                  items: _availableRoutes,
+                  allLabel: 'Semua Rute',
+                  prefixLabel: 'Rute: ',
+                  tooltip: 'Filter Rute Wilayah',
+                  fontSize: 12,
+                  onSelected: (val) {
+                    setState(() {
+                      _selectedRoute = val;
+                      _selectedInvoice = null;
+                      _routePoints = [];
+                      _routeResult = null;
+                    });
+                    _loadInvoices();
+                  },
+                ),
+              ],
             ],
           ),
-          const SizedBox(height: 8),
 
-          // Horizontal Status Chips
+          const SizedBox(height: 6),
+
+          // Row 2: Status Tabs (Filter Status Pembayaran - Bersih & Selaras)
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -1343,7 +1321,7 @@ class _InvoiceCoordinatesScreenState
                       decoration: BoxDecoration(
                         color: isSelected
                             ? AppColors.brandPrimary
-                            : AppColors.brandSoftCream,
+                            : AppColors.background,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
                           color: isSelected
@@ -1366,29 +1344,53 @@ class _InvoiceCoordinatesScreenState
               }).toList(),
             ),
           ),
+
           const SizedBox(height: 6),
 
-          // Summary Text
+          // Row 3: Ringkasan Progress Penagihan
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                '$unpaidCount Toko Tertagih • $totalCount Faktur',
-                style: const TextStyle(
-                  fontFamily: 'PlusJakartaSans',
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.brandWarmGray,
-                ),
+              // Badge Total Toko / Faktur
+              Row(
+                children: [
+                  const Icon(
+                    TablerIcons.building_store,
+                    size: 14,
+                    color: AppColors.brandWarmGray,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '$unpaidCount Toko Tertagih • $totalCount Faktur',
+                    style: const TextStyle(
+                      fontFamily: 'PlusJakartaSans',
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.brandWarmGray,
+                    ),
+                  ),
+                ],
               ),
-              Text(
-                'Sisa: ${_formatCompactRupiah(totalRemainingDebt)}',
-                style: const TextStyle(
-                  fontFamily: 'PlusJakartaSans',
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFFDC2626),
-                ),
+
+              // Sisa Hutang
+              Row(
+                children: [
+                  const Icon(
+                    TablerIcons.receipt_2,
+                    size: 14,
+                    color: AppColors.brandWarmGray,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Sisa: ${_formatCompactRupiah(totalRemainingDebt)}',
+                    style: const TextStyle(
+                      fontFamily: 'PlusJakartaSans',
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.brandEspresso,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -1402,14 +1404,15 @@ class _InvoiceCoordinatesScreenState
     final store = _selectedInvoice?.store;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: AppColors.brandEspresso,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: const [
           BoxShadow(
             color: Color(0x33000000),
-            blurRadius: 6,
+            blurRadius: 8,
             offset: Offset(0, 3),
           ),
         ],
@@ -1419,7 +1422,7 @@ class _InvoiceCoordinatesScreenState
           const Icon(
             TablerIcons.route,
             size: 18,
-            color: Color(0xFFDC2626),
+            color: AppColors.brandPrimary,
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -1451,6 +1454,7 @@ class _InvoiceCoordinatesScreenState
               ],
             ),
           ),
+          // Tombol Fokus Kamera ke Toko
           InkWell(
             onTap: () => _focusToStore(_selectedInvoice),
             borderRadius: BorderRadius.circular(6),
@@ -1481,6 +1485,7 @@ class _InvoiceCoordinatesScreenState
             ),
           ),
           const SizedBox(width: 6),
+          // Tombol Buka Navigasi Maps Eksternal
           InkWell(
             onTap: () {
               if (_selectedInvoice != null) {
@@ -1512,6 +1517,7 @@ class _InvoiceCoordinatesScreenState
             ),
           ),
           const SizedBox(width: 6),
+          // Tombol Tutup Banner & Hapus Rute
           InkWell(
             onTap: _clearRouteAndSelection,
             borderRadius: BorderRadius.circular(6),
@@ -1715,7 +1721,7 @@ class _InvoiceCoordinatesScreenState
                               height: 15,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: Color(0xFFDC2626),
+                                color: AppColors.brandPrimary,
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -1726,7 +1732,7 @@ class _InvoiceCoordinatesScreenState
                               fontFamily: 'PlusJakartaSans',
                               fontSize: 13,
                               fontWeight: FontWeight.w800,
-                              color: Color(0xFFDC2626),
+                              color: AppColors.brandEspresso,
                             ),
                           ),
                         ],
@@ -1820,254 +1826,302 @@ class _InvoiceCoordinatesScreenState
     final distanceText = _formatDistanceText(distanceMeters);
     final hasCoord = store?.latitude != null && store?.longitude != null;
 
-    return AppCard(
+    return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      backgroundColor: isSelected
-          ? statusColor.withValues(alpha: 0.06)
-          : Colors.white,
-      borderColor: isSelected ? statusColor : AppColors.brandBorder,
-      borderWidth: isSelected ? 1.8 : 1.0,
-      borderRadius: 14,
-      onTap: () {
-        if (hasCoord) {
-          _selectInvoiceAndShowRoute(invoice);
-        } else {
-          AppSnackBar.showInfo(
-            context,
-            message: 'Toko "${store?.name ?? "mitra"}" belum memiliki titik kordinat GPS.',
-          );
-        }
-      },
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.12),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: statusColor, width: 1.5),
-                ),
-                child: Center(
-                  child: Icon(
-                    _getStatusIcon(invoice),
-                    size: 19,
-                    color: statusColor,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      store?.name ?? 'Toko Mitra',
-                      style: const TextStyle(
-                        fontFamily: 'PlusJakartaSans',
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.brandEspresso,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        if (store?.route != null && store!.route!.isNotEmpty) ...[
-                          Text(
-                            store.route!,
-                            style: const TextStyle(
-                              fontFamily: 'PlusJakartaSans',
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.brandPrimary,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          const Text('•', style: TextStyle(color: AppColors.brandWarmGray)),
-                          const SizedBox(width: 6),
-                        ],
-                        if (distanceText.isNotEmpty)
-                          Row(
-                            children: [
-                              const Icon(
-                                TablerIcons.map_pin,
-                                size: 12,
-                                color: AppColors.brandWarmGray,
-                              ),
-                              const SizedBox(width: 2),
-                              Text(
-                                distanceText,
-                                style: const TextStyle(
-                                  fontFamily: 'PlusJakartaSans',
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.brandWarmGray,
-                                ),
-                              ),
-                            ],
-                          )
-                        else
-                          Text(
-                            hasCoord ? 'Kordinat tersedia' : 'Belum ada kordinat',
-                            style: TextStyle(
-                              fontFamily: 'PlusJakartaSans',
-                              fontSize: 11.5,
-                              color: hasCoord
-                                  ? AppColors.brandWarmGray
-                                  : AppColors.error,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
-                decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  invoice.statusLabel,
-                  style: TextStyle(
-                    fontFamily: 'PlusJakartaSans',
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: statusColor,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-
-          // Detail Faktur & Nominal Piutang
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: AppColors.brandSoftCream,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.brandBorder),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      invoice.invoiceNumber,
-                      style: const TextStyle(
-                        fontFamily: 'PlusJakartaSans',
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.brandEspresso,
-                      ),
-                    ),
-                    const SizedBox(height: 1),
-                    Text(
-                      'Jatuh Tempo: ${InvoiceModel.formatIndonesianDate(invoice.dueDate)}',
-                      style: TextStyle(
-                        fontFamily: 'PlusJakartaSans',
-                        fontSize: 11,
-                        fontWeight: invoice.isOverdue ? FontWeight.w700 : FontWeight.w500,
-                        color: invoice.isOverdue ? const Color(0xFFDC2626) : AppColors.brandWarmGray,
-                      ),
-                    ),
-                  ],
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      invoice.isLunas ? 'Lunas' : _formatRupiah(invoice.remainingBalance),
-                      style: TextStyle(
-                        fontFamily: 'PlusJakartaSans',
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w800,
-                        color: invoice.isLunas ? AppColors.success : const Color(0xFFDC2626),
-                      ),
-                    ),
-                    if (!invoice.isLunas)
-                      Text(
-                        'Total: ${_formatRupiah(invoice.totalAmount)}',
-                        style: const TextStyle(
-                          fontFamily: 'PlusJakartaSans',
-                          fontSize: 10.5,
-                          color: AppColors.brandWarmGray,
-                        ),
-                      ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-
-          // Tombol Aksi
-          Row(
-            children: [
-              if (store?.phone != null && store!.phone!.isNotEmpty) ...[
-                IconButton.filledTonal(
-                  icon: const Icon(TablerIcons.phone, size: 16),
-                  tooltip: 'Telepon Toko',
-                  style: IconButton.styleFrom(
-                    backgroundColor: AppColors.brandSoftCream,
-                    foregroundColor: AppColors.brandEspresso,
-                    minimumSize: const Size(36, 36),
-                  ),
-                  onPressed: () => _callStore(store.phone),
-                ),
-                const SizedBox(width: 6),
-                IconButton.filledTonal(
-                  icon: const Icon(TablerIcons.brand_whatsapp, size: 16),
-                  tooltip: 'Kirim WhatsApp',
-                  style: IconButton.styleFrom(
-                    backgroundColor: const Color(0xFFDCFCE7),
-                    foregroundColor: const Color(0xFF16A34A),
-                    minimumSize: const Size(36, 36),
-                  ),
-                  onPressed: () => _whatsappStore(store.phone, invoice),
-                ),
-                const SizedBox(width: 6),
-              ],
-              if (hasCoord)
-                Expanded(
-                  child: AppButton.outline(
-                    text: 'Rute',
-                    icon: const Icon(TablerIcons.route, size: 15),
-                    height: 36,
-                    onPressed: () => _selectInvoiceAndShowRoute(invoice),
-                  ),
-                ),
-              if (hasCoord) const SizedBox(width: 8),
-              Expanded(
-                child: AppButton(
-                  text: 'Detail / Bayar',
-                  icon: const Icon(TablerIcons.receipt, size: 15, color: Colors.white),
-                  height: 36,
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => InvoiceDetailScreen(invoiceId: invoice.id),
-                      ),
-                    ).then((_) {
-                      _loadInvoices();
-                    });
-                  },
-                ),
-              ),
-            ],
+      decoration: BoxDecoration(
+        color: isSelected
+            ? AppColors.brandPrimary.withValues(alpha: 0.05)
+            : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isSelected ? AppColors.brandPrimary : AppColors.brandBorder,
+          width: isSelected ? 1.6 : 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
           ),
         ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // 1. Icon Status Checklist di kiri (32x32 circle)
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: invoice.isLunas
+                    ? AppColors.success.withValues(alpha: 0.14)
+                    : invoice.isOverdue
+                        ? AppColors.error.withValues(alpha: 0.14)
+                        : invoice.isSebagian
+                            ? AppColors.info.withValues(alpha: 0.14)
+                            : AppColors.brandWarmGray.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Icon(
+                  invoice.isLunas
+                      ? TablerIcons.circle_check_filled
+                      : invoice.isOverdue
+                          ? TablerIcons.alert_triangle
+                          : invoice.isSebagian
+                              ? TablerIcons.clock
+                              : TablerIcons.circle_check,
+                  size: 19,
+                  color: invoice.isLunas
+                      ? AppColors.success
+                      : invoice.isOverdue
+                          ? AppColors.error
+                          : invoice.isSebagian
+                              ? AppColors.info
+                              : AppColors.brandWarmGray.withValues(alpha: 0.55),
+                ),
+              ),
+            ),
+
+            const SizedBox(width: 12),
+
+            // 2. Konten Tengah: Status, Nama Toko, No Faktur & Sisa, Jarak
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Status Faktur (Teks Saja tanpa badge box)
+                  Text(
+                    invoice.statusLabel,
+                    style: TextStyle(
+                      fontFamily: 'PlusJakartaSans',
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w700,
+                      color: statusColor,
+                    ),
+                  ),
+
+                  const SizedBox(height: 2),
+
+                  // Nama Toko
+                  Text(
+                    store?.name ?? 'Toko Mitra',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontFamily: 'PlusJakartaSans',
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.brandEspresso,
+                    ),
+                  ),
+
+                  const SizedBox(height: 3),
+
+                  // Nomor Faktur & Sisa Piutang
+                  Row(
+                    children: [
+                      Text(
+                        invoice.invoiceNumber,
+                        style: const TextStyle(
+                          fontFamily: 'PlusJakartaSans',
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.brandPrimary,
+                        ),
+                      ),
+                      const Text(
+                        ' • ',
+                        style: TextStyle(
+                          color: AppColors.brandBorder,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Flexible(
+                        child: Text(
+                          invoice.isLunas
+                              ? 'Lunas'
+                              : _formatRupiah(invoice.remainingBalance),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontFamily: 'PlusJakartaSans',
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: invoice.isLunas
+                                ? AppColors.success
+                                : AppColors.brandEspresso,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 4),
+
+                  // Indikator Jarak dari GPS Pengguna
+                  Row(
+                    children: [
+                      if (hasCoord) ...[
+                        Icon(
+                          TablerIcons.map_pin,
+                          size: 13,
+                          color: _myLocation != null
+                              ? AppColors.brandPrimary
+                              : AppColors.brandWarmGray,
+                        ),
+                        const SizedBox(width: 3),
+                        Text(
+                          distanceText.isNotEmpty
+                              ? '$distanceText dari Anda'
+                              : 'Kordinat tersedia',
+                          style: TextStyle(
+                            fontFamily: 'PlusJakartaSans',
+                            fontSize: 11,
+                            fontWeight: distanceText.isNotEmpty
+                                ? FontWeight.w600
+                                : FontWeight.normal,
+                            color: distanceText.isNotEmpty
+                                ? AppColors.brandPrimary
+                                : AppColors.brandWarmGray,
+                          ),
+                        ),
+                      ] else ...[
+                        const Icon(
+                          TablerIcons.map_pin_off,
+                          size: 13,
+                          color: AppColors.brandWarmGray,
+                        ),
+                        const SizedBox(width: 3),
+                        const Text(
+                          'Titik GPS belum diatur',
+                          style: TextStyle(
+                            fontFamily: 'PlusJakartaSans',
+                            fontSize: 10.5,
+                            fontStyle: FontStyle.italic,
+                            color: AppColors.brandWarmGray,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(width: 10),
+
+            // 3. Tombol Aksi: Rute & Faktur
+            IntrinsicWidth(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Tombol Rute
+                  if (hasCoord) ...[
+                    InkWell(
+                      onTap: () {
+                        if (isSelected) {
+                          _clearRouteAndSelection();
+                        } else {
+                          _selectInvoiceAndShowRoute(invoice);
+                        }
+                      },
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 5.5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? AppColors.brandPrimary
+                              : AppColors.brandPrimary.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              TablerIcons.route,
+                              size: 13.5,
+                              color: isSelected
+                                  ? Colors.white
+                                  : AppColors.brandPrimary,
+                            ),
+                            const SizedBox(width: 3.5),
+                            Text(
+                              'Rute',
+                              style: TextStyle(
+                                fontFamily: 'PlusJakartaSans',
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: isSelected
+                                    ? Colors.white
+                                    : AppColors.brandPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                  ],
+
+                  // Tombol Faktur (Buka Rincian Faktur / Pembayaran)
+                  InkWell(
+                    onTap: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => InvoiceDetailScreen(invoiceId: invoice.id),
+                        ),
+                      );
+                      _loadInvoices();
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 5.5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.background,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: AppColors.brandBorder,
+                          width: 1,
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            TablerIcons.file_text,
+                            size: 13.5,
+                            color: AppColors.brandEspresso,
+                          ),
+                          SizedBox(width: 3.5),
+                          Text(
+                            'Faktur',
+                            style: TextStyle(
+                              fontFamily: 'PlusJakartaSans',
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.brandEspresso,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
