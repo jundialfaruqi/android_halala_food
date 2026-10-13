@@ -106,5 +106,37 @@ void main() {
       final decoration = navContainer.decoration as BoxDecoration;
       expect(decoration.border, isNull);
     });
+
+    testWidgets('renders badge on Aktifitas item when activityBadgeCount > 0 and hides when 0', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            bottomNavigationBar: HomeBottomNavigationBar(
+              activityBadgeCount: 5,
+            ),
+          ),
+        ),
+      );
+
+      // Verify badge with '5' is rendered
+      expect(find.byKey(const Key('nav_activity_badge')), findsOneWidget);
+      expect(find.text('5'), findsOneWidget);
+
+      // Rerender with count 0
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            bottomNavigationBar: HomeBottomNavigationBar(
+              activityBadgeCount: 0,
+            ),
+          ),
+        ),
+      );
+
+      // Verify badge is hidden
+      expect(find.byKey(const Key('nav_activity_badge')), findsNothing);
+    });
   });
 }

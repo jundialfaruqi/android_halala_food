@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/services/notification_badge_service.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../../auth/presentation/viewmodels/auth_viewmodel.dart';
 import '../viewmodels/activity_viewmodel.dart';
@@ -22,6 +23,11 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(notificationBadgeProvider.notifier).clearBadge();
+      }
+    });
   }
 
   @override

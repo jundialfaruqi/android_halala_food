@@ -8,6 +8,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../constants/api_endpoints.dart';
 import '../network/dio_client.dart';
 
+import 'notification_badge_service.dart';
+
 /// Top-level background message handler for FCM
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -20,11 +22,12 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 final fcmServiceProvider = Provider<FcmService>((ref) {
   final dioClient = ref.watch(dioClientProvider);
-  return FcmService(dioClient: dioClient);
+  return FcmService(dioClient: dioClient, ref: ref);
 });
 
 class FcmService {
   final DioClient _dioClient;
+  final Ref? _ref;
   static final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
 
@@ -36,7 +39,9 @@ class FcmService {
     playSound: true,
   );
 
-  FcmService({required DioClient dioClient}) : _dioClient = dioClient;
+  FcmService({required DioClient dioClient, Ref? ref})
+      : _dioClient = dioClient,
+        _ref = ref;
 
   /// Inisialisasi konfigurasi notifikasi lokal dan FCM listener
   Future<void> initialize({Function(RemoteMessage)? onNotificationTap}) async {
@@ -88,6 +93,7 @@ class FcmService {
         debugPrint('FCM Foreground message received: ${message.messageId}');
         final notification = message.notification;
         if (notification != null) {
+          _ref?.read(notificationBadgeProvider.notifier).increment();
           _localNotifications.show(
             notification.hashCode,
             notification.title ?? 'Halala Food',
@@ -110,6 +116,7 @@ class FcmService {
       // 4. Listener saat notifikasi diklik dari BACKGROUND
       FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
         debugPrint('FCM Notification tapped from background: ${message.data}');
+        _ref?.read(notificationBadgeProvider.notifier).clearBadge();
         if (onNotificationTap != null) {
           onNotificationTap(message);
         }
@@ -117,8 +124,11 @@ class FcmService {
 
       // 5. Cek jika aplikasi dibuka dari kondisi KILLED/TERMINATED melalui notifikasi
       final initialMessage = await messaging.getInitialMessage();
-      if (initialMessage != null && onNotificationTap != null) {
-        onNotificationTap(initialMessage);
+      if (initialMessage != null) {
+        _ref?.read(notificationBadgeProvider.notifier).clearBadge();
+        if (onNotificationTap != null) {
+          onNotificationTap(initialMessage);
+        }
       }
 
       // 6. Listener jika FCM token diperbarui oleh Google Play Services

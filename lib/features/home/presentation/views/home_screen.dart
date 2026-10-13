@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
 import '../../../../core/constants/app_assets.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/services/notification_badge_service.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../../activity/presentation/views/activity_screen.dart';
 import '../../../auth/data/models/user_model.dart';
@@ -149,6 +150,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
       appBar: null,
       bottomNavigationBar: HomeBottomNavigationBar(
         currentIndex: _currentNavIndex,
+        activityBadgeCount: ref.watch(notificationBadgeProvider),
         onTap: (index) {
           if (index == 1) {
             final hasAccess = (user?.hasPermission('aktifitas-semua') ?? false) ||
@@ -529,60 +531,74 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
           const SizedBox(width: 6),
 
           // Icon Lonceng Notifikasi dengan kontras dinamis & badge merah
-          InkWell(
-            onTap: () {
-              AppSnackBar.showInfo(
-                context,
-                message: 'Belum ada notifikasi baru.',
+          Consumer(
+            builder: (context, ref, _) {
+              final unreadCount = ref.watch(notificationBadgeProvider);
+              return InkWell(
+                onTap: () {
+                  final hasAccess =
+                      (user?.hasPermission('aktifitas-semua') ?? false) ||
+                      (user?.hasPermission('aktifitas-kurir') ?? false);
+                  if (hasAccess) {
+                    _navigateTo(const ActivityScreen());
+                  } else {
+                    AppSnackBar.showInfo(
+                      context,
+                      message: 'Belum ada notifikasi baru.',
+                    );
+                  }
+                },
+                borderRadius: BorderRadius.circular(20),
+                child: Padding(
+                  padding: const EdgeInsets.all(6.0),
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Icon(
+                        TablerIcons.bell,
+                        size: 26,
+                        color: iconColor,
+                      ),
+                      if (unreadCount > 0)
+                        Positioned(
+                          top: -4,
+                          right: -4,
+                          child: Container(
+                            key: const Key('home_bell_badge'),
+                            width: 18,
+                            height: 18,
+                            decoration: BoxDecoration(
+                              color: AppColors.error,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Colors.white,
+                                width: 1.5,
+                              ),
+                            ),
+                            alignment: Alignment.center,
+                            child: Center(
+                              child: Text(
+                                unreadCount > 99 ? '99+' : '$unreadCount',
+                                textAlign: TextAlign.center,
+                                textHeightBehavior: const TextHeightBehavior(
+                                  applyHeightToFirstAscent: false,
+                                  applyHeightToLastDescent: false,
+                                ),
+                                style: const TextStyle(
+                                  fontFamily: 'PlusJakartaSans',
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               );
             },
-            borderRadius: BorderRadius.circular(20),
-            child: Padding(
-              padding: const EdgeInsets.all(6.0),
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Icon(
-                    TablerIcons.bell,
-                    size: 26,
-                    color: iconColor,
-                  ),
-                  Positioned(
-                    top: -4,
-                    right: -4,
-                    child: Container(
-                      width: 18,
-                      height: 18,
-                      decoration: BoxDecoration(
-                        color: AppColors.error,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Colors.white,
-                          width: 1.5,
-                        ),
-                      ),
-                      alignment: Alignment.center,
-                      child: const Center(
-                        child: Text(
-                          '3',
-                          textAlign: TextAlign.center,
-                          textHeightBehavior: TextHeightBehavior(
-                            applyHeightToFirstAscent: false,
-                            applyHeightToLastDescent: false,
-                          ),
-                          style: TextStyle(
-                            fontFamily: 'PlusJakartaSans',
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
           ),
           const SizedBox(width: 4),
 

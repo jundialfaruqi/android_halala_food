@@ -11,9 +11,15 @@ import '../../../../core/constants/app_colors.dart';
 /// 5. Profile (icon tabler user)
 class HomeBottomNavigationBar extends StatelessWidget {
   final int currentIndex;
+  final int activityBadgeCount;
   final ValueChanged<int>? onTap;
 
-  const HomeBottomNavigationBar({super.key, this.currentIndex = 0, this.onTap});
+  const HomeBottomNavigationBar({
+    super.key,
+    this.currentIndex = 0,
+    this.activityBadgeCount = 0,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -46,6 +52,7 @@ class HomeBottomNavigationBar extends StatelessWidget {
                 index: 1,
                 icon: TablerIcons.message_dots,
                 label: 'Aktifitas',
+                badgeCount: activityBadgeCount,
               ),
 
               // 3. Scan QR (Center Action Button)
@@ -76,6 +83,7 @@ class HomeBottomNavigationBar extends StatelessWidget {
     required int index,
     required IconData icon,
     required String label,
+    int badgeCount = 0,
   }) {
     return Expanded(
       child: Material(
@@ -89,7 +97,51 @@ class HomeBottomNavigationBar extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(icon, size: 24, color: Colors.black),
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Icon(icon, size: 24, color: Colors.black),
+                    if (badgeCount > 0)
+                      Positioned(
+                        top: -3,
+                        right: -6,
+                        child: Container(
+                          key: const Key('nav_activity_badge'),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: 1,
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 16,
+                            minHeight: 16,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.error,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white,
+                              width: 1.5,
+                            ),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            badgeCount > 99 ? '99+' : '$badgeCount',
+                            textAlign: TextAlign.center,
+                            textHeightBehavior: const TextHeightBehavior(
+                              applyHeightToFirstAscent: false,
+                              applyHeightToLastDescent: false,
+                            ),
+                            style: const TextStyle(
+                              fontFamily: 'PlusJakartaSans',
+                              fontSize: 9,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
                 const SizedBox(height: 3),
                 Text(
                   label,

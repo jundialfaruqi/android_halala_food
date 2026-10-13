@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/services/notification_badge_service.dart';
 import '../../../../core/services/websocket_service.dart';
 import '../../data/models/activity_model.dart';
 import '../../data/repositories/activity_repository_impl.dart';
@@ -84,6 +85,7 @@ class ActivityViewModel extends Notifier<ActivityState> {
     final sub = wsService.onActivityCreated.listen((payload) {
       debugPrint('[ActivityViewModel] Real-time activity.created event: $payload');
       addRealtimeActivity(payload);
+      ref.read(notificationBadgeProvider.notifier).increment();
     });
 
     ref.onDispose(() {
