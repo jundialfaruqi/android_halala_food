@@ -11,6 +11,7 @@ import 'package:android_halala_food/features/invoice/data/repositories/invoice_r
 import 'package:android_halala_food/features/invoice/domain/repositories/invoice_repository.dart';
 import 'package:android_halala_food/features/invoice/presentation/views/invoice_create_screen.dart';
 import 'package:android_halala_food/features/store/presentation/widgets/store_dropdown_search_field.dart';
+import 'package:android_halala_food/features/store/presentation/widgets/store_multi_select_field.dart';
 
 class MockInvoiceCreateRepository implements InvoiceRepository {
   bool createCalled = false;
@@ -267,8 +268,8 @@ void main() {
     expect(find.text('INV-20261009-0001'), findsOneWidget);
     expect(find.text('2026-10-09'), findsWidgets);
 
-    // 7. Verifikasi StoreDropdownSearchField untuk Toko Mitra dan AppMenuSelect untuk Surat Jalan
-    expect(find.byType(StoreDropdownSearchField), findsOneWidget);
+    // 7. Verifikasi StoreMultiSelectField untuk Toko Mitra dan AppMenuSelect untuk Surat Jalan
+    expect(find.byType(StoreMultiSelectField), findsOneWidget);
     expect(find.byType(AppMenuSelect<int?>), findsOneWidget);
 
     // 8. Verifikasi AppBottomActionBar dengan tombol Batal dan Simpan Faktur

@@ -12,6 +12,7 @@ import '../../../delivery/presentation/widgets/delivery_item_card.dart';
 import '../../../delivery/presentation/widgets/delivery_item_edit_dialog.dart';
 import '../../../delivery/presentation/widgets/delivery_product_selection_dialog.dart';
 import '../../../store/presentation/widgets/store_dropdown_search_field.dart';
+import '../../../store/presentation/widgets/store_multi_select_field.dart';
 import '../../data/models/invoice_model.dart';
 import '../../data/repositories/invoice_repository_impl.dart';
 import '../viewmodels/invoice_viewmodel.dart';
@@ -50,7 +51,9 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
   late final TextEditingController _discountController;
   late final TextEditingController _notesController;
 
-  int? _selectedStoreId;
+  List<StoreSelectOption> _selectedStores = [];
+  int? get _selectedStoreId =>
+      _selectedStores.isNotEmpty ? _selectedStores.first.id : null;
   int? _selectedDeliveryId;
   int? _selectedCourierId;
   DateTime? _invoiceDate;
@@ -207,7 +210,19 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
       final delivery =
           _options!.deliveries.where((d) => d.id == deliveryId).firstOrNull;
       if (delivery != null) {
-        _selectedStoreId = delivery.storeId;
+        final store = _options!.stores
+            .where((s) => s.id == delivery.storeId)
+            .firstOrNull;
+        if (store != null) {
+          _selectedStores = [
+            StoreSelectOption(
+              id: store.id,
+              name: store.name,
+              route: store.route,
+              address: store.address,
+            ),
+          ];
+        }
         if (delivery.courierId != null) {
           _selectedCourierId = delivery.courierId;
         }
@@ -307,7 +322,7 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
       hasInlineErrors = true;
     }
 
-    if (_selectedStoreId == null) {
+    if (_selectedStores.isEmpty) {
       hasInlineErrors = true;
     }
 
@@ -375,10 +390,12 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
         };
       }).toList();
 
+      final storeIds = _selectedStores.map((s) => s.id).toList();
       final payload = <String, dynamic>{
         'invoice_number': _invoiceNumberController.text.trim(),
-        'store_id': _selectedStoreId,
-        'delivery_id': _selectedDeliveryId,
+        'store_id': storeIds.first,
+        'store_ids': storeIds,
+        'delivery_id': storeIds.length == 1 ? _selectedDeliveryId : null,
         if (_selectedCourierId != null) 'courier_id': _selectedCourierId,
         'invoice_date': _invoiceDateController.text.trim(),
         'due_date': _dueDateController.text.trim(),
@@ -393,10 +410,12 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
       ref.read(invoiceViewModelProvider.notifier).loadInvoices(refresh: true);
 
       if (mounted) {
+        final message = storeIds.length > 1
+            ? '${storeIds.length} faktur tagihan berhasil dibuat untuk masing-masing toko.'
+            : 'Faktur tagihan ${createdInvoice.invoiceNumber} berhasil dibuat.';
         AppSnackBar.showSuccess(
           context,
-          message:
-              'Faktur tagihan ${createdInvoice.invoiceNumber} berhasil dibuat.',
+          message: message,
         );
         Navigator.pop(context, true);
       }
@@ -576,55 +595,93 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
 
           // SUB FORM 2: TUJUAN PENAGIHAN (Title dengan border bottom, tanpa card)
           _buildSectionHeader('Tujuan Penagihan'),
-          StoreDropdownSearchField(
+          StoreMultiSelectField(
             labelText: 'Toko Mitra Tujuan *',
-            hintText: 'Pilih Toko Mitra...',
-            initialValue: _selectedStoreId,
-            initialStores: stores,
-            onSelected: (option) {
+            hintText: 'Pilih satu atau lebih toko mitra...',
+            initialStores: _selectedStores,
+            initialAvailableStores: stores,
+            validator: (val) {
+              if (val == null || val.isEmpty) {
+                return 'Pilih minimal satu toko mitra tujuan penagihan.';
+              }
+              return null;
+            },
+            onChanged: (selectedList) {
               setState(() {
-                _selectedStoreId = option?.id;
-                if (_selectedDeliveryId != null) {
+                _selectedStores = selectedList;
+                if (_selectedStores.length > 1) {
+                  _selectedDeliveryId = null;
+                } else if (_selectedStores.length == 1 &&
+                    _selectedDeliveryId != null) {
                   final currentDel = _options?.deliveries
                       .where((d) => d.id == _selectedDeliveryId)
                       .firstOrNull;
-                  if (currentDel != null && currentDel.storeId != _selectedStoreId) {
+                  if (currentDel != null &&
+                      currentDel.storeId != _selectedStores.first.id) {
                     _selectedDeliveryId = null;
                   }
                 }
               });
             },
-            validator: (val) {
-              if (val == null) {
-                return 'Pilih toko mitra tujuan penagihan.';
-              }
-              return null;
-            },
           ),
           const SizedBox(height: 14),
-          AppMenuSelect<int?>(
-            labelText: 'Berdasarkan Surat Jalan (Opsional)',
-            hintText: 'Tanpa Surat Jalan (Mandiri)',
-            initialSelection: _selectedDeliveryId,
-            entries: [
-              const AppMenuSelectEntry<int?>(
-                value: null,
-                label: 'Tanpa Surat Jalan (Mandiri)',
+          if (_selectedStores.length <= 1) ...[
+            AppMenuSelect<int?>(
+              labelText: 'Berdasarkan Surat Jalan (Opsional)',
+              hintText: 'Tanpa Surat Jalan (Mandiri)',
+              initialSelection: _selectedDeliveryId,
+              entries: [
+                const AppMenuSelectEntry<int?>(
+                  value: null,
+                  label: 'Tanpa Surat Jalan (Mandiri)',
+                ),
+                ...availableDeliveries.map((d) {
+                  final formattedDate = d.formattedDeliveryDate;
+                  final dateLabel =
+                      formattedDate.isNotEmpty ? ' ($formattedDate)' : '';
+                  return AppMenuSelectEntry<int?>(
+                    value: d.id,
+                    label: '${d.deliveryNumber}$dateLabel',
+                  );
+                }),
+              ],
+              onSelected: (val) {
+                _onDeliverySelected(val);
+              },
+            ),
+          ] else ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.brandWarmGray.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: AppColors.brandBorder,
+                  width: 0.8,
+                ),
               ),
-              ...availableDeliveries.map((d) {
-                final formattedDate = d.formattedDeliveryDate;
-                final dateLabel =
-                    formattedDate.isNotEmpty ? ' ($formattedDate)' : '';
-                return AppMenuSelectEntry<int?>(
-                  value: d.id,
-                  label: '${d.deliveryNumber}$dateLabel',
-                );
-              }),
-            ],
-            onSelected: (val) {
-              _onDeliverySelected(val);
-            },
-          ),
+              child: const Row(
+                children: [
+                  Icon(
+                    TablerIcons.info_circle,
+                    size: 16,
+                    color: AppColors.brandWarmGray,
+                  ),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Pemilihan lebih dari 1 toko mitra membuat faktur mandiri terpisah untuk tiap toko (tanpa tautan surat jalan tunggal).',
+                      style: TextStyle(
+                        fontFamily: 'PlusJakartaSans',
+                        fontSize: 12,
+                        color: AppColors.brandWarmGray,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           if ((_options?.couriers ?? []).isNotEmpty) ...[
             const SizedBox(height: 14),
             AppMenuSelect<int?>(

@@ -12,6 +12,7 @@ import '../widgets/delivery_item_card.dart';
 import '../widgets/delivery_item_edit_dialog.dart';
 import '../widgets/delivery_product_selection_dialog.dart';
 import '../../../store/presentation/widgets/store_dropdown_search_field.dart';
+import '../../../store/presentation/widgets/store_multi_select_field.dart';
 
 class DeliveryCreateScreen extends ConsumerStatefulWidget {
   const DeliveryCreateScreen({super.key});
@@ -29,7 +30,7 @@ class _DeliveryCreateScreenState extends ConsumerState<DeliveryCreateScreen> {
   final TextEditingController _deliveryDateController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
 
-  int? _selectedStoreId;
+  List<StoreSelectOption> _selectedStores = [];
   int? _selectedCourierId;
   DateTime? _selectedDate;
 
@@ -219,14 +220,24 @@ class _DeliveryCreateScreenState extends ConsumerState<DeliveryCreateScreen> {
     }
 
     // Check stock sufficiency
+    final storeCount = _selectedStores.length;
     for (int i = 0; i < _items.length; i++) {
       final entry = _items[i];
-      if (entry.quantity > entry.product.stockReady) {
-        AppSnackBar.showError(
-          context,
-          message:
-              'Stok ${entry.product.name} tidak mencukupi (Tersedia ready: ${entry.product.stockReady} ${entry.product.unit}).',
-        );
+      final totalNeeded = entry.quantity * storeCount;
+      if (totalNeeded > entry.product.stockReady) {
+        if (storeCount > 1) {
+          AppSnackBar.showError(
+            context,
+            message:
+                'Stok ${entry.product.name} tidak mencukupi untuk $storeCount toko. Dibutuhkan $totalNeeded ${entry.product.unit} (${entry.quantity} x $storeCount toko), tersedia: ${entry.product.stockReady} ${entry.product.unit}.',
+          );
+        } else {
+          AppSnackBar.showError(
+            context,
+            message:
+                'Stok ${entry.product.name} tidak mencukupi (Tersedia ready: ${entry.product.stockReady} ${entry.product.unit}).',
+          );
+        }
         return;
       }
     }
@@ -237,9 +248,11 @@ class _DeliveryCreateScreenState extends ConsumerState<DeliveryCreateScreen> {
 
     try {
       final repository = ref.read(deliveryRepositoryProvider);
+      final storeIds = _selectedStores.map((s) => s.id).toList();
       final payload = <String, dynamic>{
         'delivery_number': _deliveryNumberController.text.trim(),
-        'store_id': _selectedStoreId,
+        'store_id': storeIds.first,
+        'store_ids': storeIds,
         'courier_id': _selectedCourierId,
         'delivery_date': _deliveryDateController.text.trim(),
         'notes': _notesController.text.trim(),
@@ -249,9 +262,12 @@ class _DeliveryCreateScreenState extends ConsumerState<DeliveryCreateScreen> {
       final created = await repository.createDelivery(payload);
 
       if (mounted) {
+        final message = storeIds.length > 1
+            ? '${storeIds.length} surat jalan pengantaran berhasil dibuat untuk masing-masing toko.'
+            : 'Surat jalan ${created.deliveryNumber} berhasil dibuat.';
         AppSnackBar.showSuccess(
           context,
-          message: 'Surat jalan ${created.deliveryNumber} berhasil dibuat.',
+          message: message,
         );
         Navigator.pop(context, true);
       }
@@ -357,21 +373,21 @@ class _DeliveryCreateScreenState extends ConsumerState<DeliveryCreateScreen> {
           ),
           const SizedBox(height: 14),
 
-          // Toko Mitra
-          StoreDropdownSearchField(
-            labelText: 'Toko Mitra Tujuan',
-            hintText: 'Pilih Toko Mitra...',
-            initialValue: _selectedStoreId,
-            initialStores: opts.stores,
+          // Toko Mitra (Bisa memilih lebih dari 1 toko)
+          StoreMultiSelectField(
+            labelText: 'Toko Mitra Tujuan *',
+            hintText: 'Pilih satu atau lebih toko mitra...',
+            initialStores: _selectedStores,
+            initialAvailableStores: opts.stores,
             validator: (val) {
-              if (val == null) {
-                return 'Pilih toko mitra tujuan pengantaran.';
+              if (val == null || val.isEmpty) {
+                return 'Pilih minimal satu toko mitra tujuan pengantaran.';
               }
               return null;
             },
-            onSelected: (option) {
+            onChanged: (stores) {
               setState(() {
-                _selectedStoreId = option?.id;
+                _selectedStores = stores;
               });
             },
           ),
