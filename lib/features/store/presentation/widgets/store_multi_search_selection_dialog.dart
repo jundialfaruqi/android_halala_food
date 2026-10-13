@@ -720,36 +720,32 @@ class _StoreMultiSearchSelectionDialogState
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  store.name,
-                                  style: TextStyle(
-                                    fontFamily: 'PlusJakartaSans',
-                                    fontSize: 13.5,
-                                    fontWeight: isSelected
-                                        ? FontWeight.w700
-                                        : FontWeight.w600,
-                                    color: AppColors.brandEspresso,
-                                  ),
-                                ),
-                              ),
-                              if (store.route != null &&
-                                  store.route!.trim().isNotEmpty) ...[
-                                const SizedBox(width: 6),
-                                Text(
-                                  '(${store.route})',
-                                  style: const TextStyle(
-                                    fontFamily: 'PlusJakartaSans',
-                                    fontSize: 11.5,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.brandPrimary,
-                                  ),
-                                ),
-                              ],
-                            ],
+                          Text(
+                            store.name,
+                            style: TextStyle(
+                              fontFamily: 'PlusJakartaSans',
+                              fontSize: 13.5,
+                              fontWeight: isSelected
+                                  ? FontWeight.w700
+                                  : FontWeight.w600,
+                              color: AppColors.brandEspresso,
+                            ),
                           ),
+                          if (store.route != null &&
+                              store.route!.trim().isNotEmpty) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              store.route!.trim(),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontFamily: 'PlusJakartaSans',
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.brandPrimary,
+                              ),
+                            ),
+                          ],
                           const SizedBox(height: 2.5),
                           Text(
                             _formatStoreSubtitle(store),

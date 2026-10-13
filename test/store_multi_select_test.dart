@@ -184,8 +184,13 @@ void main() {
     expect(find.byType(StoreMultiSearchSelectionDialog), findsOneWidget);
     expect(find.text('Pilih Mitra Toko'), findsOneWidget);
 
-    // Di dialog awal ada daftar toko
+    // Di dialog awal ada daftar toko dan rute di bawah nama toko
     expect(find.text('Toko Sumber Rezeki 1'), findsOneWidget);
+    expect(find.text('Rute 1'), findsWidgets);
+    expect(
+      tester.getTopLeft(find.text('Rute 1').first).dy,
+      greaterThan(tester.getTopLeft(find.text('Toko Sumber Rezeki 1')).dy),
+    );
 
     // Tap toko 1
     await tester.tap(find.text('Toko Sumber Rezeki 1'));
