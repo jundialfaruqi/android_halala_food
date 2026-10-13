@@ -299,4 +299,29 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.byType(Dialog), findsNothing);
   });
+
+  testWidgets('InvoiceScreen renders Lihat Titik Kordinat Pengantaran button',
+      (tester) async {
+    final mockRepo = MockInvoiceRepository();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          invoiceRepositoryProvider.overrideWithValue(mockRepo),
+          authViewModelProvider.overrideWith(
+            () => FakeAuthViewModelWithFakturPermissions(),
+          ),
+        ],
+        child: const MaterialApp(
+          home: InvoiceScreen(),
+        ),
+      ),
+    );
+
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.text('Lihat Titik Kordinat Pengantaran'), findsOneWidget);
+    expect(find.byIcon(TablerIcons.map_pin), findsOneWidget);
+  });
 }

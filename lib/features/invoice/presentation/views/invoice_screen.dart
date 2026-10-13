@@ -8,6 +8,7 @@ import '../../data/models/invoice_model.dart';
 import '../viewmodels/invoice_viewmodel.dart';
 import 'invoice_create_screen.dart';
 import 'invoice_detail_sheet.dart';
+import '../../../delivery/presentation/views/delivery_coordinates_screen.dart';
 
 class InvoiceScreen extends ConsumerStatefulWidget {
   const InvoiceScreen({super.key});
@@ -167,6 +168,24 @@ class _InvoiceScreenState extends ConsumerState<InvoiceScreen> {
                                 ),
                               ),
                             ],
+                          ),
+                          const SizedBox(height: 10),
+
+                          // Tombol Lihat Titik Kordinat Pengantaran
+                          AppButton(
+                            text: 'Lihat Titik Kordinat Pengantaran',
+                            icon: const Icon(TablerIcons.map_pin, size: 18, color: Colors.white),
+                            height: 44,
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => DeliveryCoordinatesScreen(
+                                    initialDate: state.selectedDate,
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                         ],
                       ),
