@@ -86,6 +86,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
   void didPopNext() {
     // Status bar konsisten hitam saat kembali ke Home
     AppStatusBar.setDark();
+    // Muat ulang stat card agar selalu terupdate dengan data terbaru
+    ref.read(homeStatViewModelProvider.notifier).loadStat();
   }
 
   /// Helper navigasi sinkron yang langsung memastikan status bar gelap (ikon hitam)
