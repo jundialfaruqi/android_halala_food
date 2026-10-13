@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -1007,67 +1006,52 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
             ),
           ),
 
-          // 3. Di atas gambar bagian atas: Badge glass blur berisi angka total penjualan di sebelah kiri bintang
+          // 3. Di atas gambar bagian atas: Badge putih solid tanpa border berisi angka total penjualan di sebelah kiri bintang
           Positioned(
             top: 12,
             left: 12,
             child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 9,
+                vertical: 5,
+              ),
               decoration: BoxDecoration(
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.15),
+                    color: Colors.black.withValues(alpha: 0.16),
                     blurRadius: 6,
                     offset: const Offset(0, 2),
                   ),
                 ],
               ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 9,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.78),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.6),
-                        width: 1,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        // Angka total penjualan fisik produk dari faktur lunas di sebelah kiri bintang
-                        Text(
-                          '$soldCount',
-                          style: const TextStyle(
-                            fontFamily: 'PlusJakartaSans',
-                            fontSize: 12,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF0F172A),
-                            height: 1.0,
-                          ),
-                        ),
-                        const SizedBox(width: 4.5),
-                        // Bintang
-                        for (int i = 0; i < starCount; i++) ...[
-                          if (i > 0) const SizedBox(width: 2),
-                          const Icon(
-                            TablerIcons.star_filled,
-                            size: 13,
-                            color: Color(0xFFF59E0B),
-                          ),
-                        ],
-                      ],
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Angka total penjualan fisik produk dari faktur lunas di sebelah kiri bintang
+                  Text(
+                    '$soldCount',
+                    style: const TextStyle(
+                      fontFamily: 'PlusJakartaSans',
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF0F172A),
+                      height: 1.0,
                     ),
                   ),
-                ),
+                  const SizedBox(width: 4.5),
+                  // Bintang
+                  for (int i = 0; i < starCount; i++) ...[
+                    if (i > 0) const SizedBox(width: 2),
+                    const Icon(
+                      TablerIcons.star_filled,
+                      size: 13,
+                      color: Color(0xFFF59E0B),
+                    ),
+                  ],
+                ],
               ),
             ),
           ),
