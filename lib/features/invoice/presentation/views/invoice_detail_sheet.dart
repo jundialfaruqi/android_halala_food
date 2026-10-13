@@ -612,42 +612,42 @@ class _InvoiceDetailSheetState extends ConsumerState<InvoiceDetailSheet> {
                         border: Border.all(color: AppColors.brandBorder),
                       ),
                       child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          const Icon(
-                            TablerIcons.user,
-                            size: 16,
-                            color: AppColors.brandWarmGray,
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                TablerIcons.user,
+                                size: 16,
+                                color: AppColors.brandWarmGray,
+                              ),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Kurir Penagih',
+                                style: TextStyle(
+                                  fontFamily: 'PlusJakartaSans',
+                                  fontSize: 12,
+                                  color: AppColors.brandWarmGray,
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(width: 8),
-                          const Text(
-                            'Kurir Penagih: ',
-                            style: TextStyle(
-                              fontFamily: 'PlusJakartaSans',
-                              fontSize: 12,
-                              color: AppColors.brandWarmGray,
+                          Flexible(
+                            child: Text(
+                              _invoice.courier!.name,
+                              textAlign: TextAlign.right,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontFamily: 'PlusJakartaSans',
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.brandEspresso,
+                              ),
                             ),
                           ),
-                          Text(
-                            _invoice.courier!.name,
-                            style: const TextStyle(
-                              fontFamily: 'PlusJakartaSans',
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.brandEspresso,
-                            ),
-                          ),
-                          if (_invoice.courier!.phone != null &&
-                              _invoice.courier!.phone!.isNotEmpty) ...[
-                            const SizedBox(width: 6),
-                            _buildClickablePhone(
-                              context: context,
-                              rawPhone: _invoice.courier!.phone!,
-                              targetName: _invoice.courier!.name,
-                              fontSize: 11.5,
-                              prefixText: '(',
-                              suffixText: ')',
-                            ),
-                          ],
                         ],
                       ),
                     ),
