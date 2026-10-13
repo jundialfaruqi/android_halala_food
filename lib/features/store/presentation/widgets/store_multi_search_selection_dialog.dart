@@ -76,16 +76,24 @@ class _StoreMultiSearchSelectionDialogState
 
     if (widget.initialAvailableStores != null &&
         widget.initialAvailableStores!.isNotEmpty) {
-      _stores = widget.initialAvailableStores!.map((s) {
-        if (s is StoreModel) return s;
-        return StoreModel(
-          id: s.id as int,
-          name: (s.name ?? '').toString(),
-          route: s.route?.toString(),
-          address: s.address?.toString(),
-          isActive: true,
-        );
-      }).toList();
+      final seenIds = <int>{};
+      final initialList = <StoreModel>[];
+      for (final s in widget.initialAvailableStores!) {
+        final id = (s is StoreModel) ? s.id : (s.id as int);
+        if (!seenIds.add(id)) continue;
+        if (s is StoreModel) {
+          initialList.add(s);
+        } else {
+          initialList.add(StoreModel(
+            id: id,
+            name: (s.name ?? '').toString(),
+            route: s.route?.toString(),
+            address: s.address?.toString(),
+            isActive: true,
+          ));
+        }
+      }
+      _stores = initialList;
       _isLoadingInitial = false;
     }
 
@@ -159,7 +167,10 @@ class _StoreMultiSearchSelectionDialogState
         if (isInitial) {
           _stores = result.stores;
         } else {
-          _stores.addAll(result.stores);
+          final existingIds = _stores.map((s) => s.id).toSet();
+          final newStores =
+              result.stores.where((s) => !existingIds.contains(s.id)).toList();
+          _stores.addAll(newStores);
         }
         _currentPage = page;
         _hasMore = result.pagination.hasMore;
@@ -496,13 +507,16 @@ class _StoreMultiSearchSelectionDialogState
 
     return Scrollbar(
       controller: _scrollController,
+      thumbVisibility: true,
       child: ListView.separated(
         controller: _scrollController,
+        physics: const AlwaysScrollableScrollPhysics(),
         itemCount: _stores.length + (_isLoadingMore ? 1 : 0),
         separatorBuilder: (_, __) => const SizedBox(height: 8),
         itemBuilder: (context, index) {
           if (index == _stores.length) {
             return const Padding(
+              key: ValueKey('store_loading_more'),
               padding: EdgeInsets.symmetric(vertical: 14),
               child: Center(
                 child: SizedBox(
@@ -521,6 +535,7 @@ class _StoreMultiSearchSelectionDialogState
           final isSelected = _selectedMap.containsKey(store.id);
 
           return Material(
+            key: ValueKey('store_item_${store.id}'),
             color: Colors.transparent,
             child: InkWell(
               onTap: () => _toggleStore(store),

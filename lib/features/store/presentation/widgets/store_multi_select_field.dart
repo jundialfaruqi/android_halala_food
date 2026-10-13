@@ -46,12 +46,25 @@ class _StoreMultiSelectFieldState extends State<StoreMultiSelectField> {
     _selectedStores = List<StoreSelectOption>.from(widget.initialStores);
   }
 
+  bool _areStoresEqual(List<StoreSelectOption> a, List<StoreSelectOption> b) {
+    if (identical(a, b)) return true;
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i].id != b[i].id) return false;
+    }
+    return true;
+  }
+
   @override
   void didUpdateWidget(covariant StoreMultiSelectField oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.initialStores != oldWidget.initialStores) {
+    if (!_areStoresEqual(widget.initialStores, _selectedStores)) {
       _selectedStores = List<StoreSelectOption>.from(widget.initialStores);
-      _currentFormFieldState?.didChange(_selectedStores);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _currentFormFieldState != null) {
+          _currentFormFieldState!.didChange(_selectedStores);
+        }
+      });
     }
   }
 
