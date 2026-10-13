@@ -31,7 +31,7 @@ const _businessStat = DashboardStatModel(
   ),
   metrics: [
     DashboardMetricModel(
-      label: 'Pemasukan Periode ini',
+      label: 'Pemasukan',
       value: 'Rp 1.000.000',
       color: Color(0xFF10B981),
     ),
@@ -107,10 +107,12 @@ class _DummyStoreRepo implements StoreRepository {
   Future<StoreModel> getStoreDetail(int id) async => throw UnimplementedError();
 
   @override
-  Future<StoreModel> updateStore(int id, Map<String, dynamic> data) async => throw UnimplementedError();
+  Future<StoreModel> updateStore(int id, Map<String, dynamic> data) async =>
+      throw UnimplementedError();
 
   @override
-  Future<StoreModel> createStore(Map<String, dynamic> data) async => throw UnimplementedError();
+  Future<StoreModel> createStore(Map<String, dynamic> data) async =>
+      throw UnimplementedError();
 
   @override
   Future<void> deleteStore(int id) async {}
@@ -126,20 +128,14 @@ class _TestAuthViewModel extends AuthViewModel {
   AuthState build() {
     if (initialUser != null) {
       homeRepo.currentUser = initialUser;
-      return AuthState(
-        status: AuthStatus.authenticated,
-        user: initialUser,
-      );
+      return AuthState(status: AuthStatus.authenticated, user: initialUser);
     }
     return const AuthState(status: AuthStatus.unauthenticated);
   }
 
   void loginAs(UserModel user) {
     homeRepo.currentUser = user;
-    state = AuthState(
-      status: AuthStatus.authenticated,
-      user: user,
-    );
+    state = AuthState(status: AuthStatus.authenticated, user: user);
   }
 
   @override
@@ -151,120 +147,132 @@ class _TestAuthViewModel extends AuthViewModel {
 
 void main() {
   group('HomeStat Switch User Tests', () {
-    test('HomeStatViewModel clears stat on logout and loads courier stat on login', () async {
-      final repo = _TestHomeRepository();
-      final container = ProviderContainer(
-        overrides: [
-          homeRepositoryProvider.overrideWithValue(repo),
-          authViewModelProvider.overrideWith(() => _TestAuthViewModel(repo)),
-        ],
-      );
-
-      final adminUser = UserModel(
-        id: 1,
-        name: 'Admin Bisnis',
-        email: 'admin@mail.com',
-        permissions: const ['dashboard-stat-bisnis'],
-        roles: const ['dev'],
-      );
-
-      final courierUser = UserModel(
-        id: 4,
-        name: 'Kurir Budi',
-        email: 'kurir@mail.com',
-        permissions: const ['dashboard-stat-pengantaran'],
-        roles: const ['kurir'],
-      );
-
-      // Listen agar provider selalu aktif di Riverpod container
-      final sub = container.listen(homeStatViewModelProvider, (_, __) {});
-
-      final authNotifier = container.read(authViewModelProvider.notifier) as _TestAuthViewModel;
-
-      // 1. Awalnya unauthenticated: stat harus null
-      expect(sub.read().stat, isNull);
-
-      // 2. Login sebagai Admin
-      authNotifier.loginAs(adminUser);
-      await Future<void>.delayed(const Duration(milliseconds: 50));
-      final adminStat = sub.read().stat;
-      expect(adminStat, isNotNull);
-      expect(adminStat?.type, equals('bisnis'));
-      expect(adminStat?.title, equals('Ringkasan Bisnis'));
-
-      // 3. Logout -> stat otomatis ter-reset ke null
-      await authNotifier.logout();
-      await Future<void>.delayed(const Duration(milliseconds: 50));
-      expect(sub.read().stat, isNull);
-
-      // 4. Login kembali sebagai Kurir -> stat termuat untuk Kurir
-      authNotifier.loginAs(courierUser);
-      await Future<void>.delayed(const Duration(milliseconds: 50));
-      final courierStat = sub.read().stat;
-      expect(courierStat, isNotNull);
-      expect(courierStat?.type, equals('pengantaran'));
-      expect(courierStat?.title, equals('Tugas Pengantaran Hari Ini'));
-
-      sub.close();
-      container.dispose();
-    });
-
-    testWidgets('HomeScreen updates from business stat to courier stat when user switches', (tester) async {
-      final repo = _TestHomeRepository();
-
-      final adminUser = UserModel(
-        id: 1,
-        name: 'Admin Bisnis',
-        email: 'admin@mail.com',
-        permissions: const ['dashboard-stat-bisnis'],
-        roles: const ['dev'],
-      );
-
-      final courierUser = UserModel(
-        id: 4,
-        name: 'Kurir Budi',
-        email: 'kurir@mail.com',
-        permissions: const ['dashboard-stat-pengantaran'],
-        roles: const ['kurir'],
-      );
-
-      await tester.pumpWidget(
-        ProviderScope(
+    test(
+      'HomeStatViewModel clears stat on logout and loads courier stat on login',
+      () async {
+        final repo = _TestHomeRepository();
+        final container = ProviderContainer(
           overrides: [
             homeRepositoryProvider.overrideWithValue(repo),
-            storeRepositoryProvider.overrideWithValue(_DummyStoreRepo()),
-            authViewModelProvider.overrideWith(() => _TestAuthViewModel(repo, adminUser)),
+            authViewModelProvider.overrideWith(() => _TestAuthViewModel(repo)),
           ],
-          child: const MaterialApp(home: HomeScreen()),
-        ),
-      );
+        );
 
-      await tester.pumpAndSettle();
+        final adminUser = UserModel(
+          id: 1,
+          name: 'Admin Bisnis',
+          email: 'admin@mail.com',
+          permissions: const ['dashboard-stat-bisnis'],
+          roles: const ['dev'],
+        );
 
-      // Memastikan Ringkasan Bisnis tampil untuk Admin
-      expect(find.text('Ringkasan Bisnis'), findsOneWidget);
-      expect(find.text('Pemasukan Periode ini'), findsOneWidget);
+        final courierUser = UserModel(
+          id: 4,
+          name: 'Kurir Budi',
+          email: 'kurir@mail.com',
+          permissions: const ['dashboard-stat-pengantaran'],
+          roles: const ['kurir'],
+        );
 
-      // Dapatkan authNotifier dari element tree
-      final element = tester.element(find.byType(HomeScreen));
-      final container = ProviderScope.containerOf(element);
-      final authNotifier = container.read(authViewModelProvider.notifier) as _TestAuthViewModel;
+        // Listen agar provider selalu aktif di Riverpod container
+        final sub = container.listen(homeStatViewModelProvider, (_, __) {});
 
-      // Logout
-      await authNotifier.logout();
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
+        final authNotifier =
+            container.read(authViewModelProvider.notifier)
+                as _TestAuthViewModel;
 
-      // Login sebagai Kurir
-      authNotifier.loginAs(courierUser);
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 300));
-      await tester.pumpAndSettle();
+        // 1. Awalnya unauthenticated: stat harus null
+        expect(sub.read().stat, isNull);
 
-      // Memastikan Ringkasan Bisnis sudah HILANG dan Tugas Pengantaran Hari Ini tampil
-      expect(find.text('Ringkasan Bisnis'), findsNothing);
-      expect(find.text('Tugas Pengantaran Hari Ini'), findsOneWidget);
-      expect(find.text('Total Toko'), findsOneWidget);
-    });
+        // 2. Login sebagai Admin
+        authNotifier.loginAs(adminUser);
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        final adminStat = sub.read().stat;
+        expect(adminStat, isNotNull);
+        expect(adminStat?.type, equals('bisnis'));
+        expect(adminStat?.title, equals('Ringkasan Bisnis'));
+
+        // 3. Logout -> stat otomatis ter-reset ke null
+        await authNotifier.logout();
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        expect(sub.read().stat, isNull);
+
+        // 4. Login kembali sebagai Kurir -> stat termuat untuk Kurir
+        authNotifier.loginAs(courierUser);
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        final courierStat = sub.read().stat;
+        expect(courierStat, isNotNull);
+        expect(courierStat?.type, equals('pengantaran'));
+        expect(courierStat?.title, equals('Tugas Pengantaran Hari Ini'));
+
+        sub.close();
+        container.dispose();
+      },
+    );
+
+    testWidgets(
+      'HomeScreen updates from business stat to courier stat when user switches',
+      (tester) async {
+        final repo = _TestHomeRepository();
+
+        final adminUser = UserModel(
+          id: 1,
+          name: 'Admin Bisnis',
+          email: 'admin@mail.com',
+          permissions: const ['dashboard-stat-bisnis'],
+          roles: const ['dev'],
+        );
+
+        final courierUser = UserModel(
+          id: 4,
+          name: 'Kurir Budi',
+          email: 'kurir@mail.com',
+          permissions: const ['dashboard-stat-pengantaran'],
+          roles: const ['kurir'],
+        );
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              homeRepositoryProvider.overrideWithValue(repo),
+              storeRepositoryProvider.overrideWithValue(_DummyStoreRepo()),
+              authViewModelProvider.overrideWith(
+                () => _TestAuthViewModel(repo, adminUser),
+              ),
+            ],
+            child: const MaterialApp(home: HomeScreen()),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+
+        // Memastikan Ringkasan Bisnis tampil untuk Admin
+        expect(find.text('Ringkasan Bisnis'), findsOneWidget);
+        expect(find.text('Pemasukan'), findsOneWidget);
+
+        // Dapatkan authNotifier dari element tree
+        final element = tester.element(find.byType(HomeScreen));
+        final container = ProviderScope.containerOf(element);
+        final authNotifier =
+            container.read(authViewModelProvider.notifier)
+                as _TestAuthViewModel;
+
+        // Logout
+        await authNotifier.logout();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        // Login sebagai Kurir
+        authNotifier.loginAs(courierUser);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+        await tester.pumpAndSettle();
+
+        // Memastikan Ringkasan Bisnis sudah HILANG dan Tugas Pengantaran Hari Ini tampil
+        expect(find.text('Ringkasan Bisnis'), findsNothing);
+        expect(find.text('Tugas Pengantaran Hari Ini'), findsOneWidget);
+        expect(find.text('Total Toko'), findsOneWidget);
+      },
+    );
   });
 }

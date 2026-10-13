@@ -414,27 +414,28 @@ class _StoreMultiSearchSelectionDialogState
             const Divider(height: 1, color: AppColors.brandBorder),
             const SizedBox(height: 12),
 
-            // 4. Bottom Actions: Batal, Konfirmasi
+            // 4. Bottom Actions: Batal, Konfirmasi (Full Width 2 Kolom)
             Row(
-              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                AppButton.outline(
-                  text: 'Batal',
-                  height: 40,
-                  width: 80,
-                  onPressed: () => Navigator.of(context).pop(),
+                Expanded(
+                  child: AppButton.outline(
+                    text: 'Batal',
+                    height: 42,
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
                 ),
-                const SizedBox(width: 8),
-                AppButton(
-                  text: selectedCount > 0
-                      ? 'Pilih ($selectedCount Toko)'
-                      : 'Pilih Toko',
-                  height: 40,
-                  width: selectedCount > 0 ? 140 : 110,
-                  onPressed: selectedCount > 0
-                      ? () => Navigator.of(context)
-                          .pop(_selectedMap.values.toList())
-                      : null,
+                const SizedBox(width: 10),
+                Expanded(
+                  child: AppButton(
+                    text: selectedCount > 0
+                        ? 'Pilih ($selectedCount Toko)'
+                        : 'Pilih Toko',
+                    height: 42,
+                    onPressed: selectedCount > 0
+                        ? () => Navigator.of(context)
+                            .pop(_selectedMap.values.toList())
+                        : null,
+                  ),
                 ),
               ],
             ),
@@ -748,8 +749,8 @@ class _StoreMultiSearchSelectionDialogState
                           ],
                           const SizedBox(height: 2.5),
                           Text(
-                            _formatStoreSubtitle(store),
-                            maxLines: 1,
+                            _formatStoreAddress(store),
+                            maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               fontFamily: 'PlusJakartaSans',
@@ -757,6 +758,19 @@ class _StoreMultiSearchSelectionDialogState
                               color: AppColors.brandWarmGray,
                             ),
                           ),
+                          if (_formatStoreOwnerAndPhone(store) != null) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              _formatStoreOwnerAndPhone(store)!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontFamily: 'PlusJakartaSans',
+                                fontSize: 11.5,
+                                color: AppColors.brandWarmGray,
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -770,18 +784,22 @@ class _StoreMultiSearchSelectionDialogState
     );
   }
 
-  String _formatStoreSubtitle(StoreModel store) {
+  String _formatStoreAddress(StoreModel store) {
+    if (store.address != null && store.address!.trim().isNotEmpty) {
+      return store.address!.trim();
+    }
+    return 'Alamat belum diatur';
+  }
+
+  String? _formatStoreOwnerAndPhone(StoreModel store) {
     final parts = <String>[];
     if (store.ownerName != null && store.ownerName!.trim().isNotEmpty) {
       parts.add(store.ownerName!.trim());
     }
-    if (store.address != null && store.address!.trim().isNotEmpty) {
-      parts.add(store.address!.trim());
-    }
     if (store.phone != null && store.phone!.trim().isNotEmpty) {
       parts.add(store.phone!.trim());
     }
-    return parts.isEmpty ? 'Alamat belum diatur' : parts.join(' • ');
+    return parts.isEmpty ? null : parts.join(' • ');
   }
 
   Widget _buildSkeletonLoading() {

@@ -117,12 +117,12 @@ class _FakeBusinessHomeStatViewModel extends HomeStatViewModel {
         ),
         metrics: [
           DashboardMetricModel(
-            label: 'Pemasukan Periode ini',
+            label: 'Pemasukan',
             value: 'Rp 8.870.000',
             color: Color(0xFF10B981),
           ),
           DashboardMetricModel(
-            label: 'Biaya Usaha Periode ini',
+            label: 'Biaya Usaha',
             value: 'Rp 1.089.500',
             color: Color(0xFFEF4444),
           ),
@@ -221,9 +221,9 @@ void main() {
         expect(find.text('Senin, 13 Okt 2026'), findsOneWidget);
 
         // Verify the 3 cash book metric labels and values
-        expect(find.text('Pemasukan Periode ini'), findsOneWidget);
+        expect(find.text('Pemasukan'), findsOneWidget);
         expect(find.text('Rp 8.870.000'), findsOneWidget);
-        expect(find.text('Biaya Usaha Periode ini'), findsOneWidget);
+        expect(find.text('Biaya Usaha'), findsOneWidget);
         expect(find.text('Rp 1.089.500'), findsOneWidget);
         expect(find.text('Total Prive'), findsOneWidget);
         expect(find.text('Rp 0'), findsOneWidget);

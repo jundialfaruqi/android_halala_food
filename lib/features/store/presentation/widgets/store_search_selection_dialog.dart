@@ -447,10 +447,10 @@ class _StoreSearchSelectionDialogState
                               ),
                             ),
                           ],
-                          const SizedBox(height: 3),
+                          const SizedBox(height: 2.5),
                           Text(
-                            _formatStoreSubtitle(store),
-                            maxLines: 1,
+                            _formatStoreAddress(store),
+                            maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               fontFamily: 'PlusJakartaSans',
@@ -458,6 +458,19 @@ class _StoreSearchSelectionDialogState
                               color: AppColors.brandWarmGray,
                             ),
                           ),
+                          if (_formatStoreOwnerAndPhone(store) != null) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              _formatStoreOwnerAndPhone(store)!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontFamily: 'PlusJakartaSans',
+                                fontSize: 11.5,
+                                color: AppColors.brandWarmGray,
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -477,18 +490,22 @@ class _StoreSearchSelectionDialogState
     );
   }
 
-  String _formatStoreSubtitle(StoreModel store) {
+  String _formatStoreAddress(StoreModel store) {
+    if (store.address != null && store.address!.trim().isNotEmpty) {
+      return store.address!.trim();
+    }
+    return 'Alamat belum diatur';
+  }
+
+  String? _formatStoreOwnerAndPhone(StoreModel store) {
     final parts = <String>[];
     if (store.ownerName != null && store.ownerName!.trim().isNotEmpty) {
       parts.add(store.ownerName!.trim());
     }
-    if (store.address != null && store.address!.trim().isNotEmpty) {
-      parts.add(store.address!.trim());
-    }
     if (store.phone != null && store.phone!.trim().isNotEmpty) {
       parts.add(store.phone!.trim());
     }
-    return parts.isEmpty ? 'Alamat belum diatur' : parts.join(' • ');
+    return parts.isEmpty ? null : parts.join(' • ');
   }
 
   Widget _buildSkeletonLoading() {

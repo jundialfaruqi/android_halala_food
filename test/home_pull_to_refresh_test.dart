@@ -62,7 +62,7 @@ class _MockHomeStatViewModel extends HomeStatViewModel {
         ),
         metrics: [
           DashboardMetricModel(
-            label: 'Pemasukan Periode ini',
+            label: 'Pemasukan',
             value: 'Rp 1.000.000',
             color: Color(0xFF10B981),
           ),
@@ -120,57 +120,68 @@ class _DummyStoreRepo implements StoreRepository {
   Future<StoreModel> getStoreDetail(int id) async => throw UnimplementedError();
 
   @override
-  Future<StoreModel> updateStore(int id, Map<String, dynamic> data) async => throw UnimplementedError();
+  Future<StoreModel> updateStore(int id, Map<String, dynamic> data) async =>
+      throw UnimplementedError();
 
   @override
-  Future<StoreModel> createStore(Map<String, dynamic> data) async => throw UnimplementedError();
+  Future<StoreModel> createStore(Map<String, dynamic> data) async =>
+      throw UnimplementedError();
 
   @override
   Future<void> deleteStore(int id) async {}
 }
 
 void main() {
-  testWidgets('HomeScreen has RefreshIndicator and triggers full refresh on pull-down', (tester) async {
-    final mockAuth = _MockAuthViewModel();
-    final mockStat = _MockHomeStatViewModel();
-    final mockTopStores = _MockHomeTopStoresViewModel();
+  testWidgets(
+    'HomeScreen has RefreshIndicator and triggers full refresh on pull-down',
+    (tester) async {
+      final mockAuth = _MockAuthViewModel();
+      final mockStat = _MockHomeStatViewModel();
+      final mockTopStores = _MockHomeTopStoresViewModel();
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          authViewModelProvider.overrideWith(() => mockAuth),
-          homeStatViewModelProvider.overrideWith(() => mockStat),
-          homeTopStoresViewModelProvider.overrideWith(() => mockTopStores),
-          storeRepositoryProvider.overrideWithValue(_DummyStoreRepo()),
-        ],
-        child: const MaterialApp(home: HomeScreen()),
-      ),
-    );
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            authViewModelProvider.overrideWith(() => mockAuth),
+            homeStatViewModelProvider.overrideWith(() => mockStat),
+            homeTopStoresViewModelProvider.overrideWith(() => mockTopStores),
+            storeRepositoryProvider.overrideWithValue(_DummyStoreRepo()),
+          ],
+          child: const MaterialApp(home: HomeScreen()),
+        ),
+      );
 
-    await tester.pumpAndSettle();
+      await tester.pumpAndSettle();
 
-    // Pastikan RefreshIndicator terpasang
-    final refreshIndicatorFinder = find.byType(RefreshIndicator);
-    expect(refreshIndicatorFinder, findsOneWidget);
+      // Pastikan RefreshIndicator terpasang
+      final refreshIndicatorFinder = find.byType(RefreshIndicator);
+      expect(refreshIndicatorFinder, findsOneWidget);
 
-    final refreshIndicator = tester.widget<RefreshIndicator>(refreshIndicatorFinder);
-    expect(refreshIndicator.color, equals(AppColors.brandPrimary));
-    expect(refreshIndicator.backgroundColor, equals(Colors.white));
+      final refreshIndicator = tester.widget<RefreshIndicator>(
+        refreshIndicatorFinder,
+      );
+      expect(refreshIndicator.color, equals(AppColors.brandPrimary));
+      expect(refreshIndicator.backgroundColor, equals(Colors.white));
 
-    // Awalnya belum dipanggil pull to refresh
-    expect(mockAuth.refreshCallCount, 0);
-    expect(mockStat.loadStatCallCount, 0);
-    expect(mockTopStores.loadTopStoresCallCount, 0);
+      // Awalnya belum dipanggil pull to refresh
+      expect(mockAuth.refreshCallCount, 0);
+      expect(mockStat.loadStatCallCount, 0);
+      expect(mockTopStores.loadTopStoresCallCount, 0);
 
-    // Simulasikan pull to refresh dengan menarik scrollable ke bawah
-    await tester.fling(find.byType(SingleChildScrollView), const Offset(0, 400), 1000);
-    await tester.pump();
-    await tester.pump(const Duration(seconds: 1));
-    await tester.pumpAndSettle();
+      // Simulasikan pull to refresh dengan menarik scrollable ke bawah
+      await tester.fling(
+        find.byType(SingleChildScrollView),
+        const Offset(0, 400),
+        1000,
+      );
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pumpAndSettle();
 
-    // Seluruh provider relevan (auth profil, stat card, dan top stores) berhasil dipanggil ulang
-    expect(mockAuth.refreshCallCount, greaterThanOrEqualTo(1));
-    expect(mockStat.loadStatCallCount, greaterThanOrEqualTo(1));
-    expect(mockTopStores.loadTopStoresCallCount, greaterThanOrEqualTo(1));
-  });
+      // Seluruh provider relevan (auth profil, stat card, dan top stores) berhasil dipanggil ulang
+      expect(mockAuth.refreshCallCount, greaterThanOrEqualTo(1));
+      expect(mockStat.loadStatCallCount, greaterThanOrEqualTo(1));
+      expect(mockTopStores.loadTopStoresCallCount, greaterThanOrEqualTo(1));
+    },
+  );
 }

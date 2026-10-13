@@ -7,6 +7,7 @@ import 'package:android_halala_food/features/store/data/repositories/store_repos
 import 'package:android_halala_food/features/store/domain/repositories/store_repository.dart';
 import 'package:android_halala_food/features/store/presentation/widgets/store_dropdown_search_field.dart';
 import 'package:android_halala_food/features/store/presentation/widgets/store_multi_select_field.dart';
+import 'package:android_halala_food/core/widgets/app_button.dart';
 import 'package:android_halala_food/features/store/presentation/widgets/store_multi_search_selection_dialog.dart';
 
 class MockStoreRepository implements StoreRepository {
@@ -184,13 +185,30 @@ void main() {
     expect(find.byType(StoreMultiSearchSelectionDialog), findsOneWidget);
     expect(find.text('Pilih Mitra Toko'), findsOneWidget);
 
-    // Di dialog awal ada daftar toko dan rute di bawah nama toko
+    // Di dialog awal ada daftar toko, rute, alamat di baris baru, dan info pemilik/kontak
     expect(find.text('Toko Sumber Rezeki 1'), findsOneWidget);
     expect(find.text('Rute 1'), findsWidgets);
+    expect(find.text('Jl. Ahmad Yani No. 1'), findsOneWidget);
+    expect(find.text('Pemilik 1 • 081234567000'), findsOneWidget);
     expect(
       tester.getTopLeft(find.text('Rute 1').first).dy,
       greaterThan(tester.getTopLeft(find.text('Toko Sumber Rezeki 1')).dy),
     );
+    expect(
+      tester.getTopLeft(find.text('Jl. Ahmad Yani No. 1')).dy,
+      greaterThan(tester.getTopLeft(find.text('Rute 1').first).dy),
+    );
+    expect(
+      tester.getTopLeft(find.text('Pemilik 1 • 081234567000')).dy,
+      greaterThan(tester.getTopLeft(find.text('Jl. Ahmad Yani No. 1')).dy),
+    );
+
+    // Verifikasi tombol Batal dan Pilih Toko full width 2 kolom berukuran seimbang
+    final batalFinder = find.widgetWithText(AppButton, 'Batal');
+    final pilihFinder = find.widgetWithText(AppButton, 'Pilih Toko');
+    expect(batalFinder, findsOneWidget);
+    expect(pilihFinder, findsOneWidget);
+    expect((tester.getSize(batalFinder).width - tester.getSize(pilihFinder).width).abs(), lessThan(1.0));
 
     // Tap toko 1
     await tester.tap(find.text('Toko Sumber Rezeki 1'));
