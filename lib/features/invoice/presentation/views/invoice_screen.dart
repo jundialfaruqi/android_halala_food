@@ -149,6 +149,8 @@ class _InvoiceScreenState extends ConsumerState<InvoiceScreen> {
                                   itemEquals: (a, b) => a?.id == b?.id,
                                   searchMatcher: (store, query) =>
                                       store.name.toLowerCase().contains(query.toLowerCase()),
+                                  minSearchLength: 3,
+                                  debounceDuration: const Duration(milliseconds: 300),
                                   maxDropdownItems: 30,
                                   emptyMessage: 'Tidak ada toko ditemukan.',
                                   fontSize: 13,

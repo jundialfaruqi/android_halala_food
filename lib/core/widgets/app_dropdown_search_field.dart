@@ -32,6 +32,7 @@ class AppDropdownSearchField<T> extends StatefulWidget {
   final VoidCallback? onShowAll;
   final AutovalidateMode? autovalidateMode;
   final Duration debounceDuration;
+  final int minSearchLength;
   final EdgeInsetsGeometry? contentPadding;
   final double borderRadius;
   final double? fontSize;
@@ -58,6 +59,7 @@ class AppDropdownSearchField<T> extends StatefulWidget {
     this.onShowAll,
     this.autovalidateMode,
     this.debounceDuration = const Duration(milliseconds: 250),
+    this.minSearchLength = 0,
     this.contentPadding,
     this.borderRadius = 12.0,
     this.fontSize,
@@ -279,16 +281,26 @@ class _AppDropdownSearchFieldState<T> extends State<AppDropdownSearchField<T>> {
       return;
     }
 
-    if (widget.asyncSearch != null) {
-      if (trimmed.isEmpty) {
-        setState(() {
-          _isSearching = false;
-          _resetFilteredItems();
-        });
-        _overlayEntry?.markNeedsBuild();
-        return;
-      }
+    if (trimmed.isEmpty) {
+      setState(() {
+        _isSearching = false;
+        _resetFilteredItems();
+      });
+      _overlayEntry?.markNeedsBuild();
+      return;
+    }
 
+    // Jika panjang karakter kurang dari minSearchLength, tampilkan list default awal
+    if (widget.minSearchLength > 0 && trimmed.length < widget.minSearchLength) {
+      setState(() {
+        _isSearching = false;
+        _resetFilteredItems();
+      });
+      _overlayEntry?.markNeedsBuild();
+      return;
+    }
+
+    if (widget.asyncSearch != null) {
       _debounceTimer = Timer(widget.debounceDuration, () async {
         if (!mounted) return;
         setState(() {
@@ -314,12 +326,27 @@ class _AppDropdownSearchFieldState<T> extends State<AppDropdownSearchField<T>> {
         }
       });
     } else {
-      // Local filter sinkron
-      setState(() {
-        if (trimmed.isEmpty) {
-          _resetFilteredItems();
-        } else {
+      // Local filter dengan debounce
+      if (widget.debounceDuration > Duration.zero) {
+        _debounceTimer = Timer(widget.debounceDuration, () {
+          if (!mounted) return;
           final q = trimmed.toLowerCase();
+          setState(() {
+            _filteredItems = widget.items.where((item) {
+              if (widget.searchMatcher != null) {
+                return widget.searchMatcher!(item, trimmed);
+              }
+              final label = widget.itemLabel(item).toLowerCase();
+              final subtitle =
+                  widget.itemSubtitle?.call(item)?.toLowerCase() ?? '';
+              return label.contains(q) || subtitle.contains(q);
+            }).take(widget.maxDropdownItems).toList();
+          });
+          _overlayEntry?.markNeedsBuild();
+        });
+      } else {
+        final q = trimmed.toLowerCase();
+        setState(() {
           _filteredItems = widget.items.where((item) {
             if (widget.searchMatcher != null) {
               return widget.searchMatcher!(item, trimmed);
@@ -329,9 +356,9 @@ class _AppDropdownSearchFieldState<T> extends State<AppDropdownSearchField<T>> {
                 widget.itemSubtitle?.call(item)?.toLowerCase() ?? '';
             return label.contains(q) || subtitle.contains(q);
           }).take(widget.maxDropdownItems).toList();
-        }
-      });
-      _overlayEntry?.markNeedsBuild();
+        });
+        _overlayEntry?.markNeedsBuild();
+      }
     }
   }
 
