@@ -40,7 +40,8 @@ class _StoreEditScreenState extends ConsumerState<StoreEditScreen> {
   final ImagePicker _imagePicker = ImagePicker();
   late final MapController _mapController;
 
-  static const LatLng _defaultPosition = LatLng(-7.983908, 112.630852);
+  static const LatLng _defaultPosition =
+      LatLng(0.507068, 101.447779); // Default Pusat Kota Pekanbaru, Riau
 
   late final TextEditingController _nameController;
   late final TextEditingController _ownerNameController;

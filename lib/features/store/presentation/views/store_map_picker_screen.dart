@@ -48,8 +48,8 @@ class _StoreMapPickerScreenState extends State<StoreMapPickerScreen> {
   bool _isLocating = false;
   String? _selectedAddress;
 
-  // Koordinat default Malang Jawa Timur jika tidak ada koordinat awal
-  static const LatLng _defaultMalang = LatLng(-7.983908, 112.630852);
+  // Koordinat default Pusat Kota Pekanbaru, Riau jika belum ada koordinat awal
+  static const LatLng _defaultLocation = LatLng(0.507068, 101.447779);
 
   @override
   void initState() {
@@ -62,7 +62,7 @@ class _StoreMapPickerScreenState extends State<StoreMapPickerScreen> {
         widget.initialLongitude!,
       );
     } else {
-      _selectedLocation = _defaultMalang;
+      _selectedLocation = _defaultLocation;
     }
   }
 
@@ -94,11 +94,13 @@ class _StoreMapPickerScreenState extends State<StoreMapPickerScreen> {
           'q': cleanQuery,
           'format': 'json',
           'limit': 5,
-          'countrycodes': 'id', // Prioritaskan wilayah Indonesia
+          'countrycodes': 'id', // Wilayah Indonesia
+          'viewbox': '100.0,2.5,103.5,-1.2', // Bounding box Provinsi Riau (min_lon, max_lat, max_lon, min_lat)
+          'bounded': 1, // Batasi hasil pencarian hanya di sekitar Provinsi Riau
         },
         options: Options(
           headers: {
-            'User-Agent': 'HalalaFoodAndroidApp/1.0',
+            'User-Agent': 'HalalaFoodAndroidApp/1.0 (contact: admin@halala-food.id)',
           },
         ),
       );
@@ -295,7 +297,7 @@ class _StoreMapPickerScreenState extends State<StoreMapPickerScreen> {
                       color: AppColors.brandEspresso,
                     ),
                     decoration: InputDecoration(
-                      hintText: 'Cari nama jalan, daerah, atau patokan...',
+                      hintText: 'Cari jalan, tempat, atau daerah di Riau...',
                       hintStyle: const TextStyle(
                         fontFamily: 'PlusJakartaSans',
                         fontSize: 13,

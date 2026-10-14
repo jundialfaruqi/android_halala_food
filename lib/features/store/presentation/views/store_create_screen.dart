@@ -34,7 +34,7 @@ class _StoreCreateScreenState extends ConsumerState<StoreCreateScreen> {
 
   late final MapController _mapController;
   static const LatLng _defaultPosition =
-      LatLng(-7.983908, 112.621391); // Default Alun-alun Kota Malang
+      LatLng(0.507068, 101.447779); // Default Pusat Kota Pekanbaru, Riau
 
   late final TextEditingController _nameController;
   late final TextEditingController _ownerNameController;
