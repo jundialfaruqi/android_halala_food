@@ -50,15 +50,6 @@ class _StoreCreateScreenState extends ConsumerState<StoreCreateScreen> {
   bool _isGettingLocation = false;
   bool _isProcessingPhoto = false;
 
-  // Live search peta
-  final TextEditingController _mapSearchController = TextEditingController();
-  final Dio _searchDio = Dio();
-  List<Map<String, dynamic>> _mapSearchResults = [];
-  bool _isMapSearching = false;
-  bool _searchHasNoResults = false;
-  Timer? _searchDebounce;
-  CancelToken? _searchCancelToken;
-  final FocusNode _mapSearchFocus = FocusNode();
 
   String? _photoDataUrl; // Base64 dataURL baru
   Uint8List? _photoBytes; // Raw compressed bytes untuk preview instan
@@ -104,94 +95,9 @@ class _StoreCreateScreenState extends ConsumerState<StoreCreateScreen> {
     _latitudeController.dispose();
     _longitudeController.dispose();
     _notesController.dispose();
-    _mapSearchController.dispose();
-    _mapSearchFocus.dispose();
-    _searchDebounce?.cancel();
-    _searchCancelToken?.cancel();
     super.dispose();
   }
 
-  /// Live search Nominatim untuk peta inline dengan CancelToken & debounce
-  Future<void> _searchMapLocation(String query) async {
-    final q = query.trim();
-    if (q.isEmpty) {
-      if (mounted) {
-        setState(() {
-          _mapSearchResults = [];
-          _searchHasNoResults = false;
-          _isMapSearching = false;
-        });
-      }
-      return;
-    }
-
-    _searchCancelToken?.cancel();
-    _searchCancelToken = CancelToken();
-
-    setState(() {
-      _isMapSearching = true;
-      _searchHasNoResults = false;
-    });
-
-    try {
-      final resp = await _searchDio.get(
-        'https://nominatim.openstreetmap.org/search',
-        queryParameters: {
-          'q': q,
-          'format': 'json',
-          'limit': 6,
-          'countrycodes': 'id',
-          'addressdetails': 1,
-        },
-        options: Options(
-          headers: <String, String>{
-            'User-Agent':
-                'HalalaFoodAndroidApp/1.0 (contact: admin@halala-food.id)',
-            'Accept-Language': 'id,en',
-          },
-          receiveTimeout: const Duration(seconds: 8),
-          sendTimeout: const Duration(seconds: 8),
-        ),
-        cancelToken: _searchCancelToken,
-      );
-
-      if (resp.statusCode == 200 && resp.data is List) {
-        final list = (resp.data as List).cast<Map<String, dynamic>>();
-        if (mounted) {
-          setState(() {
-            _mapSearchResults = list;
-            _searchHasNoResults = list.isEmpty;
-          });
-        }
-      }
-    } catch (e) {
-      if (mounted &&
-          (e is! DioException || e.type != DioExceptionType.cancel)) {
-        setState(() {
-          _searchHasNoResults = true;
-        });
-      }
-    } finally {
-      if (mounted) setState(() => _isMapSearching = false);
-    }
-  }
-
-  void _selectMapSearchResult(Map<String, dynamic> item) {
-    final lat = double.tryParse(item['lat']?.toString() ?? '');
-    final lon = double.tryParse(item['lon']?.toString() ?? '');
-    if (lat != null && lon != null) {
-      final point = LatLng(lat, lon);
-      setState(() {
-        _latitudeController.text = lat.toStringAsFixed(6);
-        _longitudeController.text = lon.toStringAsFixed(6);
-        _mapSearchResults = [];
-        _searchHasNoResults = false;
-        _mapSearchController.text = item['display_name']?.toString() ?? '';
-      });
-      _mapController.move(point, 16.0);
-      _mapSearchFocus.unfocus();
-    }
-  }
 
   LatLng _getCurrentLatLng() {
     final lat = double.tryParse(_latitudeController.text.trim());
@@ -792,12 +698,7 @@ class _StoreCreateScreenState extends ConsumerState<StoreCreateScreen> {
 
               const SizedBox(height: 12),
 
-              // Live Search Field di atas Peta
-              _buildMapSearchField(),
-
-              const SizedBox(height: 8),
-
-              // Peta Leaflet Interaktif Tertanam di Form
+              // Peta Leaflet Preview Tertanam di Form (Sentuhan membuka peta penuh agar scroll lancar)
               Container(
                 height: 200,
                 decoration: BoxDecoration(
@@ -807,50 +708,48 @@ class _StoreCreateScreenState extends ConsumerState<StoreCreateScreen> {
                 clipBehavior: Clip.antiAlias,
                 child: Stack(
                   children: [
-                    FlutterMap(
-                      mapController: _mapController,
-                      options: MapOptions(
-                        initialCenter: _getCurrentLatLng(),
-                        initialZoom: 15.0,
-                        onTap: (tapPosition, point) {
-                          setState(() {
-                            _latitudeController.text =
-                                point.latitude.toStringAsFixed(6);
-                            _longitudeController.text =
-                                point.longitude.toStringAsFixed(6);
-                          });
-                          _mapController.move(point, _mapController.camera.zoom);
-                        },
-                      ),
-                      children: [
-                        TileLayer(
-                          urlTemplate:
-                              'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                          userAgentPackageName:
-                              'id.my.halala_food',
-                          tileProvider: NetworkTileProvider(
-                            headers: <String, String>{
-                              'User-Agent':
-                                  'HalalaFoodAndroidApp/1.0 (contact: admin@halala-food.id)',
-                            },
+                    IgnorePointer(
+                      child: FlutterMap(
+                        mapController: _mapController,
+                        options: MapOptions(
+                          initialCenter: _getCurrentLatLng(),
+                          initialZoom: 15.0,
+                          interactionOptions: const InteractionOptions(
+                            flags: InteractiveFlag.none,
                           ),
                         ),
-                        MarkerLayer(
-                          markers: [
-                            Marker(
-                              point: _getCurrentLatLng(),
-                              width: 42,
-                              height: 42,
-                              child: const Icon(
-                                TablerIcons.map_pin_filled,
-                                color: AppColors.brandPrimary,
-                                size: 36,
-                              ),
+                        children: [
+                          TileLayer(
+                            urlTemplate:
+                                'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                            userAgentPackageName:
+                                'id.my.halala_food',
+                            tileProvider: NetworkTileProvider(
+                              headers: <String, String>{
+                                'User-Agent':
+                                    'HalalaFoodAndroidApp/1.0 (contact: admin@halala-food.id)',
+                              },
                             ),
-                          ],
-                        ),
-                      ],
+                          ),
+                          MarkerLayer(
+                            markers: [
+                              Marker(
+                                point: _getCurrentLatLng(),
+                                width: 42,
+                                height: 42,
+                                child: const Icon(
+                                  TablerIcons.map_pin_filled,
+                                  color: AppColors.brandPrimary,
+                                  size: 36,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
+
+                    // Badge Keterangan di pojok kiri bawah
                     Positioned(
                       bottom: 8,
                       left: 8,
@@ -860,18 +759,91 @@ class _StoreCreateScreenState extends ConsumerState<StoreCreateScreen> {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.92),
+                          color: Colors.white.withValues(alpha: 0.94),
                           borderRadius: BorderRadius.circular(6),
                           border: Border.all(color: AppColors.brandBorder),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.05),
+                              blurRadius: 4,
+                              offset: const Offset(0, 1),
+                            ),
+                          ],
                         ),
-                        child: const Text(
-                          'Sentuh peta untuk pasang pin lokasi',
-                          style: TextStyle(
-                            fontFamily: 'PlusJakartaSans',
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.brandEspresso,
-                          ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              TablerIcons.map_pin,
+                              size: 13,
+                              color: AppColors.brandPrimary,
+                            ),
+                            SizedBox(width: 4),
+                            Text(
+                              'Ketuk peta untuk atur pin di layar penuh',
+                              style: TextStyle(
+                                fontFamily: 'PlusJakartaSans',
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.brandEspresso,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    // Tombol / Badge Buka Penuh di pojok kanan atas
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.brandPrimary,
+                          borderRadius: BorderRadius.circular(6),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.brandPrimary.withValues(alpha: 0.3),
+                              blurRadius: 4,
+                              offset: const Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              TablerIcons.arrows_maximize,
+                              size: 12,
+                              color: Colors.white,
+                            ),
+                            SizedBox(width: 4),
+                            Text(
+                              'Buka Penuh',
+                              style: TextStyle(
+                                fontFamily: 'PlusJakartaSans',
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    // Lapisan sentuh transparan untuk membuka layar penuh
+                    Positioned.fill(
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: _openMapPicker,
+                          splashColor: AppColors.brandPrimary.withValues(alpha: 0.12),
+                          highlightColor: AppColors.brandPrimary.withValues(alpha: 0.06),
                         ),
                       ),
                     ),
@@ -1005,160 +977,6 @@ class _StoreCreateScreenState extends ConsumerState<StoreCreateScreen> {
       placeholderSubtitle: 'Format JPG, PNG, atau WEBP (Maksimal 10MB)',
       onPickPhoto: _showPhotoSourceDialog,
       onRemovePhoto: _removePhoto,
-    );
-  }
-
-  /// Widget live search input di atas peta (mirip web Halala Food)
-  Widget _buildMapSearchField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Search Input menggunakan AppTextField core widget
-        AppTextField(
-          controller: _mapSearchController,
-          focusNode: _mapSearchFocus,
-          hintText: 'Cari nama jalan, patokan, atau area...',
-          textInputAction: TextInputAction.search,
-          prefixIcon: const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 12),
-            child: Icon(
-              TablerIcons.search,
-              size: 18,
-              color: AppColors.brandWarmGray,
-            ),
-          ),
-          suffixIcon: _isMapSearching
-              ? const Padding(
-                  padding: EdgeInsets.all(12),
-                  child: SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: AppColors.brandPrimary,
-                    ),
-                  ),
-                )
-              : _mapSearchController.text.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(TablerIcons.x, size: 16),
-                      color: AppColors.brandWarmGray,
-                      onPressed: () {
-                        _searchDebounce?.cancel();
-                        _searchCancelToken?.cancel();
-                        _mapSearchController.clear();
-                        setState(() {
-                          _mapSearchResults = [];
-                          _searchHasNoResults = false;
-                        });
-                      },
-                    )
-                  : null,
-          onChanged: (val) {
-            _searchDebounce?.cancel();
-            if (val.trim().length >= 3) {
-              _searchDebounce = Timer(const Duration(milliseconds: 400), () {
-                _searchMapLocation(val);
-              });
-            } else {
-              setState(() {
-                _mapSearchResults = [];
-                _searchHasNoResults = false;
-              });
-            }
-          },
-          onFieldSubmitted: (val) {
-            _searchDebounce?.cancel();
-            _searchMapLocation(val);
-          },
-        ),
-
-        // Indikator jika tidak ada lokasi ditemukan
-        if (_searchHasNoResults &&
-            !_isMapSearching &&
-            _mapSearchController.text.trim().length >= 3 &&
-            _mapSearchResults.isEmpty)
-          Container(
-            margin: const EdgeInsets.only(top: 6),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.brandBorder),
-            ),
-            child: Row(
-              children: [
-                const Icon(
-                  TablerIcons.info_circle,
-                  size: 16,
-                  color: AppColors.brandWarmGray,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Lokasi tidak ditemukan. Coba gunakan nama jalan, kelurahan, atau kecamatan yang lebih umum.',
-                    style: const TextStyle(
-                      fontFamily: 'PlusJakartaSans',
-                      fontSize: 12,
-                      color: AppColors.brandWarmGray,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-        // Dropdown Hasil Pencarian
-        if (_mapSearchResults.isNotEmpty)
-          Container(
-            margin: const EdgeInsets.only(top: 4),
-            constraints: const BoxConstraints(maxHeight: 200),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.brandBorder),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: ListView.separated(
-              shrinkWrap: true,
-              padding: EdgeInsets.zero,
-              itemCount: _mapSearchResults.length,
-              separatorBuilder: (_, __) => const Divider(
-                height: 1,
-                color: AppColors.brandBorder,
-              ),
-              itemBuilder: (context, index) {
-                final item = _mapSearchResults[index];
-                return ListTile(
-                  dense: true,
-                  leading: const Icon(
-                    TablerIcons.map_pin,
-                    size: 16,
-                    color: AppColors.brandPrimary,
-                  ),
-                  title: Text(
-                    item['display_name']?.toString() ?? '',
-                    style: const TextStyle(
-                      fontFamily: 'PlusJakartaSans',
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.brandEspresso,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  onTap: () => _selectMapSearchResult(item),
-                );
-              },
-            ),
-          ),
-      ],
     );
   }
 }

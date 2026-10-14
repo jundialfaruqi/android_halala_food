@@ -483,22 +483,37 @@ class _StoreMapPickerScreenState extends State<StoreMapPickerScreen> {
                       ),
                     ],
                     const SizedBox(height: 14),
-                    AppButton(
-                      text: 'Gunakan Titik Lokasi Ini',
-                      icon: const Icon(
-                        TablerIcons.check,
-                        color: Colors.white,
-                        size: 18,
-                      ),
-                      onPressed: () {
-                        Navigator.of(context).pop(
-                          LocationPickerResult(
-                            latitude: _selectedLocation.latitude,
-                            longitude: _selectedLocation.longitude,
-                            address: _selectedAddress,
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 1,
+                          child: AppButton.outline(
+                            text: 'Batal',
+                            onPressed: () => Navigator.of(context).pop(),
                           ),
-                        );
-                      },
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: AppButton(
+                            text: 'Gunakan Titik Lokasi Ini',
+                            icon: const Icon(
+                              TablerIcons.check,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                            onPressed: () {
+                              Navigator.of(context).pop(
+                                LocationPickerResult(
+                                  latitude: _selectedLocation.latitude,
+                                  longitude: _selectedLocation.longitude,
+                                  address: _selectedAddress,
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
