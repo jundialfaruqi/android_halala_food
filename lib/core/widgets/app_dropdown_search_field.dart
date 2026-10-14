@@ -32,6 +32,9 @@ class AppDropdownSearchField<T> extends StatefulWidget {
   final VoidCallback? onShowAll;
   final AutovalidateMode? autovalidateMode;
   final Duration debounceDuration;
+  final EdgeInsetsGeometry? contentPadding;
+  final double borderRadius;
+  final double? fontSize;
 
   const AppDropdownSearchField({
     super.key,
@@ -55,6 +58,9 @@ class AppDropdownSearchField<T> extends StatefulWidget {
     this.onShowAll,
     this.autovalidateMode,
     this.debounceDuration = const Duration(milliseconds: 250),
+    this.contentPadding,
+    this.borderRadius = 12.0,
+    this.fontSize,
   });
 
   @override
@@ -171,13 +177,13 @@ class _AppDropdownSearchFieldState<T> extends State<AppDropdownSearchField<T>> {
               child: Material(
                 elevation: 6,
                 shadowColor: Colors.black.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(widget.borderRadius),
                 color: Colors.white,
                 child: Container(
                   constraints: const BoxConstraints(maxHeight: 330),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(widget.borderRadius),
                     border: Border.all(color: AppColors.brandBorder),
                   ),
                   child: Column(
@@ -202,20 +208,20 @@ class _AppDropdownSearchFieldState<T> extends State<AppDropdownSearchField<T>> {
                             _focusNode.unfocus();
                             widget.onShowAll!();
                           },
-                          borderRadius: const BorderRadius.only(
-                            bottomLeft: Radius.circular(12),
-                            bottomRight: Radius.circular(12),
+                          borderRadius: BorderRadius.only(
+                            bottomLeft: Radius.circular(widget.borderRadius),
+                            bottomRight: Radius.circular(widget.borderRadius),
                           ),
                           child: Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 14,
                               vertical: 12,
                             ),
-                            decoration: const BoxDecoration(
+                            decoration: BoxDecoration(
                               color: AppColors.brandSoftCreamLight,
                               borderRadius: BorderRadius.only(
-                                bottomLeft: Radius.circular(12),
-                                bottomRight: Radius.circular(12),
+                                bottomLeft: Radius.circular(widget.borderRadius),
+                                bottomRight: Radius.circular(widget.borderRadius),
                               ),
                             ),
                             child: Row(
@@ -527,7 +533,7 @@ class _AppDropdownSearchFieldState<T> extends State<AppDropdownSearchField<T>> {
                 },
                 style: TextStyle(
                   fontFamily: 'PlusJakartaSans',
-                  fontSize: 14,
+                  fontSize: widget.fontSize ?? 14,
                   fontWeight:
                       widget.enabled ? FontWeight.normal : FontWeight.w600,
                   color: widget.enabled
@@ -536,39 +542,40 @@ class _AppDropdownSearchFieldState<T> extends State<AppDropdownSearchField<T>> {
                 ),
                 decoration: InputDecoration(
                   hintText: widget.hintText ?? 'Pilih salah satu...',
-                  hintStyle: const TextStyle(
+                  hintStyle: TextStyle(
                     fontFamily: 'PlusJakartaSans',
-                    fontSize: 13.5,
+                    fontSize: widget.fontSize ?? 13.5,
                     color: AppColors.brandPlaceholder,
                   ),
                   filled: true,
                   fillColor: !widget.enabled
                       ? const Color(0xFFF7F7F7)
                       : Colors.white,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
+                  contentPadding: widget.contentPadding ??
+                      const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(widget.borderRadius),
                     borderSide: BorderSide(
                       color: hasError ? AppColors.error : AppColors.brandBorder,
                     ),
                   ),
                   enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(widget.borderRadius),
                     borderSide: BorderSide(
                       color: hasError ? AppColors.error : AppColors.brandBorder,
                     ),
                   ),
                   disabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(widget.borderRadius),
                     borderSide: BorderSide(
                       color: AppColors.brandBorder.withValues(alpha: 0.5),
                     ),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(widget.borderRadius),
                     borderSide: BorderSide(
                       color:
                           hasError ? AppColors.error : AppColors.brandPrimary,

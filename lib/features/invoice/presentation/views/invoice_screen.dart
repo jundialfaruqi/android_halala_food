@@ -134,22 +134,37 @@ class _InvoiceScreenState extends ConsumerState<InvoiceScreen> {
                           Row(
                             children: [
                               Expanded(
-                                child: AppFilterDropdown<InvoiceStoreModel>(
-                                  selectedValue: state.selectedStoreId != null
+                                child: AppDropdownSearchField<InvoiceStoreModel>(
+                                  hintText: 'Semua Toko',
+                                  initialValue: state.selectedStoreId != null
                                       ? state.availableStores
                                           .where((s) => s.id == state.selectedStoreId)
                                           .firstOrNull
                                       : null,
-                                  items: state.availableStores,
-                                  allLabel: 'Semua Toko',
-                                  prefixLabel: 'Toko: ',
+                                  items: [
+                                    const InvoiceStoreModel(id: 0, name: 'Semua Toko'),
+                                    ...state.availableStores,
+                                  ],
                                   itemLabel: (store) => store.name,
-                                  isExpanded: true,
-                                  tooltip: 'Filter Toko Mitra',
+                                  itemEquals: (a, b) => a?.id == b?.id,
+                                  searchMatcher: (store, query) =>
+                                      store.name.toLowerCase().contains(query.toLowerCase()),
+                                  maxDropdownItems: 30,
+                                  emptyMessage: 'Tidak ada toko ditemukan.',
+                                  fontSize: 13,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 11,
+                                  ),
+                                  borderRadius: 10,
                                   onSelected: (store) {
+                                    final storeId =
+                                        (store == null || store.id == 0)
+                                            ? null
+                                            : store.id;
                                     ref
                                         .read(invoiceViewModelProvider.notifier)
-                                        .setStoreFilter(store?.id);
+                                        .setStoreFilter(storeId);
                                   },
                                 ),
                               ),
