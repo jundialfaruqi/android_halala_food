@@ -748,6 +748,65 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
 
           // SUB FORM 2: TUJUAN PENAGIHAN (Title dengan border bottom, tanpa card)
           _buildSectionHeader('Tujuan Penagihan'),
+          if (_selectedStores.length <= 1) ...[
+            AppMenuSelect<int?>(
+              labelText: 'Berdasarkan Surat Jalan (Opsional)',
+              hintText: 'Tanpa Surat Jalan (Mandiri)',
+              initialSelection: _selectedDeliveryId,
+              entries: [
+                const AppMenuSelectEntry<int?>(
+                  value: null,
+                  label: 'Tanpa Surat Jalan (Mandiri)',
+                ),
+                ...availableDeliveries.map((d) {
+                  final formattedDate = d.formattedDeliveryDate;
+                  final dateLabel =
+                      formattedDate.isNotEmpty ? ' ($formattedDate)' : '';
+                  return AppMenuSelectEntry<int?>(
+                    value: d.id,
+                    label: '${d.deliveryNumber}$dateLabel',
+                  );
+                }),
+              ],
+              onSelected: (val) {
+                _onDeliverySelected(val);
+              },
+            ),
+            const SizedBox(height: 14),
+          ] else ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.brandWarmGray.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: AppColors.brandBorder,
+                  width: 0.8,
+                ),
+              ),
+              child: const Row(
+                children: [
+                  Icon(
+                    TablerIcons.info_circle,
+                    size: 16,
+                    color: AppColors.brandWarmGray,
+                  ),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Pemilihan lebih dari 1 toko mitra membuat faktur mandiri terpisah untuk tiap toko (tanpa tautan surat jalan tunggal).',
+                      style: TextStyle(
+                        fontFamily: 'PlusJakartaSans',
+                        fontSize: 12,
+                        color: AppColors.brandWarmGray,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+          ],
           if ((_options?.couriers ?? []).isNotEmpty) ...[
             AppMenuSelect<int?>(
               labelText: 'Kurir Penagih / Pengantar (Opsional)',
@@ -808,64 +867,6 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
               });
             },
           ),
-          const SizedBox(height: 14),
-          if (_selectedStores.length <= 1) ...[
-            AppMenuSelect<int?>(
-              labelText: 'Berdasarkan Surat Jalan (Opsional)',
-              hintText: 'Tanpa Surat Jalan (Mandiri)',
-              initialSelection: _selectedDeliveryId,
-              entries: [
-                const AppMenuSelectEntry<int?>(
-                  value: null,
-                  label: 'Tanpa Surat Jalan (Mandiri)',
-                ),
-                ...availableDeliveries.map((d) {
-                  final formattedDate = d.formattedDeliveryDate;
-                  final dateLabel =
-                      formattedDate.isNotEmpty ? ' ($formattedDate)' : '';
-                  return AppMenuSelectEntry<int?>(
-                    value: d.id,
-                    label: '${d.deliveryNumber}$dateLabel',
-                  );
-                }),
-              ],
-              onSelected: (val) {
-                _onDeliverySelected(val);
-              },
-            ),
-          ] else ...[
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: AppColors.brandWarmGray.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: AppColors.brandBorder,
-                  width: 0.8,
-                ),
-              ),
-              child: const Row(
-                children: [
-                  Icon(
-                    TablerIcons.info_circle,
-                    size: 16,
-                    color: AppColors.brandWarmGray,
-                  ),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Pemilihan lebih dari 1 toko mitra membuat faktur mandiri terpisah untuk tiap toko (tanpa tautan surat jalan tunggal).',
-                      style: TextStyle(
-                        fontFamily: 'PlusJakartaSans',
-                        fontSize: 12,
-                        color: AppColors.brandWarmGray,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
           const SizedBox(height: 24),
 
           // SUB FORM 3: RINCIAN PRODUK TERTAGIH (Dinamis per Toko Mitra)
