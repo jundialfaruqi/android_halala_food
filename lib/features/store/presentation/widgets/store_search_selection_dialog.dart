@@ -458,19 +458,6 @@ class _StoreSearchSelectionDialogState
                               color: AppColors.brandWarmGray,
                             ),
                           ),
-                          if (_formatStoreOwnerAndPhone(store) != null) ...[
-                            const SizedBox(height: 2),
-                            Text(
-                              _formatStoreOwnerAndPhone(store)!,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontFamily: 'PlusJakartaSans',
-                                fontSize: 11.5,
-                                color: AppColors.brandWarmGray,
-                              ),
-                            ),
-                          ],
                         ],
                       ),
                     ),
@@ -495,17 +482,6 @@ class _StoreSearchSelectionDialogState
       return store.address!.trim();
     }
     return 'Alamat belum diatur';
-  }
-
-  String? _formatStoreOwnerAndPhone(StoreModel store) {
-    final parts = <String>[];
-    if (store.ownerName != null && store.ownerName!.trim().isNotEmpty) {
-      parts.add(store.ownerName!.trim());
-    }
-    if (store.phone != null && store.phone!.trim().isNotEmpty) {
-      parts.add(store.phone!.trim());
-    }
-    return parts.isEmpty ? null : parts.join(' • ');
   }
 
   Widget _buildSkeletonLoading() {

@@ -20,6 +20,7 @@ class StoreMultiSelectField extends StatefulWidget {
   final ValueChanged<List<StoreSelectOption>>? onChanged;
   final FormFieldValidator<List<StoreSelectOption>>? validator;
   final bool enabled;
+  final Color? fillColor;
 
   const StoreMultiSelectField({
     super.key,
@@ -30,6 +31,7 @@ class StoreMultiSelectField extends StatefulWidget {
     this.onChanged,
     this.validator,
     this.enabled = true,
+    this.fillColor,
   });
 
   @override
@@ -150,7 +152,7 @@ class _StoreMultiSelectFieldState extends State<StoreMultiSelectField> {
                 ),
                 decoration: BoxDecoration(
                   color: widget.enabled
-                      ? AppColors.background
+                      ? (widget.fillColor ?? Colors.white)
                       : const Color(0xFFF1F5F9),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
@@ -203,7 +205,7 @@ class _StoreMultiSelectFieldState extends State<StoreMultiSelectField> {
                                   right: 6,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  color: const Color(0xFFF8FAFC),
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
                                     color: AppColors.brandBorder,
