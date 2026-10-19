@@ -264,6 +264,8 @@ class InvoiceModel {
   final int? createdBy;
   final String? invoiceDate;
   final String? dueDate;
+  final String? invoiceDateFormatted;
+  final String? dueDateFormatted;
   final double subtotal;
   final double discount;
   final double totalAmount;
@@ -288,6 +290,8 @@ class InvoiceModel {
     this.createdBy,
     this.invoiceDate,
     this.dueDate,
+    this.invoiceDateFormatted,
+    this.dueDateFormatted,
     this.subtotal = 0.0,
     this.discount = 0.0,
     this.totalAmount = 0.0,
@@ -316,46 +320,81 @@ class InvoiceModel {
 
   static String formatIndonesianDate(String? dateStr) {
     if (dateStr == null || dateStr.trim().isEmpty || dateStr == '-') return '-';
+    final trimmed = dateStr.trim();
+    if (!trimmed.contains('-') && !trimmed.contains('/')) {
+      return trimmed;
+    }
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'Mei',
+      'Jun',
+      'Jul',
+      'Agu',
+      'Sep',
+      'Okt',
+      'Nov',
+      'Des',
+    ];
     try {
-      final normalized = dateStr.contains('T')
-          ? dateStr
-          : dateStr.replaceFirst(' ', 'T');
-      final parsed = DateTime.parse(normalized);
-      const months = [
-        'Jan',
-        'Feb',
-        'Mar',
-        'Apr',
-        'Mei',
-        'Jun',
-        'Jul',
-        'Agu',
-        'Sep',
-        'Okt',
-        'Nov',
-        'Des',
-      ];
+      final ymdMatch = RegExp(r'^(\d{4})-(\d{1,2})-(\d{1,2})').firstMatch(trimmed);
+      if (ymdMatch != null && !trimmed.contains('T') && !trimmed.contains('Z')) {
+        final year = int.parse(ymdMatch.group(1)!);
+        final month = int.parse(ymdMatch.group(2)!);
+        final day = int.parse(ymdMatch.group(3)!);
+        if (month >= 1 && month <= 12) {
+          return '$day ${months[month - 1]} $year';
+        }
+      }
+      final normalized = trimmed.contains('T')
+          ? trimmed
+          : trimmed.replaceFirst(' ', 'T');
+      final parsed = DateTime.parse(normalized).toLocal();
       return '${parsed.day} ${months[parsed.month - 1]} ${parsed.year}';
     } catch (_) {
       return dateStr;
     }
   }
 
-  String get formattedInvoiceDate => formatIndonesianDate(invoiceDate);
-  String get formattedDueDate => formatIndonesianDate(dueDate);
+  String get formattedInvoiceDate {
+    if (invoiceDateFormatted != null &&
+        invoiceDateFormatted!.trim().isNotEmpty &&
+        invoiceDateFormatted != '-') {
+      return invoiceDateFormatted!;
+    }
+    return formatIndonesianDate(invoiceDate);
+  }
+
+  String get formattedDueDate {
+    if (dueDateFormatted != null &&
+        dueDateFormatted!.trim().isNotEmpty &&
+        dueDateFormatted != '-') {
+      return dueDateFormatted!;
+    }
+    return formatIndonesianDate(dueDate);
+  }
 
   static DateTime? parseDate(String? dateStr) {
     if (dateStr == null || dateStr.trim().isEmpty || dateStr == '-') return null;
     final trimmed = dateStr.trim();
     try {
+      final ymdMatch = RegExp(r'^(\d{4})-(\d{1,2})-(\d{1,2})').firstMatch(trimmed);
+      if (ymdMatch != null && !trimmed.contains('T') && !trimmed.contains('Z')) {
+        final year = int.parse(ymdMatch.group(1)!);
+        final month = int.parse(ymdMatch.group(2)!);
+        final day = int.parse(ymdMatch.group(3)!);
+        return DateTime(year, month, day);
+      }
       final normalized = trimmed.contains('T')
           ? trimmed
           : trimmed.replaceFirst(' ', 'T');
-      return DateTime.parse(normalized);
+      return DateTime.parse(normalized).toLocal();
     } catch (_) {
       try {
         final dateOnly = trimmed.split('T')[0].split(' ')[0];
-        return DateTime.parse(dateOnly);
+        return DateTime.parse(dateOnly).toLocal();
       } catch (_) {
         return null;
       }
@@ -448,6 +487,8 @@ class InvoiceModel {
       createdBy: json['created_by'] as int?,
       invoiceDate: json['invoice_date'] as String?,
       dueDate: json['due_date'] as String?,
+      invoiceDateFormatted: json['invoice_date_formatted'] as String?,
+      dueDateFormatted: json['due_date_formatted'] as String?,
       subtotal: json['subtotal'] != null ? double.tryParse(json['subtotal'].toString()) ?? 0.0 : 0.0,
       discount: json['discount'] != null ? double.tryParse(json['discount'].toString()) ?? 0.0 : 0.0,
       totalAmount: json['total_amount'] != null ? double.tryParse(json['total_amount'].toString()) ?? 0.0 : 0.0,

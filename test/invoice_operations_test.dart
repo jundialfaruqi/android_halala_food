@@ -216,6 +216,41 @@ void main() {
       expect(timestampInvoice.simpleInvoiceDate.contains('T'), isFalse);
       expect(timestampInvoice.simpleDueDate.contains('15:30:00'), isFalse);
     });
+
+    test('InvoiceModel accurately formats YYYY-MM-DD dates without 1-day offset', () {
+      const invoice = InvoiceModel(
+        id: 2,
+        invoiceNumber: 'INV-002',
+        invoiceDate: '2026-10-14',
+        dueDate: '2026-10-28',
+        status: 'belum_dibayar',
+        statusLabel: 'Belum Dibayar',
+      );
+
+      expect(invoice.formattedInvoiceDate, equals('14 Okt 2026'));
+      expect(invoice.formattedDueDate, equals('28 Okt 2026'));
+      expect(invoice.simpleInvoiceDate, equals('2026-10-14'));
+      expect(invoice.simpleDueDate, equals('2026-10-28'));
+    });
+
+    test('InvoiceModel prefers backend formatted dates when provided', () {
+      final json = {
+        'id': 3,
+        'invoice_number': 'INV-003',
+        'invoice_date': '2026-10-14',
+        'due_date': '2026-10-28',
+        'invoice_date_formatted': '14 Okt 2026',
+        'due_date_formatted': '28 Okt 2026',
+        'status': 'belum_dibayar',
+        'status_label': 'Belum Dibayar',
+      };
+
+      final invoice = InvoiceModel.fromJson(json);
+      expect(invoice.formattedInvoiceDate, equals('14 Okt 2026'));
+      expect(invoice.formattedDueDate, equals('28 Okt 2026'));
+      expect(invoice.invoiceDateFormatted, equals('14 Okt 2026'));
+      expect(invoice.dueDateFormatted, equals('28 Okt 2026'));
+    });
   });
 
   group('InvoiceDetailSheet Granular Permissions Tests', () {
