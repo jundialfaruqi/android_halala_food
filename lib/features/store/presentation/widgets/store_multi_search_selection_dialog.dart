@@ -58,13 +58,15 @@ class _StoreMultiSearchSelectionDialogState
   Timer? _debounceTimer;
 
   List<StoreModel> _stores = [];
+  List<StoreModel> _allAvailableStores = [];
   final Map<int, StoreSelectOption> _selectedMap = {};
 
   int _currentPage = 1;
-  static const int _perPage = 10;
+  static const int _perPage = 100;
   bool _isLoadingInitial = true;
   bool _isLoadingMore = false;
   bool _hasMore = false;
+  bool _isUsingLocalData = false;
   String? _errorMessage;
 
   @override
@@ -73,6 +75,12 @@ class _StoreMultiSearchSelectionDialogState
     for (final opt in widget.initialSelectedStores) {
       _selectedMap[opt.id] = opt;
     }
+
+    if (widget.initialSearch != null && widget.initialSearch!.trim().isNotEmpty) {
+      _searchController.text = widget.initialSearch!.trim();
+    }
+
+    _scrollController.addListener(_onScroll);
 
     if (widget.initialAvailableStores != null &&
         widget.initialAvailableStores!.isNotEmpty) {
@@ -93,19 +101,43 @@ class _StoreMultiSearchSelectionDialogState
           ));
         }
       }
-      _stores = initialList;
+      _allAvailableStores = initialList;
+      _isUsingLocalData = true;
       _isLoadingInitial = false;
+      _hasMore = false;
+      _filterStoresLocally();
+    } else {
+      _isUsingLocalData = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadStores(page: 1, isInitial: true);
+      });
     }
+  }
 
-    if (widget.initialSearch != null && widget.initialSearch!.trim().isNotEmpty) {
-      _searchController.text = widget.initialSearch!.trim();
+  void _filterStoresLocally() {
+    final query = _searchController.text.trim().toLowerCase();
+    if (query.isEmpty) {
+      setState(() {
+        _stores = List<StoreModel>.from(_allAvailableStores);
+        _isLoadingInitial = false;
+        _errorMessage = null;
+      });
+    } else {
+      final filtered = _allAvailableStores.where((s) {
+        final nameMatch = s.name.toLowerCase().contains(query);
+        final routeMatch =
+            s.route != null && s.route!.toLowerCase().contains(query);
+        final addressMatch =
+            s.address != null && s.address!.toLowerCase().contains(query);
+        return nameMatch || routeMatch || addressMatch;
+      }).toList();
+
+      setState(() {
+        _stores = filtered;
+        _isLoadingInitial = false;
+        _errorMessage = null;
+      });
     }
-
-    _scrollController.addListener(_onScroll);
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadStores(page: 1, isInitial: true);
-    });
   }
 
   @override
@@ -118,6 +150,7 @@ class _StoreMultiSearchSelectionDialogState
   }
 
   void _onScroll() {
+    if (_isUsingLocalData) return;
     if (!_scrollController.hasClients) return;
     final maxScroll = _scrollController.position.maxScrollExtent;
     final currentScroll = _scrollController.position.pixels;
@@ -130,6 +163,11 @@ class _StoreMultiSearchSelectionDialogState
   }
 
   void _onSearchChanged(String query) {
+    if (_isUsingLocalData) {
+      _filterStoresLocally();
+      return;
+    }
+
     _debounceTimer?.cancel();
     _debounceTimer = Timer(const Duration(milliseconds: 350), () {
       _loadStores(page: 1, isInitial: true);

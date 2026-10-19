@@ -51,7 +51,7 @@ class _StoreSearchSelectionDialogState
 
   List<StoreModel> _stores = [];
   int _currentPage = 1;
-  static const int _perPage = 10;
+  static const int _perPage = 100;
   bool _isLoadingInitial = true;
   bool _isLoadingMore = false;
   bool _hasMore = false;
