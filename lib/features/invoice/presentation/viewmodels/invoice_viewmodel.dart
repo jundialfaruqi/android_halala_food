@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -94,6 +95,7 @@ final invoiceViewModelProvider =
 
 class InvoiceViewModel extends Notifier<InvoiceState> {
   late final InvoiceRepository _repository;
+  Timer? _debounceTimer;
 
   @override
   InvoiceState build() {
@@ -124,6 +126,7 @@ class InvoiceViewModel extends Notifier<InvoiceState> {
     ref.onDispose(() {
       sub.cancel();
       subUpdated.cancel();
+      _debounceTimer?.cancel();
     });
 
     Future.microtask(() => loadInvoices(refresh: true));
@@ -227,12 +230,40 @@ class InvoiceViewModel extends Notifier<InvoiceState> {
   }
 
   void setSearchQuery(String query) {
-    if (state.searchQuery == query) return;
-    state = state.copyWith(searchQuery: query);
-    loadInvoices(refresh: true);
+    final trimmed = query.trim();
+    _debounceTimer?.cancel();
+
+    // Jika input dihapus hingga kosong
+    if (trimmed.isEmpty) {
+      if (state.searchQuery.isNotEmpty) {
+        state = state.copyWith(searchQuery: '');
+        loadInvoices(refresh: true);
+      }
+      return;
+    }
+
+    // Jika kurang dari 3 karakter, jangan request pencarian ke server
+    if (trimmed.length < 3) {
+      // Jika sebelumnya ada query aktif, kembalikan ke list default setelah jeda debounce
+      if (state.searchQuery.isNotEmpty) {
+        _debounceTimer = Timer(const Duration(milliseconds: 500), () {
+          state = state.copyWith(searchQuery: '');
+          loadInvoices(refresh: true);
+        });
+      }
+      return;
+    }
+
+    // Jika 3 karakter atau lebih, tunggu debounce 500ms sebelum request ke server
+    _debounceTimer = Timer(const Duration(milliseconds: 500), () {
+      if (state.searchQuery == trimmed) return;
+      state = state.copyWith(searchQuery: trimmed);
+      loadInvoices(refresh: true);
+    });
   }
 
   void clearFilters() {
+    _debounceTimer?.cancel();
     state = state.copyWith(
       selectedStatus: 'all',
       clearStore: true,

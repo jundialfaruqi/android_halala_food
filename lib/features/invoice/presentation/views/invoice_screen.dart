@@ -115,7 +115,8 @@ class _InvoiceScreenState extends ConsumerState<InvoiceScreen> {
                         children: [
                           AppSearchField(
                             controller: _searchController,
-                            hintText: 'Cari nomor faktur, toko, catatan...',
+                            hintText:
+                                'Cari min. 3 karakter (nomor faktur, toko)...',
                             onChanged: (val) {
                               ref
                                   .read(invoiceViewModelProvider.notifier)
