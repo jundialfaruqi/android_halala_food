@@ -681,10 +681,17 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
         children: [
           // SUB FORM 1: INFORMASI FAKTUR (Title dengan border bottom, tanpa card)
           _buildSectionHeader('Informasi Faktur'),
+          // Nomor Faktur (Otomatis dari sistem, disabled)
           AppTextField(
             controller: _invoiceNumberController,
             labelText: 'Nomor Faktur',
             hintText: 'INV-YYYYMMDD-XXXX',
+            enabled: false,
+            suffixIcon: const Icon(
+              TablerIcons.lock,
+              size: 18,
+              color: AppColors.brandWarmGray,
+            ),
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
                 return 'Nomor faktur wajib diisi.';
