@@ -238,8 +238,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                             ),
                           ),
 
-                          // Spacing proporsional untuk card statistik stack floating + jarak visual yang lega
-                          const SizedBox(height: 116),
+                          // Spacing proporsional untuk card statistik floating + jarak visual yang pas ke section toko terlaris
+                          const SizedBox(height: 84),
 
                           // Section Baru: Daftar Toko Mitra Terlaris (Material 3 Carousel)
                           _buildTopStoresCarouselSection(context, user),
@@ -1229,19 +1229,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
     return formatted;
   }
 
-  /// Card statistik ringkasan operasional Halala Food dengan widget core AppCard.stacked
+  /// Card statistik ringkasan operasional Halala Food
   Widget _buildStatsCard() {
     final statState = ref.watch(homeStatViewModelProvider);
     final stat = statState.stat;
 
-    return AppCard.stacked(
-      stackAtTop: true,
-      isGlass: false,
+    return AppCard(
       backgroundColor: Colors.white,
       borderWidth: 0.0,
       borderColor: Colors.transparent,
-      stackOffsetVertical: 9.0,
-      stackInsetHorizontal: 13.0,
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.08),
+          blurRadius: 16,
+          offset: const Offset(0, 4),
+        ),
+      ],
       customBorderRadius: const BorderRadius.only(
         topLeft: Radius.zero,
         topRight: Radius.circular(24),
