@@ -13,6 +13,7 @@ import '../../../delivery/presentation/widgets/delivery_item_edit_dialog.dart';
 import '../../../delivery/presentation/widgets/delivery_product_selection_dialog.dart';
 import '../../../store/presentation/widgets/store_dropdown_search_field.dart';
 import '../../../store/presentation/widgets/store_multi_select_field.dart';
+import '../../../product/presentation/viewmodels/product_viewmodel.dart';
 import '../../data/models/invoice_model.dart';
 import '../../data/repositories/invoice_repository_impl.dart';
 import '../viewmodels/invoice_viewmodel.dart';
@@ -557,8 +558,9 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
 
       final createdInvoice = await repository.createInvoice(payload);
 
-      // Refresh data list faktur
+      // Refresh data list faktur & produk
       ref.read(invoiceViewModelProvider.notifier).loadInvoices(refresh: true);
+      ref.read(productViewModelProvider.notifier).fetchProducts(refresh: true);
 
       if (mounted) {
         final message = storeIds.length > 1
