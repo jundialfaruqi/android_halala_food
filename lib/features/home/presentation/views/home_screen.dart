@@ -800,7 +800,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
             ],
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
 
         // Carousel Material 3
         if (topStoresState.isLoading && topStoresState.stores.isEmpty)
@@ -828,21 +828,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
             ),
           )
         else
-          AppCarousel.builder(
-            height: 200,
-            itemExtent: 285,
-            shrinkExtent: 40,
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            itemCount: topStoresState.stores.length,
-            itemBuilder: (context, index) {
-              final store = topStoresState.stores[index];
-              return _buildStoreCarouselItem(
-                context,
-                store,
-                index,
-                topStoresState.stores.length,
-              );
-            },
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 11.0),
+            child: AppCarousel.builder(
+              height: 200,
+              itemExtent: 285,
+              shrinkExtent: 40,
+              padding: const EdgeInsets.symmetric(horizontal: 5.0),
+              itemCount: topStoresState.stores.length,
+              itemBuilder: (context, index) {
+                final store = topStoresState.stores[index];
+                return _buildStoreCarouselItem(
+                  context,
+                  store,
+                  index,
+                  topStoresState.stores.length,
+                );
+              },
+            ),
           ),
       ],
     );
@@ -859,7 +862,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
         itemBuilder: (context, index) {
           return Container(
             width: 285,
-            margin: EdgeInsets.only(right: index == 2 ? 0 : 16),
+            margin: EdgeInsets.only(right: index == 2 ? 0 : 10),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(20),
