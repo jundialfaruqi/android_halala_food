@@ -1245,12 +1245,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
           offset: const Offset(0, 4),
         ),
       ],
-      customBorderRadius: const BorderRadius.only(
-        topLeft: Radius.zero,
-        topRight: Radius.circular(24),
-        bottomRight: Radius.zero,
-        bottomLeft: Radius.circular(24),
-      ),
+      borderRadius: 16.0,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Column(
         mainAxisSize: MainAxisSize.min,
