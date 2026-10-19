@@ -10,6 +10,7 @@ import 'package:android_halala_food/features/invoice/data/models/invoice_model.d
 import 'package:android_halala_food/features/invoice/data/repositories/invoice_repository_impl.dart';
 import 'package:android_halala_food/features/invoice/domain/repositories/invoice_repository.dart';
 import 'package:android_halala_food/features/invoice/presentation/views/invoice_create_screen.dart';
+import 'package:android_halala_food/features/store/presentation/widgets/store_dropdown_search_field.dart';
 import 'package:android_halala_food/features/store/presentation/widgets/store_multi_select_field.dart';
 
 class MockInvoiceCreateRepository implements InvoiceRepository {
@@ -339,5 +340,71 @@ void main() {
       deliveryDateFormatted: '09 Okt 2026',
     );
     expect(deliveryPreformatted.formattedDeliveryDate, '09 Okt 2026');
+  });
+
+  testWidgets('Memilih toko mitra menampilkan bagian rincian toko dengan tombol Tambah Produk Untuk Toko Ini',
+      (tester) async {
+    tester.view.physicalSize = const Size(800, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final mockRepo = MockInvoiceCreateRepository();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          invoiceRepositoryProvider.overrideWithValue(mockRepo),
+          authViewModelProvider
+              .overrideWith(() => FakeAuthViewModelWithManagerRole()),
+        ],
+        child: const MaterialApp(
+          home: InvoiceCreateScreen(),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    // Pilih 2 toko mitra via StoreMultiSelectField
+    final storeMultiSelect = tester.widget<StoreMultiSelectField>(
+      find.byType(StoreMultiSelectField),
+    );
+    storeMultiSelect.onChanged?.call([
+      const StoreSelectOption(
+        id: 1,
+        name: 'Toko Berkah Utama',
+        address: 'Jl. Ahmad Yani No. 10',
+        route: 'Rute Utara',
+      ),
+      const StoreSelectOption(
+        id: 2,
+        name: 'Toko Sumber Rejeki',
+        address: 'Jl. Merdeka No. 45',
+        route: 'Rute Selatan',
+      ),
+    ]);
+
+    await tester.pumpAndSettle();
+
+    // Verifikasi masing-masing toko muncul di bagian Rincian Produk Tertagih
+    expect(find.text('Toko Berkah Utama'), findsWidgets);
+    expect(find.text('Jl. Ahmad Yani No. 10'), findsOneWidget);
+    expect(find.text('Rute Utara'), findsOneWidget);
+
+    expect(find.text('Toko Sumber Rejeki'), findsWidgets);
+    expect(find.text('Jl. Merdeka No. 45'), findsOneWidget);
+    expect(find.text('Rute Selatan'), findsOneWidget);
+
+    // Verifikasi tombol Tambah Produk Untuk Toko Ini muncul untuk setiap toko (sebanyak 2 toko)
+    expect(find.text('Tambah Produk Untuk Toko Ini'), findsNWidgets(2));
+
+    // Tekan tombol Simpan Faktur saat belum ada produk tertagih pada toko
+    await tester.tap(find.text('Simpan Faktur'));
+    await tester.pumpAndSettle();
+
+    // Verifikasi error validasi muncul dan createInvoice di repository tidak dipanggil
+    expect(find.text('Toko "Toko Berkah Utama" belum memiliki produk tertagih.'), findsOneWidget);
+    expect(mockRepo.createCalled, isFalse);
   });
 }

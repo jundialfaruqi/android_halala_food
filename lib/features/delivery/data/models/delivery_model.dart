@@ -435,6 +435,28 @@ class ProductOptionModel {
       photoUrl: rawPhotoUrl ?? rawPhoto,
     );
   }
+
+  ProductOptionModel copyWith({
+    int? id,
+    String? name,
+    String? unit,
+    int? stockReady,
+    double? consignmentPrice,
+    double? depositPrice,
+    String? image,
+    String? photoUrl,
+  }) {
+    return ProductOptionModel(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      unit: unit ?? this.unit,
+      stockReady: stockReady ?? this.stockReady,
+      consignmentPrice: consignmentPrice ?? this.consignmentPrice,
+      depositPrice: depositPrice ?? this.depositPrice,
+      image: image ?? this.image,
+      photoUrl: photoUrl ?? this.photoUrl,
+    );
+  }
 }
 
 class DeliveryOptionsModel {
