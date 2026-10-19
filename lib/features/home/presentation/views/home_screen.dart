@@ -832,7 +832,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
             height: 200,
             itemExtent: 285,
             shrinkExtent: 40,
-            padding: const EdgeInsets.symmetric(horizontal: 6.0),
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
             itemCount: topStoresState.stores.length,
             itemBuilder: (context, index) {
               final store = topStoresState.stores[index];
@@ -854,12 +854,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
       height: 200,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: 3,
         itemBuilder: (context, index) {
           return Container(
             width: 285,
-            margin: const EdgeInsets.symmetric(horizontal: 4),
+            margin: EdgeInsets.only(right: index == 2 ? 0 : 16),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(20),
