@@ -69,10 +69,6 @@ class InvoiceRemoteDataSourceImpl implements InvoiceRemoteDataSource {
       queryParams['status'] = status;
     }
 
-    if (storeId != null && storeId > 0) {
-      queryParams['store_id'] = storeId;
-    }
-
     if (invoiceDate != null && invoiceDate.isNotEmpty) {
       queryParams['invoice_date'] = invoiceDate;
     }

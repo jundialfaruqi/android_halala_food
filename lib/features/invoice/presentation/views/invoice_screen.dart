@@ -130,60 +130,16 @@ class _InvoiceScreenState extends ConsumerState<InvoiceScreen> {
                           ),
                           const SizedBox(height: 10),
 
-                          // 1 Baris Filter: Mitra Toko & Tanggal Faktur
-                          Row(
-                            children: [
-                              Expanded(
-                                child: AppDropdownSearchField<InvoiceStoreModel>(
-                                  hintText: 'Semua Toko',
-                                  initialValue: state.selectedStoreId != null
-                                      ? state.availableStores
-                                          .where((s) => s.id == state.selectedStoreId)
-                                          .firstOrNull
-                                      : null,
-                                  items: [
-                                    const InvoiceStoreModel(id: 0, name: 'Semua Toko'),
-                                    ...state.availableStores,
-                                  ],
-                                  itemLabel: (store) => store.name,
-                                  itemEquals: (a, b) => a?.id == b?.id,
-                                  searchMatcher: (store, query) =>
-                                      store.name.toLowerCase().contains(query.toLowerCase()),
-                                  minSearchLength: 3,
-                                  debounceDuration: const Duration(milliseconds: 300),
-                                  maxDropdownItems: 30,
-                                  emptyMessage: 'Tidak ada toko ditemukan.',
-                                  fontSize: 13,
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 11,
-                                  ),
-                                  borderRadius: 10,
-                                  onSelected: (store) {
-                                    final storeId =
-                                        (store == null || store.id == 0)
-                                            ? null
-                                            : store.id;
-                                    ref
-                                        .read(invoiceViewModelProvider.notifier)
-                                        .setStoreFilter(storeId);
-                                  },
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: AppFilterDatePicker(
-                                  selectedDate: state.selectedDate,
-                                  placeholder: 'Pilih Tanggal',
-                                  tooltip: 'Filter Tanggal Faktur',
-                                  onDateSelected: (date) {
-                                    ref
-                                        .read(invoiceViewModelProvider.notifier)
-                                        .setDateFilter(date);
-                                  },
-                                ),
-                              ),
-                            ],
+                          // Filter Tanggal Faktur
+                          AppFilterDatePicker(
+                            selectedDate: state.selectedDate,
+                            placeholder: 'Pilih Tanggal Faktur',
+                            tooltip: 'Filter Tanggal Faktur',
+                            onDateSelected: (date) {
+                              ref
+                                  .read(invoiceViewModelProvider.notifier)
+                                  .setDateFilter(date);
+                            },
                           ),
                           const SizedBox(height: 10),
 

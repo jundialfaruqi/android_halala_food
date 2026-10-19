@@ -49,7 +49,6 @@ class InvoiceState {
   bool get hasMore => currentPage < lastPage;
   bool get hasFilter =>
       selectedStatus != 'all' ||
-      selectedStoreId != null ||
       selectedDate != null ||
       searchQuery.isNotEmpty;
 
@@ -146,7 +145,6 @@ class InvoiceViewModel extends Notifier<InvoiceState> {
         perPage: 15,
         search: state.searchQuery,
         status: state.selectedStatus,
-        storeId: state.selectedStoreId,
         invoiceDate: dateParam,
       );
 
@@ -186,7 +184,6 @@ class InvoiceViewModel extends Notifier<InvoiceState> {
         perPage: 15,
         search: state.searchQuery,
         status: state.selectedStatus,
-        storeId: state.selectedStoreId,
         invoiceDate: dateParam,
       );
 

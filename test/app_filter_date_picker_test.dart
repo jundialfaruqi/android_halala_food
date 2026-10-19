@@ -308,8 +308,8 @@ void main() {
     });
   });
 
-  group('InvoiceScreen 1-Row Filter Integration Tests', () {
-    testWidgets('renders store filter and date picker in 1 row with initial null date', (tester) async {
+  group('InvoiceScreen Filter Integration Tests', () {
+    testWidgets('renders date picker without store filter dropdown', (tester) async {
       final mockRepo = MockInvoiceRepository();
 
       await tester.pumpWidget(
@@ -326,16 +326,10 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      // Check date picker is rendered with "Pilih Tanggal"
-      expect(find.text('Pilih Tanggal'), findsOneWidget);
-      expect(find.text('Semua Toko'), findsOneWidget);
-
-      // Check they are siblings in the same Row
-      final rowFinder = find.ancestor(
-        of: find.byType(AppFilterDatePicker),
-        matching: find.byType(Row),
-      );
-      expect(rowFinder, findsWidgets);
+      // Check date picker is rendered with "Pilih Tanggal Faktur"
+      expect(find.text('Pilih Tanggal Faktur'), findsOneWidget);
+      // Verify store dropdown filter has been removed
+      expect(find.text('Semua Toko'), findsNothing);
 
       // Verify that initial API call was made with invoiceDate = null
       expect(mockRepo.lastRequestedDate, isNull);
