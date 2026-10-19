@@ -2,17 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tabler_icons/flutter_tabler_icons.dart';
 import 'package:intl/intl.dart';
+
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../../auth/presentation/viewmodels/auth_viewmodel.dart';
+import '../../../product/presentation/viewmodels/product_viewmodel.dart';
+import '../../../store/presentation/widgets/store_dropdown_search_field.dart';
+import '../../../store/presentation/widgets/store_multi_select_field.dart';
 import '../../data/models/delivery_model.dart';
 import '../../data/repositories/delivery_repository_impl.dart';
 import '../models/delivery_item_form_entry.dart';
+import '../viewmodels/delivery_viewmodel.dart';
 import '../widgets/delivery_item_card.dart';
 import '../widgets/delivery_item_edit_dialog.dart';
 import '../widgets/delivery_product_selection_dialog.dart';
-import '../../../store/presentation/widgets/store_dropdown_search_field.dart';
-import '../../../store/presentation/widgets/store_multi_select_field.dart';
 
 class DeliveryCreateScreen extends ConsumerStatefulWidget {
   const DeliveryCreateScreen({super.key});
@@ -39,7 +42,7 @@ class _DeliveryCreateScreenState extends ConsumerState<DeliveryCreateScreen> {
   String? _errorMessage;
 
   DeliveryOptionsModel? _options;
-  final List<DeliveryItemFormEntry> _items = [];
+  final Map<int, List<DeliveryItemFormEntry>> _storeItems = {};
   String? _itemsErrorMessage;
 
   final NumberFormat _currencyFormat = NumberFormat.currency(
@@ -84,7 +87,7 @@ class _DeliveryCreateScreenState extends ConsumerState<DeliveryCreateScreen> {
           _options = options;
           _deliveryNumberController.text = options.nextDeliveryNumber;
           _selectedCourierId = defaultCourierId;
-          _items.clear();
+          _storeItems.clear();
           _isLoadingOptions = false;
         });
       }
@@ -98,7 +101,8 @@ class _DeliveryCreateScreenState extends ConsumerState<DeliveryCreateScreen> {
     }
   }
 
-  Future<void> _openAddProductsDialog() async {
+  /// Membuka dialog pemilihan produk untuk toko tertentu dengan perhitungan alokasi stok dinamis
+  Future<void> _openAddProductsDialogForStore(StoreSelectOption store) async {
     if (_options == null || _options!.products.isEmpty) {
       AppSnackBar.showError(
         context,
@@ -107,36 +111,92 @@ class _DeliveryCreateScreenState extends ConsumerState<DeliveryCreateScreen> {
       return;
     }
 
-    final currentIds = _items.map((i) => i.productId).toSet();
+    final currentStoreItems = _storeItems[store.id] ?? [];
+    final currentIds = currentStoreItems.map((i) => i.productId).toSet();
+
+    // Hitung total alokasi produk oleh toko lain
+    final Map<int, int> allocatedToOtherStores = {};
+    _storeItems.forEach((otherStoreId, items) {
+      if (otherStoreId != store.id) {
+        for (final item in items) {
+          allocatedToOtherStores[item.productId] =
+              (allocatedToOtherStores[item.productId] ?? 0) + item.quantity;
+        }
+      }
+    });
+
+    // Sesuaikan sisa stok produk yang tersedia untuk toko ini
+    final adjustedProducts = _options!.products.map((prod) {
+      final allocated = allocatedToOtherStores[prod.id] ?? 0;
+      final remaining = (prod.stockReady - allocated).clamp(0, prod.stockReady);
+      return prod.copyWith(stockReady: remaining);
+    }).toList();
+
     final newItems = await DeliveryProductSelectionDialog.show(
       context: context,
-      products: _options!.products,
+      products: adjustedProducts,
       alreadyAddedProductIds: currentIds,
     );
 
     if (newItems != null && newItems.isNotEmpty) {
       setState(() {
-        _items.addAll(newItems);
+        _storeItems.putIfAbsent(store.id, () => []);
+        _storeItems[store.id]!.addAll(newItems);
         _itemsErrorMessage = null;
       });
     }
   }
 
-  Future<void> _editItem(int index) async {
-    final item = _items[index];
+  /// Membuka dialog edit kuantitas dan harga satuan item produk untuk toko tertentu
+  Future<void> _editItemForStore(StoreSelectOption store, int index) async {
+    final storeItems = _storeItems[store.id];
+    if (storeItems == null || index >= storeItems.length) return;
+
+    final item = storeItems[index];
+
+    // Hitung alokasi stok produk oleh toko lain & baris lain pada produk yang sama
+    int allocatedOther = 0;
+    _storeItems.forEach((sId, items) {
+      for (int i = 0; i < items.length; i++) {
+        if (sId != store.id || i != index) {
+          if (items[i].productId == item.productId) {
+            allocatedOther += items[i].quantity;
+          }
+        }
+      }
+    });
+
+    final originalProduct =
+        _options?.products.where((p) => p.id == item.productId).firstOrNull ??
+        item.product;
+    final remainingForThisItem = (originalProduct.stockReady - allocatedOther)
+        .clamp(0, originalProduct.stockReady);
+
+    final entryWithAdjustedStock = DeliveryItemFormEntry(
+      productId: item.productId,
+      product: originalProduct.copyWith(stockReady: remainingForThisItem),
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+    );
+
     final updated = await DeliveryItemEditDialog.show(
       context: context,
-      item: item,
+      item: entryWithAdjustedStock,
     );
 
     if (updated == true) {
-      setState(() {});
+      setState(() {
+        storeItems[index] = entryWithAdjustedStock;
+      });
     }
   }
 
-  void _removeItem(int index) {
+  void _removeItemForStore(StoreSelectOption store, int index) {
     setState(() {
-      _items.removeAt(index);
+      final storeItems = _storeItems[store.id];
+      if (storeItems != null && index < storeItems.length) {
+        storeItems.removeAt(index);
+      }
     });
   }
 
@@ -164,18 +224,39 @@ class _DeliveryCreateScreenState extends ConsumerState<DeliveryCreateScreen> {
     if (picked != null) {
       setState(() {
         _selectedDate = picked;
-        _deliveryDateController.text =
-            DateFormat('yyyy-MM-dd').format(picked);
+        _deliveryDateController.text = DateFormat('yyyy-MM-dd').format(picked);
       });
     }
   }
 
+  int _storeQuantity(int storeId) {
+    final items = _storeItems[storeId] ?? [];
+    return items.fold(0, (sum, i) => sum + i.quantity);
+  }
+
+  double _storeSubtotal(int storeId) {
+    final items = _storeItems[storeId] ?? [];
+    return items.fold(0.0, (sum, i) => sum + i.subtotal);
+  }
+
   int get _totalQuantity {
-    return _items.fold(0, (sum, i) => sum + i.quantity);
+    int sum = 0;
+    _storeItems.forEach((_, items) {
+      for (final item in items) {
+        sum += item.quantity;
+      }
+    });
+    return sum;
   }
 
   double get _totalAmount {
-    return _items.fold(0.0, (sum, i) => sum + i.subtotal);
+    double sum = 0.0;
+    _storeItems.forEach((_, items) {
+      for (final item in items) {
+        sum += item.subtotal;
+      }
+    });
+    return sum;
   }
 
   Future<void> _saveDelivery() async {
@@ -186,10 +267,32 @@ class _DeliveryCreateScreenState extends ConsumerState<DeliveryCreateScreen> {
       hasInlineErrors = true;
     }
 
-    if (_items.isEmpty) {
+    if (_selectedStores.isEmpty) {
+      hasInlineErrors = true;
+    }
+
+    // Periksa apakah ada toko yang belum memiliki muatan produk
+    bool hasEmptyStore = false;
+    for (final store in _selectedStores) {
+      final items = _storeItems[store.id] ?? [];
+      if (items.isEmpty) {
+        hasEmptyStore = true;
+        break;
+      }
+    }
+
+    if (_selectedStores.isEmpty || hasEmptyStore) {
       setState(() {
-        _itemsErrorMessage =
-            'Muatan barang jadi wajib diisi minimal 1 jenis produk.';
+        if (_selectedStores.isEmpty) {
+          _itemsErrorMessage =
+              'Pilih minimal satu toko mitra tujuan pengantaran.';
+        } else {
+          final emptyStore = _selectedStores.firstWhere(
+            (s) => (_storeItems[s.id] ?? []).isEmpty,
+          );
+          _itemsErrorMessage =
+              'Toko "${emptyStore.name}" belum memiliki muatan produk jadi.';
+        }
       });
       hasInlineErrors = true;
     } else {
@@ -208,36 +311,39 @@ class _DeliveryCreateScreenState extends ConsumerState<DeliveryCreateScreen> {
       return;
     }
 
-    // Check duplicate products
-    final productIds = _items.map((i) => i.productId).toList();
-    if (productIds.toSet().length != productIds.length) {
-      AppSnackBar.showError(
-        context,
-        message:
-            'Terdapat produk yang dipilih lebih dari 1 kali. Mohon gabungkan kuantitasnya.',
-      );
-      return;
+    // Validasi produk tidak boleh ganda pada toko yang sama
+    for (final store in _selectedStores) {
+      final items = _storeItems[store.id] ?? [];
+      final productIds = items.map((i) => i.productId).toList();
+      if (productIds.toSet().length != productIds.length) {
+        AppSnackBar.showError(
+          context,
+          message:
+              'Terdapat produk duplikat pada toko "${store.name}". Mohon gabungkan kuantitasnya.',
+        );
+        return;
+      }
     }
 
-    // Check stock sufficiency
-    final storeCount = _selectedStores.length;
-    for (int i = 0; i < _items.length; i++) {
-      final entry = _items[i];
-      final totalNeeded = entry.quantity * storeCount;
-      if (totalNeeded > entry.product.stockReady) {
-        if (storeCount > 1) {
-          AppSnackBar.showError(
-            context,
-            message:
-                'Stok ${entry.product.name} tidak mencukupi untuk $storeCount toko. Dibutuhkan $totalNeeded ${entry.product.unit} (${entry.quantity} x $storeCount toko), tersedia: ${entry.product.stockReady} ${entry.product.unit}.',
-          );
-        } else {
-          AppSnackBar.showError(
-            context,
-            message:
-                'Stok ${entry.product.name} tidak mencukupi (Tersedia ready: ${entry.product.stockReady} ${entry.product.unit}).',
-          );
-        }
+    // Validasi kecukupan total alokasi stok gudang untuk semua toko
+    final Map<int, int> totalNeededPerProduct = {};
+    _storeItems.forEach((_, items) {
+      for (final item in items) {
+        totalNeededPerProduct[item.productId] =
+            (totalNeededPerProduct[item.productId] ?? 0) + item.quantity;
+      }
+    });
+
+    for (final entry in totalNeededPerProduct.entries) {
+      final prod = _options?.products
+          .where((p) => p.id == entry.key)
+          .firstOrNull;
+      if (prod != null && entry.value > prod.stockReady) {
+        AppSnackBar.showError(
+          context,
+          message:
+              'Total alokasi produk "${prod.name}" melebihi stok gudang (Dibutuhkan: ${entry.value} ${prod.unit}, Tersedia: ${prod.stockReady} ${prod.unit}).',
+        );
         return;
       }
     }
@@ -248,27 +354,42 @@ class _DeliveryCreateScreenState extends ConsumerState<DeliveryCreateScreen> {
 
     try {
       final repository = ref.read(deliveryRepositoryProvider);
+
+      final storesPayload = _selectedStores.map((store) {
+        final items = _storeItems[store.id] ?? [];
+        return {
+          'store_id': store.id,
+          'items': items.map((i) => i.toJson()).toList(),
+        };
+      }).toList();
+
       final storeIds = _selectedStores.map((s) => s.id).toList();
+      final firstStoreItems = _storeItems[storeIds.first] ?? [];
+
       final payload = <String, dynamic>{
         'delivery_number': _deliveryNumberController.text.trim(),
         'store_id': storeIds.first,
         'store_ids': storeIds,
+        'stores': storesPayload,
         'courier_id': _selectedCourierId,
         'delivery_date': _deliveryDateController.text.trim(),
         'notes': _notesController.text.trim(),
-        'items': _items.map((i) => i.toJson()).toList(),
+        'items': firstStoreItems.map((i) => i.toJson()).toList(),
       };
 
       final created = await repository.createDelivery(payload);
+
+      // Refresh list pengantaran & produk di cache
+      ref
+          .read(deliveryViewModelProvider.notifier)
+          .loadDeliveries(refresh: true);
+      ref.read(productViewModelProvider.notifier).fetchProducts(refresh: true);
 
       if (mounted) {
         final message = storeIds.length > 1
             ? '${storeIds.length} surat jalan pengantaran berhasil dibuat untuk masing-masing toko.'
             : 'Surat jalan ${created.deliveryNumber} berhasil dibuat.';
-        AppSnackBar.showSuccess(
-          context,
-          message: message,
-        );
+        AppSnackBar.showSuccess(context, message: message);
         Navigator.pop(context, true);
       }
     } catch (e) {
@@ -288,9 +409,7 @@ class _DeliveryCreateScreenState extends ConsumerState<DeliveryCreateScreen> {
   Widget build(BuildContext context) {
     return AppStatusBar(
       child: AppScaffold(
-        appBar: const AppAppBar(
-          title: 'Buat Surat Jalan Baru',
-        ),
+        appBar: const AppAppBar(title: 'Buat Surat Jalan Baru'),
         bottomNavigationBar: AppBottomActionBar(
           confirmText: 'Simpan Surat Jalan',
           isLoading: _isSubmitting,
@@ -324,10 +443,7 @@ class _DeliveryCreateScreenState extends ConsumerState<DeliveryCreateScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              AppButton(
-                text: 'Coba Lagi',
-                onPressed: _loadOptions,
-              ),
+              AppButton(text: 'Coba Lagi', onPressed: _loadOptions),
             ],
           ),
         ),
@@ -341,17 +457,8 @@ class _DeliveryCreateScreenState extends ConsumerState<DeliveryCreateScreen> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
-          // Section 1: Data Pengantaran & Tujuan
-          const Text(
-            'Informasi Pengantaran',
-            style: TextStyle(
-              fontFamily: 'PlusJakartaSans',
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: AppColors.brandEspresso,
-            ),
-          ),
-          const SizedBox(height: 12),
+          // SUB FORM 1: INFORMASI PENGANTARAN (Title dengan border bottom, tanpa card)
+          _buildSectionHeader('Informasi Pengantaran'),
 
           // Nomor Surat Jalan (Otomatis dari sistem, disabled)
           AppTextField(
@@ -369,51 +476,6 @@ class _DeliveryCreateScreenState extends ConsumerState<DeliveryCreateScreen> {
                 return 'Nomor surat jalan wajib diisi.';
               }
               return null;
-            },
-          ),
-          const SizedBox(height: 14),
-
-          // Toko Mitra (Bisa memilih lebih dari 1 toko)
-          StoreMultiSelectField(
-            labelText: 'Toko Mitra Tujuan *',
-            hintText: 'Pilih satu atau lebih toko mitra...',
-            initialStores: _selectedStores,
-            initialAvailableStores: opts.stores,
-            validator: (val) {
-              if (val == null || val.isEmpty) {
-                return 'Pilih minimal satu toko mitra tujuan pengantaran.';
-              }
-              return null;
-            },
-            onChanged: (stores) {
-              setState(() {
-                _selectedStores = stores;
-              });
-            },
-          ),
-          const SizedBox(height: 14),
-
-          // Kurir Bertugas (Wajib diisi dengan error inline)
-          AppMenuSelect<int>(
-            labelText: 'Kurir Bertugas',
-            hintText: 'Pilih Kurir Bertugas...',
-            initialSelection: _selectedCourierId,
-            entries: opts.couriers.map((c) {
-              return AppMenuSelectEntry<int>(
-                value: c.id,
-                label: c.name,
-              );
-            }).toList(),
-            validator: (val) {
-              if (val == null || val == 0) {
-                return 'Kurir yang bertugas wajib dipilih.';
-              }
-              return null;
-            },
-            onSelected: (val) {
-              setState(() {
-                _selectedCourierId = val;
-              });
             },
           ),
           const SizedBox(height: 14),
@@ -440,56 +502,96 @@ class _DeliveryCreateScreenState extends ConsumerState<DeliveryCreateScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 22),
+          const SizedBox(height: 14),
 
-          // Section 2: Muatan Barang
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Muatan Barang Jadi',
-                style: TextStyle(
-                  fontFamily: 'PlusJakartaSans',
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.brandEspresso,
-                ),
-              ),
-              if (_items.isNotEmpty)
-                Text(
-                  '${_items.length} Baris Produk',
-                  style: const TextStyle(
-                    fontFamily: 'PlusJakartaSans',
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.brandWarmGray,
-                  ),
-                ),
-            ],
+          // Kurir Bertugas (Wajib diisi dengan error inline)
+          AppMenuSelect<int>(
+            labelText: 'Kurir Bertugas',
+            hintText: 'Pilih Kurir Bertugas...',
+            initialSelection: _selectedCourierId,
+            entries: opts.couriers.map((c) {
+              return AppMenuSelectEntry<int>(value: c.id, label: c.name);
+            }).toList(),
+            validator: (val) {
+              if (val == null || val == 0) {
+                return 'Kurir yang bertugas wajib dipilih.';
+              }
+              return null;
+            },
+            onSelected: (val) {
+              setState(() {
+                _selectedCourierId = val;
+              });
+            },
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 14),
 
-          // Jika Kosong: Card Empty dengan Tombol Call To Action Tambahkan Produk Jadi (Point 1)
-          if (_items.isEmpty) ...[
+          // Toko Mitra (Diposisikan di bawah kurir seperti di faktur)
+          StoreMultiSelectField(
+            labelText: 'Toko Mitra Tujuan *',
+            hintText: 'Pilih satu atau lebih toko mitra...',
+            initialStores: _selectedStores,
+            initialAvailableStores: opts.stores,
+            validator: (val) {
+              if (val == null || val.isEmpty) {
+                return 'Pilih minimal satu toko mitra tujuan pengantaran.';
+              }
+              return null;
+            },
+            onChanged: (stores) {
+              setState(() {
+                _selectedStores = stores;
+                // Sinkronisasi _storeItems dengan toko terpilih
+                _storeItems.removeWhere(
+                  (storeId, _) => !stores.any((s) => s.id == storeId),
+                );
+                for (final store in stores) {
+                  _storeItems.putIfAbsent(store.id, () => []);
+                }
+              });
+            },
+          ),
+          const SizedBox(height: 24),
+
+          // SUB FORM 2: MUATAN BARANG JADI (Dinamis per Toko Mitra)
+          _buildSectionHeader(
+            'Muatan Barang Jadi',
+            trailing: _selectedStores.isNotEmpty
+                ? Text(
+                    '${_selectedStores.length} Toko',
+                    style: const TextStyle(
+                      fontFamily: 'PlusJakartaSans',
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.brandWarmGray,
+                    ),
+                  )
+                : null,
+          ),
+
+          // Tampilan Kosong: Saat belum ada toko yang dipilih
+          if (_selectedStores.isEmpty) ...[
             AppEmptyCard.inline(
               icon: TablerIcons.box_off,
               title: 'Belum Ada Muatan Produk',
               message:
-                  'Tambahkan produk jadi yang akan diantarkan dalam surat jalan ini.',
-              actionText: 'Tambahkan Produk Jadi',
-              actionIcon: TablerIcons.plus,
+                  'Pilih minimal satu toko mitra tujuan pengantaran di atas untuk mengatur muatan produk.',
+              actionText: 'Pilih Toko Mitra Terlebih Dahulu',
+              actionIcon: TablerIcons.building_store,
               hasBorder: true,
               borderColor: _itemsErrorMessage != null
                   ? AppColors.error
                   : AppColors.brandBorder,
               backgroundColor: Colors.white,
-              onAction: _openAddProductsDialog,
+              onAction: () {},
             ),
             if (_itemsErrorMessage != null) ...[
               const SizedBox(height: 8),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.error.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(8),
@@ -521,95 +623,276 @@ class _DeliveryCreateScreenState extends ConsumerState<DeliveryCreateScreen> {
               ),
             ],
           ] else ...[
-            // List Card Produk (Point 5)
-            ..._items.asMap().entries.map((entry) {
-              final index = entry.key;
-              final item = entry.value;
+            // Tampilan Terisi per Toko Mitra: List Nama Toko, Alamat, Rute, dan Tombol Tambah Produk
+            ..._selectedStores.map((store) {
+              final storeItems = _storeItems[store.id] ?? [];
+              final storeSubtotal = _storeSubtotal(store.id);
+              final storeQty = _storeQuantity(store.id);
 
-              return DeliveryItemCard(
-                index: index,
-                item: item,
-                onEdit: () => _editItem(index),
-                onDelete: () => _removeItem(index),
+              return Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.brandBorder, width: 1.0),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header Toko: Nama Toko, Alamat, Rute (Tanpa icon pada nama toko & alamat)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          store.name,
+                          style: const TextStyle(
+                            fontFamily: 'PlusJakartaSans',
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.brandEspresso,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                (store.address != null &&
+                                        store.address!.trim().isNotEmpty)
+                                    ? store.address!.trim()
+                                    : 'Alamat belum diatur',
+                                style: const TextStyle(
+                                  fontFamily: 'PlusJakartaSans',
+                                  fontSize: 12,
+                                  color: AppColors.brandWarmGray,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (store.route != null &&
+                                store.route!.trim().isNotEmpty) ...[
+                              const SizedBox(width: 10),
+                              const Icon(
+                                TablerIcons.route,
+                                size: 14,
+                                color: AppColors.brandWarmGray,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                store.route!.trim(),
+                                style: const TextStyle(
+                                  fontFamily: 'PlusJakartaSans',
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.brandWarmGray,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    const Divider(height: 1, color: AppColors.brandBorder),
+                    const SizedBox(height: 12),
+
+                    // Daftar Muatan Produk Toko Ini
+                    if (storeItems.isEmpty) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 14,
+                          horizontal: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.brandSoftCream.withValues(
+                            alpha: 0.35,
+                          ),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: AppColors.brandBorder,
+                            width: 0.8,
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            const Text(
+                              'Belum ada muatan barang jadi untuk toko ini.',
+                              style: TextStyle(
+                                fontFamily: 'PlusJakartaSans',
+                                fontSize: 12.5,
+                                color: AppColors.brandWarmGray,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            AppButton.outline(
+                              text: 'Tambah Produk Untuk Toko Ini',
+                              icon: const Icon(TablerIcons.plus, size: 16),
+                              height: 38,
+                              borderRadius: 10,
+                              onPressed: () =>
+                                  _openAddProductsDialogForStore(store),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ] else ...[
+                      ...storeItems.asMap().entries.map((entry) {
+                        final itemIndex = entry.key;
+                        final item = entry.value;
+
+                        return DeliveryItemCard(
+                          index: itemIndex,
+                          item: item,
+                          onEdit: () => _editItemForStore(store, itemIndex),
+                          onDelete: () => _removeItemForStore(store, itemIndex),
+                        );
+                      }),
+                      const SizedBox(height: 6),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            '$storeQty Kemasan',
+                            style: const TextStyle(
+                              fontFamily: 'PlusJakartaSans',
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.brandWarmGray,
+                            ),
+                          ),
+                          Text(
+                            _currencyFormat.format(storeSubtotal),
+                            style: const TextStyle(
+                              fontFamily: 'PlusJakartaSans',
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.brandEspresso,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      AppButton.outline(
+                        text: 'Tambah Produk Untuk Toko Ini',
+                        icon: const Icon(TablerIcons.plus, size: 16),
+                        height: 40,
+                        borderRadius: 10,
+                        onPressed: () => _openAddProductsDialogForStore(store),
+                      ),
+                    ],
+                  ],
+                ),
               );
             }),
-
-            const SizedBox(height: 4),
-
-            // Tombol Tambah Baris Produk di Bawah Card (Point 7 - Hanya muncul jika TIDAK KOSONG)
-            AppButton.outline(
-              text: 'Tambah Baris Produk',
-              icon: const Icon(TablerIcons.plus, size: 18),
-              height: 44,
-              borderRadius: 12,
-              onPressed: _openAddProductsDialog,
-            ),
-            const SizedBox(height: 18),
-
-            // Card Ringkasan Total
-            AppCard(
-              padding: const EdgeInsets.all(16),
-              backgroundColor: AppColors.brandSoftCreamLight,
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Total Jumlah Kemasan:',
-                        style: TextStyle(
-                          fontFamily: 'PlusJakartaSans',
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.brandEspresso,
-                        ),
-                      ),
-                      Text(
-                        '$_totalQuantity Kemasan',
+            if (_itemsErrorMessage != null) ...[
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.error.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: AppColors.error.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      TablerIcons.alert_circle,
+                      size: 16,
+                      color: AppColors.error,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _itemsErrorMessage!,
                         style: const TextStyle(
                           fontFamily: 'PlusJakartaSans',
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.brandEspresso,
-                          fontFeatures: [FontFeature.tabularFigures()],
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.error,
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  const Divider(height: 1, color: AppColors.brandBorder),
-                  const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Total Nilai Muatan:',
-                        style: TextStyle(
-                          fontFamily: 'PlusJakartaSans',
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.brandEspresso,
-                        ),
-                      ),
-                      Text(
-                        _currencyFormat.format(_totalAmount),
-                        style: const TextStyle(
-                          fontFamily: 'PlusJakartaSans',
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.brandPrimary,
-                          fontFeatures: [FontFeature.tabularFigures()],
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ),
-            ),
+              const SizedBox(height: 12),
+            ],
+
+            // Card Ringkasan Total Semua Toko
+            if (_totalQuantity > 0) ...[
+              AppCard(
+                padding: const EdgeInsets.all(16),
+                backgroundColor: AppColors.brandSoftCreamLight,
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Total Jumlah Kemasan:',
+                          style: TextStyle(
+                            fontFamily: 'PlusJakartaSans',
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.brandEspresso,
+                          ),
+                        ),
+                        Text(
+                          '$_totalQuantity Kemasan',
+                          style: const TextStyle(
+                            fontFamily: 'PlusJakartaSans',
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.brandEspresso,
+                            fontFeatures: [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    const Divider(height: 1, color: AppColors.brandBorder),
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Total Nilai Muatan:',
+                          style: TextStyle(
+                            fontFamily: 'PlusJakartaSans',
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.brandEspresso,
+                          ),
+                        ),
+                        Text(
+                          _currencyFormat.format(_totalAmount),
+                          style: const TextStyle(
+                            fontFamily: 'PlusJakartaSans',
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.brandPrimary,
+                            fontFeatures: [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
           const SizedBox(height: 18),
 
-          // Catatan Pengantaran
+          // SUB FORM 3: CATATAN
+          _buildSectionHeader('Catatan Pengantaran'),
           AppTextField(
             controller: _notesController,
             labelText: 'Catatan Pengantaran (Opsional)',
@@ -621,51 +904,66 @@ class _DeliveryCreateScreenState extends ConsumerState<DeliveryCreateScreen> {
     );
   }
 
+  Widget _buildSectionHeader(String title, {Widget? trailing}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontFamily: 'PlusJakartaSans',
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.brandEspresso,
+                ),
+              ),
+              if (trailing != null) trailing,
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Divider(height: 1, color: AppColors.brandBorder),
+        ],
+      ),
+    );
+  }
+
   /// Skeleton shimmer saat memuat data opsi toko dan kurir
   Widget _buildShimmerForm() {
     return ListView(
       physics: const NeverScrollableScrollPhysics(),
       padding: const EdgeInsets.all(16),
       children: const [
-        // Skeleton Pilih Mitra Toko
-        ShimmerLoading(width: 120, height: 14, borderRadius: 4),
-        SizedBox(height: 8),
+        ShimmerLoading(width: 140, height: 16, borderRadius: 4),
+        SizedBox(height: 12),
         ShimmerLoading(width: double.infinity, height: 48, borderRadius: 12),
-        SizedBox(height: 18),
-
-        // Skeleton Pilih Kurir
-        ShimmerLoading(width: 100, height: 14, borderRadius: 4),
-        SizedBox(height: 8),
+        SizedBox(height: 14),
         ShimmerLoading(width: double.infinity, height: 48, borderRadius: 12),
-        SizedBox(height: 18),
-
-        // Skeleton Tanggal Pengantaran
-        ShimmerLoading(width: 130, height: 14, borderRadius: 4),
-        SizedBox(height: 8),
+        SizedBox(height: 14),
+        ShimmerLoading(width: double.infinity, height: 48, borderRadius: 12),
+        SizedBox(height: 14),
         ShimmerLoading(width: double.infinity, height: 48, borderRadius: 12),
         SizedBox(height: 24),
-
-        // Skeleton Card Muatan Barang
+        ShimmerLoading(width: 140, height: 16, borderRadius: 4),
+        SizedBox(height: 12),
         AppCard(
           padding: EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  ShimmerLoading(width: 110, height: 16, borderRadius: 4),
-                  ShimmerLoading(width: 70, height: 28, borderRadius: 8),
-                ],
-              ),
+              ShimmerLoading(width: 120, height: 16, borderRadius: 4),
               SizedBox(height: 14),
               Divider(height: 1, color: AppColors.brandBorder),
               SizedBox(height: 14),
               ShimmerLoading(
-                  width: double.infinity, height: 50, borderRadius: 8),
-              SizedBox(height: 8),
-              ShimmerLoading(
-                  width: double.infinity, height: 50, borderRadius: 8),
+                width: double.infinity,
+                height: 48,
+                borderRadius: 8,
+              ),
             ],
           ),
         ),
