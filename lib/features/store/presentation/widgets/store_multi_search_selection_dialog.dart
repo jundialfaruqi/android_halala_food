@@ -53,12 +53,12 @@ class StoreMultiSearchSelectionDialog extends ConsumerStatefulWidget {
 
 class _StoreMultiSearchSelectionDialogState
     extends ConsumerState<StoreMultiSearchSelectionDialog> {
-  final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  Timer? _debounceTimer;
 
   List<StoreModel> _stores = [];
   List<StoreModel> _allAvailableStores = [];
+  List<String> _availableRoutes = [];
+  final Set<String> _selectedRoutes = {};
   final Map<int, StoreSelectOption> _selectedMap = {};
 
   int _currentPage = 1;
@@ -76,22 +76,24 @@ class _StoreMultiSearchSelectionDialogState
       _selectedMap[opt.id] = opt;
     }
 
-    if (widget.initialSearch != null && widget.initialSearch!.trim().isNotEmpty) {
-      _searchController.text = widget.initialSearch!.trim();
-    }
-
     _scrollController.addListener(_onScroll);
 
     if (widget.initialAvailableStores != null &&
         widget.initialAvailableStores!.isNotEmpty) {
       final seenIds = <int>{};
       final initialList = <StoreModel>[];
+      final routesSet = <String>{};
+
       for (final s in widget.initialAvailableStores!) {
         final id = (s is StoreModel) ? s.id : (s.id as int);
         if (!seenIds.add(id)) continue;
         if (s is StoreModel) {
           initialList.add(s);
+          final r = s.route?.trim();
+          if (r != null && r.isNotEmpty) routesSet.add(r);
         } else {
+          final r = s.route?.toString().trim();
+          if (r != null && r.isNotEmpty) routesSet.add(r);
           initialList.add(StoreModel(
             id: id,
             name: (s.name ?? '').toString(),
@@ -102,48 +104,73 @@ class _StoreMultiSearchSelectionDialogState
         }
       }
       _allAvailableStores = initialList;
+      _availableRoutes = routesSet.toList()..sort();
       _isUsingLocalData = true;
       _isLoadingInitial = false;
       _hasMore = false;
-      _filterStoresLocally();
+
+      // Jika ada initialSearch yang merupakan nama rute, otomatis pilih
+      if (widget.initialSearch != null &&
+          widget.initialSearch!.trim().isNotEmpty) {
+        final searchRoute = widget.initialSearch!.trim().toLowerCase();
+        final match = _availableRoutes.where(
+          (r) => r.toLowerCase() == searchRoute,
+        ).firstOrNull;
+        if (match != null) {
+          _selectedRoutes.add(match);
+        }
+      }
+
+      _applyRouteFilter();
     } else {
       _isUsingLocalData = false;
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadAvailableRoutes();
         _loadStores(page: 1, isInitial: true);
       });
     }
   }
 
-  void _filterStoresLocally() {
-    final query = _searchController.text.trim().toLowerCase();
-    if (query.isEmpty) {
+  Future<void> _loadAvailableRoutes() async {
+    try {
+      final repository = ref.read(storeRepositoryProvider);
+      final serverRoutes = await repository.getRoutes();
+      if (!mounted) return;
+      final set = <String>{..._availableRoutes, ...serverRoutes};
+      final list = set.where((r) => r.trim().isNotEmpty).toList()..sort();
       setState(() {
-        _stores = List<StoreModel>.from(_allAvailableStores);
-        _isLoadingInitial = false;
-        _errorMessage = null;
+        _availableRoutes = list;
       });
-    } else {
-      final filtered = _allAvailableStores.where((s) {
-        final nameMatch = s.name.toLowerCase().contains(query);
-        final routeMatch =
-            s.route != null && s.route!.toLowerCase().contains(query);
-        final addressMatch =
-            s.address != null && s.address!.toLowerCase().contains(query);
-        return nameMatch || routeMatch || addressMatch;
-      }).toList();
+    } catch (_) {}
+  }
 
-      setState(() {
-        _stores = filtered;
-        _isLoadingInitial = false;
-        _errorMessage = null;
-      });
+  void _applyRouteFilter() {
+    if (_isUsingLocalData) {
+      if (_selectedRoutes.isEmpty) {
+        setState(() {
+          _stores = List<StoreModel>.from(_allAvailableStores);
+          _isLoadingInitial = false;
+          _errorMessage = null;
+        });
+      } else {
+        final filtered = _allAvailableStores.where((s) {
+          final r = s.route?.trim();
+          return r != null && _selectedRoutes.contains(r);
+        }).toList();
+
+        setState(() {
+          _stores = filtered;
+          _isLoadingInitial = false;
+          _errorMessage = null;
+        });
+      }
+    } else {
+      _loadStores(page: 1, isInitial: true);
     }
   }
 
   @override
   void dispose() {
-    _debounceTimer?.cancel();
-    _searchController.dispose();
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
@@ -162,18 +189,6 @@ class _StoreMultiSearchSelectionDialogState
     }
   }
 
-  void _onSearchChanged(String query) {
-    if (_isUsingLocalData) {
-      _filterStoresLocally();
-      return;
-    }
-
-    _debounceTimer?.cancel();
-    _debounceTimer = Timer(const Duration(milliseconds: 350), () {
-      _loadStores(page: 1, isInitial: true);
-    });
-  }
-
   Future<void> _loadStores({required int page, required bool isInitial}) async {
     if (isInitial) {
       setState(() {
@@ -190,10 +205,11 @@ class _StoreMultiSearchSelectionDialogState
 
     try {
       final repository = ref.read(storeRepositoryProvider);
-      final query = _searchController.text.trim();
+      final singleRoute =
+          _selectedRoutes.length == 1 ? _selectedRoutes.first : null;
 
       final result = await repository.getStores(
-        search: query.isNotEmpty ? query : null,
+        route: singleRoute,
         isActive: true,
         page: page,
         perPage: _perPage,
@@ -201,13 +217,21 @@ class _StoreMultiSearchSelectionDialogState
 
       if (!mounted) return;
 
+      List<StoreModel> fetched = result.stores;
+      if (_selectedRoutes.length > 1) {
+        fetched = fetched
+            .where((s) =>
+                s.route != null && _selectedRoutes.contains(s.route!.trim()))
+            .toList();
+      }
+
       setState(() {
         if (isInitial) {
-          _stores = result.stores;
+          _stores = fetched;
         } else {
           final existingIds = _stores.map((s) => s.id).toSet();
           final newStores =
-              result.stores.where((s) => !existingIds.contains(s.id)).toList();
+              fetched.where((s) => !existingIds.contains(s.id)).toList();
           _stores.addAll(newStores);
         }
         _currentPage = page;
@@ -217,30 +241,8 @@ class _StoreMultiSearchSelectionDialogState
       });
     } catch (e) {
       if (!mounted) return;
-      if (widget.initialAvailableStores != null &&
-          widget.initialAvailableStores!.isNotEmpty) {
-        final query = _searchController.text.trim().toLowerCase();
-        final fallbackList = widget.initialAvailableStores!.map((s) {
-          if (s is StoreModel) return s;
-          return StoreModel(
-            id: s.id as int,
-            name: (s.name ?? '').toString(),
-            route: s.route?.toString(),
-            address: s.address?.toString(),
-            isActive: true,
-          );
-        }).where((s) {
-          if (query.isEmpty) return true;
-          return s.name.toLowerCase().contains(query) ||
-              (s.route ?? '').toLowerCase().contains(query);
-        }).toList();
-
-        setState(() {
-          _stores = fallbackList;
-          _isLoadingInitial = false;
-          _isLoadingMore = false;
-          _hasMore = false;
-        });
+      if (_allAvailableStores.isNotEmpty) {
+        _applyRouteFilter();
         return;
       }
 
@@ -252,6 +254,484 @@ class _StoreMultiSearchSelectionDialogState
         _isLoadingMore = false;
       });
     }
+  }
+
+  Future<void> _openRouteSelectionDialog() async {
+    final tempSelected = Set<String>.from(_selectedRoutes);
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final isAllRoutes = _availableRoutes.isNotEmpty &&
+                _availableRoutes.every((r) => tempSelected.contains(r));
+
+            return Dialog(
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              insetPadding:
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
+              child: Container(
+                constraints:
+                    const BoxConstraints(maxWidth: 440, maxHeight: 520),
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Header Dialog Rute
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(
+                              TablerIcons.route,
+                              size: 20,
+                              color: AppColors.brandPrimary,
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              'Pilih Rute Toko',
+                              style: TextStyle(
+                                fontFamily: 'PlusJakartaSans',
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.brandEspresso,
+                              ),
+                            ),
+                          ],
+                        ),
+                        IconButton(
+                          icon: const Icon(TablerIcons.x,
+                              size: 20, color: AppColors.brandWarmGray),
+                          onPressed: () => Navigator.of(ctx).pop(),
+                          splashRadius: 18,
+                          tooltip: 'Tutup',
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Pilih satu atau lebih rute toko mitra tujuan',
+                      style: TextStyle(
+                        fontFamily: 'PlusJakartaSans',
+                        fontSize: 12,
+                        color: AppColors.brandWarmGray,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Quick Actions Bar: Pilih Semua Rute & Reset
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        InkWell(
+                          onTap: () {
+                            setModalState(() {
+                              if (isAllRoutes) {
+                                tempSelected.clear();
+                              } else {
+                                tempSelected.addAll(_availableRoutes);
+                              }
+                            });
+                          },
+                          borderRadius: BorderRadius.circular(8),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 4),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 18,
+                                  height: 18,
+                                  decoration: BoxDecoration(
+                                    color: isAllRoutes
+                                        ? AppColors.brandPrimary
+                                        : Colors.white,
+                                    borderRadius: BorderRadius.circular(5),
+                                    border: Border.all(
+                                      color: isAllRoutes
+                                          ? AppColors.brandPrimary
+                                          : AppColors.brandBorder,
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  child: isAllRoutes
+                                      ? const Center(
+                                          child: Icon(TablerIcons.check,
+                                              size: 12, color: Colors.white),
+                                        )
+                                      : null,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  isAllRoutes
+                                      ? 'Batalkan Pilih Semua'
+                                      : 'Pilih Semua Rute',
+                                  style: TextStyle(
+                                    fontFamily: 'PlusJakartaSans',
+                                    fontSize: 12.5,
+                                    fontWeight: isAllRoutes
+                                        ? FontWeight.w700
+                                        : FontWeight.w600,
+                                    color: isAllRoutes
+                                        ? AppColors.brandPrimary
+                                        : AppColors.brandEspresso,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        if (tempSelected.isNotEmpty)
+                          TextButton(
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            onPressed: () {
+                              setModalState(() {
+                                tempSelected.clear();
+                              });
+                            },
+                            child: const Text(
+                              'Reset Pilihan',
+                              style: TextStyle(
+                                fontFamily: 'PlusJakartaSans',
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.error,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const Divider(height: 16, color: AppColors.brandBorder),
+
+                    // List Rute
+                    Expanded(
+                      child: _availableRoutes.isEmpty
+                          ? const Center(
+                              child: Text(
+                                'Tidak ada rute ditemukan',
+                                style: TextStyle(
+                                  fontFamily: 'PlusJakartaSans',
+                                  fontSize: 12.5,
+                                  color: AppColors.brandWarmGray,
+                                ),
+                              ),
+                            )
+                          : ListView.separated(
+                              shrinkWrap: true,
+                              itemCount: _availableRoutes.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(height: 6),
+                              itemBuilder: (context, index) {
+                                final route = _availableRoutes[index];
+                                final isSelected = tempSelected.contains(route);
+                                final storeCount = _allAvailableStores
+                                    .where((s) => s.route?.trim() == route)
+                                    .length;
+
+                                return InkWell(
+                                  onTap: () {
+                                    setModalState(() {
+                                      if (isSelected) {
+                                        tempSelected.remove(route);
+                                      } else {
+                                        tempSelected.add(route);
+                                      }
+                                    });
+                                  },
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 10),
+                                    decoration: BoxDecoration(
+                                      color: isSelected
+                                          ? AppColors.brandPrimary
+                                              .withValues(alpha: 0.08)
+                                          : Colors.white,
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                        color: isSelected
+                                            ? AppColors.brandPrimary
+                                            : AppColors.brandBorder,
+                                        width: isSelected ? 1.5 : 1.0,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 20,
+                                          height: 20,
+                                          decoration: BoxDecoration(
+                                            color: isSelected
+                                                ? AppColors.brandPrimary
+                                                : Colors.white,
+                                            borderRadius:
+                                                BorderRadius.circular(6),
+                                            border: Border.all(
+                                              color: isSelected
+                                                  ? AppColors.brandPrimary
+                                                  : AppColors.brandBorder,
+                                              width: 1.5,
+                                            ),
+                                          ),
+                                          child: isSelected
+                                              ? const Center(
+                                                  child: Icon(TablerIcons.check,
+                                                      size: 13,
+                                                      color: Colors.white),
+                                                )
+                                              : null,
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Text(
+                                            route,
+                                            style: TextStyle(
+                                              fontFamily: 'PlusJakartaSans',
+                                              fontSize: 13,
+                                              fontWeight: isSelected
+                                                  ? FontWeight.w700
+                                                  : FontWeight.w600,
+                                              color: isSelected
+                                                  ? AppColors.brandPrimary
+                                                  : AppColors.brandEspresso,
+                                            ),
+                                          ),
+                                        ),
+                                        if (storeCount > 0)
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 8, vertical: 2.5),
+                                            decoration: BoxDecoration(
+                                              color: isSelected
+                                                  ? AppColors.brandPrimary
+                                                      .withValues(alpha: 0.15)
+                                                  : const Color(0xFFF1F5F9),
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                            child: Text(
+                                              '$storeCount toko',
+                                              style: TextStyle(
+                                                fontFamily: 'PlusJakartaSans',
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w600,
+                                                color: isSelected
+                                                    ? AppColors.brandPrimary
+                                                    : AppColors.brandWarmGray,
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Tombol Aksi
+                    Row(
+                      children: [
+                        Expanded(
+                          child: AppButton.outline(
+                            text: 'Batal',
+                            height: 40,
+                            onPressed: () => Navigator.of(ctx).pop(),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: AppButton(
+                            text: tempSelected.isEmpty
+                                ? 'Tampilkan Semua'
+                                : 'Terapkan (${tempSelected.length} Rute)',
+                            height: 40,
+                            onPressed: () {
+                              setState(() {
+                                _selectedRoutes
+                                  ..clear()
+                                  ..addAll(tempSelected);
+                                _applyRouteFilter();
+                              });
+                              Navigator.of(ctx).pop();
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildRouteFilterSection() {
+    final hasSelectedRoutes = _selectedRoutes.isNotEmpty;
+
+    String displayText;
+    if (!hasSelectedRoutes) {
+      displayText = 'Semua Rute (Ketuk untuk filter rute)';
+    } else if (_selectedRoutes.length == 1) {
+      displayText = 'Rute: ${_selectedRoutes.first}';
+    } else {
+      displayText =
+          '${_selectedRoutes.length} Rute Terpilih (${_selectedRoutes.join(', ')})';
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        InkWell(
+          onTap: _openRouteSelectionDialog,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: hasSelectedRoutes
+                  ? AppColors.brandPrimary.withValues(alpha: 0.05)
+                  : AppColors.background,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: hasSelectedRoutes
+                    ? AppColors.brandPrimary
+                    : AppColors.brandBorder,
+                width: hasSelectedRoutes ? 1.4 : 1.0,
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  TablerIcons.route,
+                  size: 20,
+                  color: hasSelectedRoutes
+                      ? AppColors.brandPrimary
+                      : AppColors.brandWarmGray,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    displayText,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: 'PlusJakartaSans',
+                      fontSize: 13,
+                      fontWeight: hasSelectedRoutes
+                          ? FontWeight.w700
+                          : FontWeight.w600,
+                      color: hasSelectedRoutes
+                          ? AppColors.brandPrimary
+                          : AppColors.brandWarmGray,
+                    ),
+                  ),
+                ),
+                if (hasSelectedRoutes) ...[
+                  GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _selectedRoutes.clear();
+                        _applyRouteFilter();
+                      });
+                    },
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 4.0),
+                      child: Icon(
+                        TablerIcons.x,
+                        size: 16,
+                        color: AppColors.brandWarmGray,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                ],
+                const Icon(
+                  TablerIcons.chevron_down,
+                  size: 18,
+                  color: AppColors.brandWarmGray,
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (hasSelectedRoutes) ...[
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: _selectedRoutes.map((route) {
+              final count = _allAvailableStores
+                  .where((s) => s.route?.trim() == route)
+                  .length;
+              return Container(
+                padding: const EdgeInsets.fromLTRB(10, 4, 6, 4),
+                decoration: BoxDecoration(
+                  color: AppColors.brandSoftCream,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: AppColors.brandPrimary.withValues(alpha: 0.35),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      TablerIcons.route,
+                      size: 12,
+                      color: AppColors.brandPrimary,
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      count > 0 ? '$route ($count)' : route,
+                      style: const TextStyle(
+                        fontFamily: 'PlusJakartaSans',
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.brandPrimary,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _selectedRoutes.remove(route);
+                          _applyRouteFilter();
+                        });
+                      },
+                      child: const Padding(
+                        padding: EdgeInsets.all(2.0),
+                        child: Icon(
+                          TablerIcons.x,
+                          size: 13,
+                          color: AppColors.brandWarmGray,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ],
+    );
   }
 
   void _toggleStore(StoreModel store) {
@@ -380,64 +860,8 @@ class _StoreMultiSearchSelectionDialogState
             ),
             const SizedBox(height: 14),
 
-            // 2. Input Pencarian
-            TextField(
-              controller: _searchController,
-              onChanged: _onSearchChanged,
-              style: const TextStyle(
-                fontFamily: 'PlusJakartaSans',
-                fontSize: 13,
-                color: AppColors.brandEspresso,
-              ),
-              decoration: InputDecoration(
-                hintText: 'Cari nama toko, pemilik, alamat, rute...',
-                hintStyle: const TextStyle(
-                  fontFamily: 'PlusJakartaSans',
-                  fontSize: 13,
-                  color: AppColors.brandWarmGray,
-                ),
-                filled: true,
-                fillColor: AppColors.background,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 12,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.brandBorder),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.brandBorder),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(
-                    color: AppColors.brandPrimary,
-                    width: 1.5,
-                  ),
-                ),
-                prefixIcon: const Icon(
-                  TablerIcons.search,
-                  size: 18,
-                  color: AppColors.brandWarmGray,
-                ),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(
-                          TablerIcons.x,
-                          size: 16,
-                          color: AppColors.brandWarmGray,
-                        ),
-                        splashRadius: 16,
-                        onPressed: () {
-                          _searchController.clear();
-                          _loadStores(page: 1, isInitial: true);
-                        },
-                      )
-                    : null,
-              ),
-            ),
+            // 2. Filter Select Rute (Multiple Rute)
+            _buildRouteFilterSection(),
             const SizedBox(height: 12),
 
             // Select All Checkbox Bar
@@ -640,7 +1064,7 @@ class _StoreMultiSearchSelectionDialogState
     }
 
     if (_stores.isEmpty) {
-      final query = _searchController.text.trim();
+      final hasSelectedRoutes = _selectedRoutes.isNotEmpty;
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -654,8 +1078,8 @@ class _StoreMultiSearchSelectionDialogState
               ),
               const SizedBox(height: 8),
               Text(
-                query.isNotEmpty
-                    ? 'Tidak ditemukan mitra toko dengan kata kunci "$query".'
+                hasSelectedRoutes
+                    ? 'Tidak ditemukan mitra toko pada rute terpilih.'
                     : 'Belum ada data mitra toko.',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
